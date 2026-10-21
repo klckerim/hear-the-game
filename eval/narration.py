@@ -110,7 +110,7 @@ def mutation_part(items: list[tuple[dict, list[str]]]) -> list[str]:
             *rows, "", f"Unmutated template sentences accepted: {clean} of {2 * len(items)} (must be all).", ""]
 
 
-def main(seeds: list[int], limit: int, mode: str) -> None:
+def main(seeds: list[int], limit: int, mode: str, out: Path = RESULTS) -> None:
     load_env()
     items = sample(seeds, limit, mode)
     azure = os.environ.get("HTG_ENV") == "azure"
@@ -118,8 +118,8 @@ def main(seeds: list[int], limit: int, mode: str) -> None:
              f"Seeds {seeds[0]}-{seeds[-1]} (reporting seeds), mode `{mode}`, {len(items)} spoken Insights sampled evenly.", ""]
     lines += live_part(items) if azure else ["## Live model and voice", "", "Not run (needs `HTG_ENV=azure`).", ""]
     lines += mutation_part(items)
-    RESULTS.parent.mkdir(exist_ok=True)
-    RESULTS.write_text("\n".join(lines))
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(lines))
     print("\n".join(lines))
 
 
@@ -128,5 +128,6 @@ if __name__ == "__main__":
     ap.add_argument("--seeds", default="11-30")
     ap.add_argument("--limit", type=int, default=100)
     ap.add_argument("--mode", default="casual")
+    ap.add_argument("--out", type=Path, default=RESULTS)
     a = ap.parse_args()
-    main(parse_seeds(a.seeds), a.limit, a.mode)
+    main(parse_seeds(a.seeds), a.limit, a.mode, a.out)

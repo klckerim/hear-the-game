@@ -9,6 +9,7 @@ param location string = 'swedencentral'
 @description('Foundry project endpoint and model deployment already created by the owner')
 param foundryEndpoint string
 param foundryModel string = 'gpt-5-mini'
+param foundryReasoningEffort string = 'minimal'
 param speechEndpoint string
 param speechRegion string
 param speechResourceId string
@@ -29,6 +30,7 @@ module app 'app.bicep' = {
     location: location
     foundryEndpoint: foundryEndpoint
     foundryModel: foundryModel
+    foundryReasoningEffort: foundryReasoningEffort
     speechEndpoint: speechEndpoint
     speechRegion: speechRegion
     speechResourceId: speechResourceId

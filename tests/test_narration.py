@@ -89,3 +89,14 @@ def test_ssml_escapes_and_aliases(monkeypatch):
     monkeypatch.setitem(azure.ALIASES, "tr", {"Usta": "Usta"})
     out = azure.ssml("Usta & Kurt <3", "tr", "tr-TR-EmelNeural")
     assert "&amp;" in out and "&lt;3" in out and '<sub alias="Usta">Usta</sub>' in out and 'xml:lang="tr-TR"' in out
+
+
+def test_demo_cache_fingerprints_unchanged():
+    """The committed seed-7 demo cache must keep hitting: prompt version, model name and fingerprint inputs stay as generated."""
+    from htg.narration.pregen import spoken_insights
+    from htg.narration.service import CACHE_DIR
+
+    _, spoken = spoken_insights(7, "casual")
+    window = [ins for t, ins in spoken if 13 * 60 <= t < 23 * 60]
+    assert window
+    assert all((CACHE_DIR / f"{fingerprint(ins, 'foundry:gpt-5-mini')}.json").exists() for ins in window)

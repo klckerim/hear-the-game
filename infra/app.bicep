@@ -1,6 +1,7 @@
 param location string
 param foundryEndpoint string
 param foundryModel string
+param foundryReasoningEffort string
 param speechEndpoint string
 param speechRegion string
 param speechResourceId string
@@ -76,6 +77,8 @@ resource engine 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'HTG_ENV', value: 'azure' }
           { name: 'FOUNDRY_PROJECT_ENDPOINT', value: foundryEndpoint }
           { name: 'FOUNDRY_MODEL', value: foundryModel }
+          { name: 'FOUNDRY_REASONING_EFFORT', value: foundryReasoningEffort }
+          { name: 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT', value: 'true' } // inputs are synthetic claim_facts only
           { name: 'SPEECH_ENDPOINT', value: speechEndpoint }
           { name: 'SPEECH_REGION', value: speechRegion }
           { name: 'SPEECH_RESOURCE_ID', value: speechResourceId }

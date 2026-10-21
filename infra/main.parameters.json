@@ -6,6 +6,7 @@
     "location": { "value": "${AZURE_LOCATION}" },
     "foundryEndpoint": { "value": "${FOUNDRY_PROJECT_ENDPOINT}" },
     "foundryModel": { "value": "${FOUNDRY_MODEL=gpt-5-mini}" },
+    "foundryReasoningEffort": { "value": "${FOUNDRY_REASONING_EFFORT=minimal}" },
     "speechEndpoint": { "value": "${SPEECH_ENDPOINT}" },
     "speechRegion": { "value": "${SPEECH_REGION}" },
     "speechResourceId": { "value": "${SPEECH_RESOURCE_ID}" }
