@@ -19,7 +19,12 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Demo cache for seed 7 generated with Azure (33 sentences x EN+TR, all first-pass `llm`, 2.4 MB) and committed (`3fb901c`). Owner listened to most clips.
 - Known quality nits (not fixed): awkward chance/danger sentences ("17 - The Reds chance", "danger level 90"); voices are neutral (no SSML styles, deliberate cut).
   Optional small PR later: radio-tone prompt + faster/higher SSML for goals. If names need `ALIASES`, regenerate and drop stale clips from `data/cache/audio`.
-- Next: PR 3 (live wiring in `run_local`, `web/live.html` language selector + clip playback with ducking, `eval/narration.py`, README commands).
+- PR 3 done: `services/engine/resolve.py` (cache first, 4 s deadline, template fallback, stale non-goal speech dropped after 8 s), `speech` message now has
+  `source`, `audio`, `duration_s`; `web/live.html` plays Azure clips on an un-ducked voice bus with "doğrulandı/verified" vs "şablon/template" tag;
+  `eval/narration.py` -> `eval/results/narration.md` (100 Insights, seeds 11-30): first-pass Verifier 100% EN and TR, fallback 0%, mutation catch rate 100% (synthetic).
+- **Finding:** model latency is p50 10.7 s / p95 17.4 s (gpt-5-mini, EN+TR in one call), TTS p50 0.4 s. A live cache miss therefore usually exceeds the 4 s deadline and
+  falls back to template text; the demo relies on the pre-generated cache. Say so in the README; a faster non-reasoning model would fix it if live narration matters.
+- Browser playback of Azure clips is not yet listened to end-to-end by the owner.
 
 ## In progress
 - Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.

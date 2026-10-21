@@ -83,8 +83,22 @@ open web/live.html                                                         # the
 ```
 
 The server waits for the first listener, then replays the match in real time. The browser makes all sound itself from the
-state packets; narration is the deterministic template sentence (EN/TR) read by the browser's own voice until Azure Speech lands.
+state packets. By default narration is the deterministic template sentence (EN/TR) read by the browser's own voice.
 `--mode eyes_free|casual|analyst` sets how often the Director may speak; `--speed 4` fast-forwards.
+
+### Verified narration and Azure voices
+
+```bash
+pip install -e ".[azure]" && az login                  # fill .env from .env.example (Foundry + Speech endpoints)
+HTG_ENV=azure python -m htg.narration.pregen --seed 7  # model writes EN+TR, Verifier checks, Azure voices MP3 -> data/cache/
+HTG_ENV=azure python -m services.engine.run_local --seed 7 --start-minute 13   # plays cached clips; a cache miss gets 4 s, then falls back
+HTG_ENV=azure python -m eval.narration --seeds 11-30 --limit 100              # writes eval/results/narration.md
+```
+
+The model only turns computed facts into one sentence per language; a plain-Python Verifier rejects any number, name, cause or
+medical claim that is not in the facts, and a rejected sentence falls back to the template. The demo match (seed 7) is pre-generated and
+committed under `data/cache/`, so the demo never waits for a model. The page shows "doğrulandı / verified" for model text and
+"şablon / template" for the fallback.
 
 ## Repository layout
 

@@ -47,7 +47,7 @@ def narrate_insight(insight: dict, narrator: Narrator, names: list[str], cache_d
     t0 = time.perf_counter()
     text: dict[str, str] = {}
     reasons: dict[str, list[str]] = {}
-    attempts, errored, feedback = 0, False, None
+    attempts, errored, feedback, first_pass = 0, False, None, {}
     for _ in range(2):
         attempts += 1
         try:
@@ -56,6 +56,8 @@ def narrate_insight(insight: dict, narrator: Narrator, names: list[str], cache_d
             errored, reasons["error"] = True, [f"{type(e).__name__}: {e}"[:200]]
             break
         feedback = {}
+        if attempts == 1:
+            first_pass = {lang: not verify(str(draft.get(lang, "")), lang, insight, names) for lang in LANGS}
         for lang in LANGS:
             if lang in text:
                 continue
@@ -70,7 +72,8 @@ def narrate_insight(insight: dict, narrator: Narrator, names: list[str], cache_d
     source = {lang: "llm" if lang in text and narrator.name != "template" else "template" for lang in LANGS}
     for lang in LANGS:
         text.setdefault(lang, narrate(insight, lang))
-    result = {"en": text["en"], "tr": text["tr"], "source": source, "attempts": attempts, "reasons": reasons,
+    result = {"en": text["en"], "tr": text["tr"], "source": source, "attempts": attempts, "first_pass": first_pass,
+              "reasons": reasons,
               "latency_s": round(time.perf_counter() - t0, 3)}
     if not errored:
         cache_dir.mkdir(parents=True, exist_ok=True)
