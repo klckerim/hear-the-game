@@ -167,7 +167,7 @@ const UI = { tr: { idle: "Dinlemeye başla", stop: "Durdur", off: "Bağlı deği
 const lang = () => $("lang").value;
 
 /* ---------------- audio ---------------- */
-let ctx, master, duck, noiseBuf, waves, session = null;
+let ctx, master, duck, voiceBus, noiseBuf, waves, session = null, clip = null;
 const layerOn = () => ({ ball: $("L_ball").checked, press: $("L_press").checked, crowd: $("L_crowd").checked,
   cue: $("L_cue").checked, voice: $("L_voice").checked });
 
@@ -178,7 +178,8 @@ function initAudio() {
   comp.threshold.value = -14; comp.ratio.value = 4;
   master = ctx.createGain(); master.gain.value = 0.9;
   duck = ctx.createGain();
-  duck.connect(master); master.connect(comp); comp.connect(ctx.destination);
+  voiceBus = ctx.createGain();  // narration clips bypass the duck gain, so only the sound under the voice gets quieter
+  duck.connect(master); voiceBus.connect(master); master.connect(comp); comp.connect(ctx.destination);
   noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
   const nd = noiseBuf.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
@@ -351,8 +352,16 @@ function cue(m, a) {
 }
 function speech(m, a) {
   const text = m.text[lang()];
-  setTimeout(() => { if (live.ws) say(text); }, Math.max(0, (a - ctx.currentTime) * 1000));
+  m.buf = decodeClip(m, lang());  // decode ahead; the clip plays when its match time arrives
+  setTimeout(() => { if (live.ws) say(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
   addLog(m.t, null, "🎙 " + text, a);
+}
+function decodeClip(m, l) {
+  const b64 = m.audio && m.audio[l];
+  if (!b64) return Promise.resolve(null);
+  const bin = atob(b64), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return ctx.decodeAudioData(bytes.buffer).catch(() => null);
 }
 function addLog(t, team, label, a) {
   setTimeout(() => {
@@ -370,24 +379,36 @@ function pickVoices() {
   const vs = speechSynthesis.getVoices();
   voiceFor.tr = vs.find(v => v.lang && v.lang.toLowerCase().startsWith("tr"));
   voiceFor.en = vs.find(v => /en[-_]gb/i.test(v.lang)) || vs.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
-  $("voiceNote").textContent = voiceFor[lang()] ? "Ses: " + voiceFor[lang()].name + " (cihazının sesi; Gün 3'te Azure neural TTS)." : UI[lang()].novoice;
+  $("voiceNote").textContent = voiceFor[lang()] ? "Ses: " + voiceFor[lang()].name + " (cihaz sesi; sunucu Azure klibi gönderirse o çalar)." : UI[lang()].novoice;
 }
 function primeVoice() { if ("speechSynthesis" in window) speechSynthesis.speak(new SpeechSynthesisUtterance("")); }  // unlock on the user gesture
 function setCaption(text, liveNow) { $("captionText").textContent = text; $("captionTag").classList.toggle("idle", !liveNow); }
 function duckTo(v) { if (duck) duck.gain.setTargetAtTime(v, ctx.currentTime, 0.08); }
-function say(text) {
+const TAG = { tr: { llm: "doğrulandı", template: "şablon" }, en: { llm: "verified", template: "template" } };
+async function say(m) {
+  const l = lang(), text = m.text[l];
   setCaption(text, true);
+  $("captionTag").textContent = TAG[l][(m.source && m.source[l]) || "template"];
   const finish = () => { duckTo(1); setTimeout(() => $("captionTag").classList.add("idle"), 400); };
   if (!$("L_voice").checked) return;
   duckTo(0.3);
-  const v = voiceFor[lang()];
+  const buf = await (m.buf || decodeClip(m, l));
+  if (buf && ctx) {  // Azure clip from the server
+    stopClip();
+    const src = ctx.createBufferSource(); src.buffer = buf; src.connect(voiceBus);
+    src.onended = () => { if (clip === src) { clip = null; finish(); } };
+    clip = src; src.start();
+    return;
+  }
+  const v = voiceFor[l];
   if ("speechSynthesis" in window && v) {
     const u = new SpeechSynthesisUtterance(text);
     u.voice = v; u.lang = v.lang; u.rate = 1.05; u.onend = finish; u.onerror = finish;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   } else { clearTimeout(fallbackTimer); fallbackTimer = setTimeout(finish, text.length * 70); }
 }
-function stopSpeech() { if ("speechSynthesis" in window) speechSynthesis.cancel(); clearTimeout(fallbackTimer); duckTo(1); }
+function stopClip() { const c = clip; clip = null; if (c) { c.onended = null; try { c.stop(); } catch (e) {} } }
+function stopSpeech() { stopClip(); if ("speechSynthesis" in window) speechSynthesis.cancel(); clearTimeout(fallbackTimer); duckTo(1); }
 
 /* ---------------- drawing ---------------- */
 const pc = $("pitch");

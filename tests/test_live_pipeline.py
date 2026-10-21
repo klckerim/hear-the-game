@@ -7,7 +7,7 @@ from jsonschema import Draft202012Validator
 
 from htg.adapters.local import WebSocketBroadcaster
 from htg.replay import iter_items
-from services.engine.run_local import LivePipeline
+from services.engine.run_local import LivePipeline, warm_up
 
 SCHEMAS = Path(__file__).resolve().parents[1] / "schemas"
 
@@ -57,3 +57,51 @@ def test_broadcaster_waits_for_listener_and_delivers():
         await bus.close()
 
     asyncio.run(go())
+
+
+def test_warm_up_matches_full_run(synth_dir):
+    meta = json.loads((synth_dir / "meta.json").read_text())
+    full = LivePipeline(meta)
+    expected = [m for item in iter_items(synth_dir) for m in full.feed(item) if item.t >= 600.0]
+    warm = LivePipeline(meta)
+    warm_up(warm, synth_dir, 10)
+    got = [m for item in iter_items(synth_dir, 10) for m in warm.feed(item)]
+    assert got == expected
+    assert any(m["type"] == "insight" for m in got)
+
+
+def test_resolver_uses_service_and_falls_back_on_timeout(synth_dir, tmp_path, monkeypatch):
+    import base64
+    import time
+
+    from htg.narration import service
+    from services.engine.resolve import SpeechResolver, is_stale
+
+    monkeypatch.setattr("services.engine.resolve.narrate_insight", lambda i, n, names: service.narrate_insight(i, n, names, tmp_path))
+    meta = json.loads((synth_dir / "meta.json").read_text())
+    pipe = LivePipeline(meta)
+    msgs = [m for item in iter_items(synth_dir) for m in pipe.feed(item)]
+    ins = {m["insight"]["insight_id"]: m["insight"] for m in msgs if m["type"] == "insight"}
+    sp = next(m for m in msgs if m["type"] == "speech")
+
+    class Voice:
+        def synthesize(self, text, lang):
+            return b"x" * 6000
+
+    from htg.adapters.local import NoSpeech, TemplateNarrator
+    names = service.known_names(meta)
+    ok = asyncio.run(SpeechResolver(TemplateNarrator(), Voice(), names, True).resolve(sp, ins[sp["insight_id"]]))
+    assert base64.b64decode(ok["audio"]["tr"]) == b"x" * 6000 and ok["duration_s"]["en"] == 1.0 and ok["text"]["en"]
+
+    class Slow(Voice):
+        def synthesize(self, text, lang):
+            time.sleep(0.5)
+
+    slow = SpeechResolver(TemplateNarrator(), Slow(), names, True, timeout=0.05)
+    late = asyncio.run(slow.resolve(sp, ins[sp["insight_id"]]))
+    assert late["audio"] == {"en": None, "tr": None} and late["text"] == sp["text"]
+    assert late["source"] == {"en": "template", "tr": "template"}
+    local = asyncio.run(SpeechResolver(TemplateNarrator(), NoSpeech(), names, False).resolve(sp, ins[sp["insight_id"]]))
+    assert local["text"] == sp["text"] and local["audio"]["en"] is None
+    assert is_stale({"priority": 3, "t": 10}, 19) and not is_stale({"priority": 3, "t": 10}, 17)
+    assert not is_stale({"priority": 5, "t": 10}, 99)

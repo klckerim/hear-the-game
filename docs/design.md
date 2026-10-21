@@ -153,7 +153,7 @@ Canlı veri tek bir WebSocket kanalından, diğer her şey küçük bir REST API
 | --- | --- | --- | --- |
 | `state` | Saniyede 10 | `t`, `x`, `y`, `team`, `in_play`, `danger`, `pressure`, `pan`, `tempo` (\~80 bayt) | Maç grubundaki herkes |
 | `event_cue` | Olay başına | `t`, `sound` (pass, shot, save, goal, whistle), `pan`, `team`, `player_id` | Maç grubundaki herkes |
-| `speech` | Anlatım başına | `t`, `insight_id`, `lang`, `mode`, `text`, `audio` (base64 klip), `duration_s`, `priority` | Dil ve mod alt grubu |
+| `speech` | Anlatım başına | `t`, `insight_id`, `priority`, `evidence`, `text`, `source` (`llm` doğrulanmış / `template`), `audio` (base64 MP3 veya `null`), `duration_s` (hackathon sürümünde iki dil de tek mesajda: alanlar `{en, tr}` sözlüğü; `lang`/`mode` alt grupları üretim yolu) | Dil ve mod alt grubu |
 | `insight` | Insight başına | `insight.schema.json` nesnesi | Analist alt grubu |
 | `control` | Nadiren | `kind` (kickoff, halftime, end, resync) | Maç grubundaki herkes |
 

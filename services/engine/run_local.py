@@ -8,23 +8,28 @@ Messages (JSON, one per WebSocket frame):
     state      batch of 10 Hz state packets, every ~200 ms of match time
     event_cue  one sound cue (pass, shot, save, goal, whistle ...)
     insight    a detected Insight (for the log)
-    speech     the Insight the Director decided to tell now, template text in EN and TR
+    speech     the Insight the Director decided to tell now: text, source ("llm" verified / "template") and base64 MP3 audio
+               per language, duration_s per language. Resolved in the background (cache first, 4 s deadline), never blocks the replay.
 """
 from __future__ import annotations
 
 import argparse
 import asyncio
 import json
+import os
 from pathlib import Path
 from typing import Any
 
-from htg.adapters.local import FileEventSource, WebSocketBroadcaster
+from htg.adapters.local import FileEventSource, NoSpeech, TemplateNarrator, WebSocketBroadcaster
 from htg.engine.detectors import Detectors
 from htg.engine.director import SILENCE_S, decide
 from htg.engine.state import StateEngine
+from htg.env import load_env
 from htg.generate import OUT_DIR, generate
+from htg.narration.service import get_narrator, known_names
 from htg.narration.templates import narrate
-from htg.replay import Item
+from htg.replay import Item, iter_items
+from services.engine.resolve import SpeechResolver, is_stale
 
 BATCH_FRAMES = 2  # 10 Hz frames per `state` message = 200 ms
 CUES = {"pass", "shot", "save", "goal", "out", "foul", "kickoff", "restart"}
@@ -81,20 +86,62 @@ class LivePipeline:
         return out
 
 
+def warm_up(pipe: LivePipeline, match_dir: Path, start_minute: float) -> None:
+    """Feed everything before `start_minute` through the pipeline unpaced and unpublished, so windows and baselines are filled."""
+    t0 = start_minute * 60.0
+    for item in iter_items(match_dir):
+        if item.t >= t0:
+            break
+        pipe.feed(item)
+
+
+def make_resolver(meta: dict) -> SpeechResolver:
+    """HTG_ENV=azure: Foundry text + Azure voice (cache first). Anything else, or no credentials: templates, browser voice."""
+    names = known_names(meta)
+    if os.environ.get("HTG_ENV") == "azure":
+        try:
+            from htg.speech.azure import AzureSpeech
+
+            return SpeechResolver(get_narrator(), AzureSpeech(), names, True)
+        except Exception as e:
+            print(f"Azure adapters unavailable ({type(e).__name__}); using templates and browser voice.")
+    return SpeechResolver(TemplateNarrator(), NoSpeech(), names, False)
+
+
 async def main(seed: int, speed: float, start_minute: float, mode: str, port: int) -> None:
     match_dir = OUT_DIR / f"match_{seed:04d}"
     if not match_dir.exists():
         match_dir = generate(seed)
+    load_env()
     meta = json.loads((Path(match_dir) / "meta.json").read_text())
-    pipe, bus = LivePipeline(meta, mode, speed), WebSocketBroadcaster(port=port)
+    pipe, bus, resolver = LivePipeline(meta, mode, speed), WebSocketBroadcaster(port=port), make_resolver(meta)
     await bus.start()
     print(f"seed {seed}, speed {speed}x, from minute {start_minute}, mode {mode}. Open web/live.html (ws://localhost:{bus.port}).")
     print("Waiting for a listener...")
     await bus.wait_for_client()
+    warm_up(pipe, match_dir, start_minute)
     await bus.publish(pipe.hello())
+    insights: dict[str, dict] = {}
+    tasks: set[asyncio.Task] = set()
+    now = start_minute * 60.0
+
+    async def deliver(msg: dict) -> None:
+        final = await resolver.resolve(msg, insights[msg["insight_id"]])
+        if not is_stale(final, now):
+            await bus.publish(final)
+
     async for item in FileEventSource(match_dir, speed, start_minute):
+        now = item.t
         for msg in pipe.feed(item):
+            if msg["type"] == "speech":
+                task = asyncio.create_task(deliver(msg))
+                tasks.add(task)
+                task.add_done_callback(tasks.discard)
+                continue
+            if msg["type"] == "insight":
+                insights[msg["insight"]["insight_id"]] = msg["insight"]
             await bus.publish(msg)
+    await asyncio.gather(*tasks)
     await bus.close()
     print("Match finished.")
 
