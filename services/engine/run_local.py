@@ -24,7 +24,7 @@ from htg.engine.director import SILENCE_S, decide
 from htg.engine.state import StateEngine
 from htg.generate import OUT_DIR, generate
 from htg.narration.templates import narrate
-from htg.replay import Item
+from htg.replay import Item, iter_items
 
 BATCH_FRAMES = 2  # 10 Hz frames per `state` message = 200 ms
 CUES = {"pass", "shot", "save", "goal", "out", "foul", "kickoff", "restart"}
@@ -81,6 +81,15 @@ class LivePipeline:
         return out
 
 
+def warm_up(pipe: LivePipeline, match_dir: Path, start_minute: float) -> None:
+    """Feed everything before `start_minute` through the pipeline unpaced and unpublished, so windows and baselines are filled."""
+    t0 = start_minute * 60.0
+    for item in iter_items(match_dir):
+        if item.t >= t0:
+            break
+        pipe.feed(item)
+
+
 async def main(seed: int, speed: float, start_minute: float, mode: str, port: int) -> None:
     match_dir = OUT_DIR / f"match_{seed:04d}"
     if not match_dir.exists():
@@ -91,6 +100,7 @@ async def main(seed: int, speed: float, start_minute: float, mode: str, port: in
     print(f"seed {seed}, speed {speed}x, from minute {start_minute}, mode {mode}. Open web/live.html (ws://localhost:{bus.port}).")
     print("Waiting for a listener...")
     await bus.wait_for_client()
+    warm_up(pipe, match_dir, start_minute)
     await bus.publish(pipe.hello())
     async for item in FileEventSource(match_dir, speed, start_minute):
         for msg in pipe.feed(item):

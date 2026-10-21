@@ -7,7 +7,7 @@ from jsonschema import Draft202012Validator
 
 from htg.adapters.local import WebSocketBroadcaster
 from htg.replay import iter_items
-from services.engine.run_local import LivePipeline
+from services.engine.run_local import LivePipeline, warm_up
 
 SCHEMAS = Path(__file__).resolve().parents[1] / "schemas"
 
@@ -57,3 +57,14 @@ def test_broadcaster_waits_for_listener_and_delivers():
         await bus.close()
 
     asyncio.run(go())
+
+
+def test_warm_up_matches_full_run(synth_dir):
+    meta = json.loads((synth_dir / "meta.json").read_text())
+    full = LivePipeline(meta)
+    expected = [m for item in iter_items(synth_dir) for m in full.feed(item) if item.t >= 600.0]
+    warm = LivePipeline(meta)
+    warm_up(warm, synth_dir, 10)
+    got = [m for item in iter_items(synth_dir, 10) for m in warm.feed(item)]
+    assert got == expected
+    assert any(m["type"] == "insight" for m in got)
