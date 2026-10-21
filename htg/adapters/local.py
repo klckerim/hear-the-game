@@ -28,10 +28,14 @@ class WebSocketBroadcaster:
         self.host, self.port = host, port
         self._clients: set[ServerConnection] = set()
         self._server: Server | None = None
+        self._connected = asyncio.Event()
 
     async def start(self) -> None:
         self._server = await websockets.serve(self._handle, self.host, self.port)
         self.port = self._server.sockets[0].getsockname()[1]  # real port when started with port=0
+
+    async def wait_for_client(self) -> None:
+        await self._connected.wait()
 
     async def close(self) -> None:
         if self._server:
@@ -40,6 +44,7 @@ class WebSocketBroadcaster:
 
     async def _handle(self, ws: ServerConnection) -> None:
         self._clients.add(ws)
+        self._connected.set()
         try:
             async for _ in ws:
                 pass

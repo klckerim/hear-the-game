@@ -75,6 +75,17 @@ ruff check . && pytest
 
 Calibration is already committed, so `htg.generate` works without downloading anything. Matches are deterministic per seed, so only seeds 1-3 are committed as samples; the rest regenerate byte-for-byte. Copy `.env.example` to `.env` once Azure resources exist (day 3 onward).
 
+## Run it locally
+
+```bash
+python -m services.engine.run_local --seed 1 --speed 1 --start-minute 10   # streams to ws://localhost:8765
+open web/live.html                                                         # then press "Dinlemeye başla" (audio needs a click)
+```
+
+The server waits for the first listener, then replays the match in real time. The browser makes all sound itself from the
+state packets; narration is the deterministic template sentence (EN/TR) read by the browser's own voice until Azure Speech lands.
+`--mode eyes_free|casual|analyst` sets how often the Director may speak; `--speed 4` fast-forwards.
+
 ## Repository layout
 
 ```
