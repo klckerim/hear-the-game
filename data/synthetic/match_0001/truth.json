@@ -1,0 +1,51 @@
+{
+ "match_id": "synth_0001",
+ "scenarios": [
+  {
+   "id": "S1",
+   "type": "press_increase",
+   "team": "AWAY",
+   "start": 1061,
+   "end": 1781,
+   "params": {
+    "factor": 1.9
+   },
+   "describe": "AWAY presses much harder (out of possession)"
+  },
+  {
+   "id": "S2",
+   "type": "flank_overload",
+   "team": "AWAY",
+   "start": 2055,
+   "end": 2655,
+   "params": {
+    "side": "right",
+    "bias": 4.0
+   },
+   "describe": "AWAY pushes play down its right flank"
+  },
+  {
+   "id": "S3",
+   "type": "tempo_drop",
+   "team": "AWAY",
+   "start": 3307,
+   "end": 3907,
+   "params": {
+    "factor": 1.8
+   },
+   "describe": "AWAY slows its possession play"
+  },
+  {
+   "id": "S4",
+   "type": "fatigue",
+   "team": "AWAY",
+   "player_id": "A06",
+   "start": 4217,
+   "end": 5400,
+   "params": {
+    "factor": 0.55
+   },
+   "describe": "Silva (AWAY) tires"
+  }
+ ]
+}

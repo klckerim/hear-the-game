@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hear-the-game/schemas/insight.schema.json",
+  "title": "Insight",
+  "description": "A detected, evidence-backed statement about the match. Produced by deterministic detectors. The LLM only ever sees claim_facts and must not introduce any number that is not in it.",
+  "type": "object",
+  "required": ["insight_id", "match_id", "t", "type", "team", "claim_facts", "evidence", "confidence", "priority", "expires_at"],
+  "additionalProperties": false,
+  "properties": {
+    "insight_id": {"type": "string"},
+    "match_id": {"type": "string"},
+    "t": {"type": "number", "minimum": 0},
+    "type": {"type": "string", "enum": ["pressure_shift", "tempo_change", "flank_overload", "physical_drop", "danger_peak", "milestone", "goal", "chance"]},
+    "team": {"type": ["string", "null"], "enum": ["HOME", "AWAY", null]},
+    "player_id": {"type": ["string", "null"]},
+    "claim_facts": {"type": "object", "description": "Every number the narration is allowed to use.", "additionalProperties": {"type": ["number", "string", "boolean"]}},
+    "evidence": {"type": "array", "items": {"type": "integer"}, "minItems": 1, "description": "Event seq numbers that support the claim."},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "priority": {"type": "integer", "minimum": 1, "maximum": 5, "description": "5 = must be told now (goal), 1 = filler."},
+    "expires_at": {"type": "number", "minimum": 0, "description": "Match time after which telling it is stale."}
+  }
+}

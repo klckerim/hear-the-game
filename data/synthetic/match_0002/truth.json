@@ -1,0 +1,51 @@
+{
+ "match_id": "synth_0002",
+ "scenarios": [
+  {
+   "id": "S1",
+   "type": "press_increase",
+   "team": "HOME",
+   "start": 835,
+   "end": 1555,
+   "params": {
+    "factor": 1.9
+   },
+   "describe": "HOME presses much harder (out of possession)"
+  },
+  {
+   "id": "S2",
+   "type": "flank_overload",
+   "team": "HOME",
+   "start": 1991,
+   "end": 2591,
+   "params": {
+    "side": "left",
+    "bias": 4.0
+   },
+   "describe": "HOME pushes play down its left flank"
+  },
+  {
+   "id": "S3",
+   "type": "tempo_drop",
+   "team": "HOME",
+   "start": 3480,
+   "end": 4080,
+   "params": {
+    "factor": 1.8
+   },
+   "describe": "HOME slows its possession play"
+  },
+  {
+   "id": "S4",
+   "type": "fatigue",
+   "team": "AWAY",
+   "player_id": "A09",
+   "start": 3833,
+   "end": 5400,
+   "params": {
+    "factor": 0.55
+   },
+   "describe": "Baptiste (AWAY) tires"
+  }
+ ]
+}

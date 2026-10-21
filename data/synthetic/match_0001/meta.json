@@ -1,0 +1,228 @@
+{
+ "match_id": "synth_0001",
+ "seed": 1,
+ "duration_s": 5400.0,
+ "hz": 10,
+ "calibration_version": "6830826a016b",
+ "synthetic": true,
+ "teams": {
+  "HOME": {
+   "name": {
+    "tr": "Kırmızılar",
+    "en": "the Reds"
+   },
+   "color": "red",
+   "attacks_towards_x": 105,
+   "players": [
+    {
+     "player_id": "H01",
+     "name": "Usta",
+     "role": "GK",
+     "anchor": [
+      5,
+      34
+     ]
+    },
+    {
+     "player_id": "H02",
+     "name": "Aksoy",
+     "role": "FB",
+     "anchor": [
+      30,
+      58
+     ]
+    },
+    {
+     "player_id": "H03",
+     "name": "Demir",
+     "role": "CB",
+     "anchor": [
+      25,
+      44
+     ]
+    },
+    {
+     "player_id": "H04",
+     "name": "Toprak",
+     "role": "CB",
+     "anchor": [
+      25,
+      24
+     ]
+    },
+    {
+     "player_id": "H05",
+     "name": "Kurt",
+     "role": "FB",
+     "anchor": [
+      30,
+      10
+     ]
+    },
+    {
+     "player_id": "H06",
+     "name": "Kaya",
+     "role": "CM",
+     "anchor": [
+      48,
+      46
+     ]
+    },
+    {
+     "player_id": "H07",
+     "name": "Polat",
+     "role": "CM",
+     "anchor": [
+      44,
+      34
+     ]
+    },
+    {
+     "player_id": "H08",
+     "name": "Erdem",
+     "role": "CM",
+     "anchor": [
+      48,
+      22
+     ]
+    },
+    {
+     "player_id": "H09",
+     "name": "Şahin",
+     "role": "W",
+     "anchor": [
+      74,
+      58
+     ]
+    },
+    {
+     "player_id": "H10",
+     "name": "Arda",
+     "role": "ST",
+     "anchor": [
+      82,
+      34
+     ]
+    },
+    {
+     "player_id": "H11",
+     "name": "Yıldız",
+     "role": "W",
+     "anchor": [
+      74,
+      10
+     ]
+    }
+   ]
+  },
+  "AWAY": {
+   "name": {
+    "tr": "Maviler",
+    "en": "the Blues"
+   },
+   "color": "blue",
+   "attacks_towards_x": 0,
+   "players": [
+    {
+     "player_id": "A01",
+     "name": "Novak",
+     "role": "GK",
+     "anchor": [
+      5,
+      34
+     ]
+    },
+    {
+     "player_id": "A02",
+     "name": "Moreau",
+     "role": "FB",
+     "anchor": [
+      30,
+      58
+     ]
+    },
+    {
+     "player_id": "A03",
+     "name": "Haddad",
+     "role": "CB",
+     "anchor": [
+      25,
+      44
+     ]
+    },
+    {
+     "player_id": "A04",
+     "name": "Lindqvist",
+     "role": "CB",
+     "anchor": [
+      25,
+      24
+     ]
+    },
+    {
+     "player_id": "A05",
+     "name": "Costa",
+     "role": "FB",
+     "anchor": [
+      30,
+      10
+     ]
+    },
+    {
+     "player_id": "A06",
+     "name": "Silva",
+     "role": "CM",
+     "anchor": [
+      48,
+      46
+     ]
+    },
+    {
+     "player_id": "A07",
+     "name": "Mensah",
+     "role": "CM",
+     "anchor": [
+      44,
+      34
+     ]
+    },
+    {
+     "player_id": "A08",
+     "name": "Ito",
+     "role": "CM",
+     "anchor": [
+      48,
+      22
+     ]
+    },
+    {
+     "player_id": "A09",
+     "name": "Baptiste",
+     "role": "W",
+     "anchor": [
+      74,
+      58
+     ]
+    },
+    {
+     "player_id": "A10",
+     "name": "Okafor",
+     "role": "ST",
+     "anchor": [
+      82,
+      34
+     ]
+    },
+    {
+     "player_id": "A11",
+     "name": "Rossi",
+     "role": "W",
+     "anchor": [
+      74,
+      10
+     ]
+    }
+   ]
+  }
+ }
+}

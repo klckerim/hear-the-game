@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Secrets and local environment (never commit real keys)
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+
+# Azure Developer CLI local state
+.azure/
+
+# Node / web client
+node_modules/
+dist/
+web/.vite/
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Raw open data: downloaded by scripts/download_data.sh, never redistributed
+data/raw/
+
+# Synthetic matches are reproducible from their seed; only three samples are committed
+data/synthetic/match_*/
+!data/synthetic/match_0001/
+!data/synthetic/match_0002/
+!data/synthetic/match_0003/
+
+# Generated audio
+prototype/out/
+out/

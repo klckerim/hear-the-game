@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hear-the-game/schemas/cue.schema.json",
+  "title": "Render cue",
+  "description": "Timed, machine-readable output for clients and broadcast overlays. Sound cues come from the fast path; speech and overlay cues come from the slow path after verification.",
+  "type": "object",
+  "required": ["t", "kind", "match_id"],
+  "additionalProperties": false,
+  "properties": {
+    "match_id": {"type": "string"},
+    "t": {"type": "number", "minimum": 0},
+    "kind": {"type": "string", "enum": ["tick", "beat", "event_sound", "earcon", "speech", "overlay"]},
+    "pan": {"type": "number", "minimum": -1, "maximum": 1},
+    "team": {"type": ["string", "null"], "enum": ["HOME", "AWAY", null]},
+    "danger": {"type": "number", "minimum": 0, "maximum": 1},
+    "pressure": {"type": "number", "minimum": 0, "maximum": 1},
+    "sound": {"type": "string"},
+    "text": {"type": "string"},
+    "lang": {"type": "string"},
+    "insight_id": {"type": "string"},
+    "duration_s": {"type": "number", "minimum": 0}
+  }
+}

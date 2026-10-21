@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hear-the-game/schemas/event.schema.json",
+  "title": "Match event",
+  "description": "One on-ball (or pressure) action, as a live event feed would deliver it. Raw facts only: no xT, no interpretation. Coordinates in the global frame: x 0..105 m, y 0..68 m, HOME attacks towards x=105.",
+  "type": "object",
+  "required": ["match_id", "seq", "t", "period", "type", "team"],
+  "additionalProperties": false,
+  "properties": {
+    "match_id": {"type": "string"},
+    "seq": {"type": "integer", "minimum": 0},
+    "t": {"type": "number", "minimum": 0, "description": "Match clock in seconds since kickoff (second half starts at 2700)."},
+    "period": {"type": "integer", "enum": [1, 2]},
+    "type": {"type": "string", "enum": ["kickoff", "pass", "carry", "shot", "goal", "save", "pressure", "ball_recovery", "foul", "out", "restart", "period_end"]},
+    "team": {"type": "string", "enum": ["HOME", "AWAY"]},
+    "player_id": {"type": ["string", "null"]},
+    "start": {"$ref": "#/$defs/point"},
+    "end": {"oneOf": [{"$ref": "#/$defs/point"}, {"type": "null"}]},
+    "outcome": {"type": ["string", "null"], "enum": ["complete", "incomplete", "goal", "saved", "off_target", "blocked", "won", null]},
+    "restart": {"type": ["string", "null"], "enum": ["kickoff", "throw_in", "goal_kick", "corner", "keeper", "free_kick", null]},
+    "under_pressure": {"type": "boolean"},
+    "possession_id": {"type": "integer", "minimum": 0},
+    "speed_mps": {"type": ["number", "null"], "minimum": 0, "description": "Ball speed for passes and shots, carrier speed for carries."},
+    "duration_s": {"type": ["number", "null"], "minimum": 0}
+  },
+  "$defs": {
+    "point": {
+      "type": "object", "required": ["x", "y"], "additionalProperties": false,
+      "properties": {"x": {"type": "number", "minimum": 0, "maximum": 105}, "y": {"type": "number", "minimum": 0, "maximum": 68}}
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+ "match_id": "synth_0003",
+ "scenarios": [
+  {
+   "id": "S1",
+   "type": "press_increase",
+   "team": "HOME",
+   "start": 677,
+   "end": 1397,
+   "params": {
+    "factor": 1.9
+   },
+   "describe": "HOME presses much harder (out of possession)"
+  },
+  {
+   "id": "S2",
+   "type": "flank_overload",
+   "team": "AWAY",
+   "start": 1829,
+   "end": 2429,
+   "params": {
+    "side": "left",
+    "bias": 4.0
+   },
+   "describe": "AWAY pushes play down its left flank"
+  },
+  {
+   "id": "S3",
+   "type": "tempo_drop",
+   "team": "AWAY",
+   "start": 3176,
+   "end": 3776,
+   "params": {
+    "factor": 1.8
+   },
+   "describe": "AWAY slows its possession play"
+  },
+  {
+   "id": "S4",
+   "type": "fatigue",
+   "team": "HOME",
+   "player_id": "H07",
+   "start": 4007,
+   "end": 5400,
+   "params": {
+    "factor": 0.55
+   },
+   "describe": "Polat (HOME) tires"
+  }
+ ]
+}
