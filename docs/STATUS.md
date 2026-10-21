@@ -35,7 +35,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 |---|---|---|
 | 2 | Oct 21 | Replay, state engine, detectors scored vs truth, Director, live sound page (see `docs/tasks/`) |
 | 3 | Oct 22 | Foundry narrator + Verifier (fallback to templates), Azure TTS TR/EN, clip cache; pre-generate demo match narration |
-| 4 | Oct 23 | UI day: good-looking single-page client (vanilla JS), modes (eyes-free / casual / analyst), favorite-player earcon, simple "what did I miss" |
+| 4 | Oct 23 | UI day: good-looking single-page client (vanilla JS), modes (eyes-free / casual / analyst), favorite-player earcon, simple "what did I miss", app language TR/EN (all UI strings in one dictionary, browser language as default, one selector for both UI and narration) |
 | 5 | Oct 24 | Deploy: one Container App (engine + static client), Speech + Foundry, App Insights, azd/Bicep; measure latency |
 | 6 | Oct 25 | Eval numbers into README, 1-2 listening tests, docs, architecture diagram |
 | 7 | Oct 26 | Demo video, buffer fixes |
