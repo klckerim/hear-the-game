@@ -58,3 +58,21 @@ Client: Istanbul -> Sweden Central. URL `wss://ca-engine.proudflower-32a91b05.sw
 - `speech` TR by source: llm 2 (100%); with audio: 2 of 2
 - Session errors: 0
 
+### 2026-10-21: 10 session(s), 3 min, mode `casual`
+
+Client: Istanbul -> Sweden Central. URL `wss://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/ws`. Sessions started together; each replays the demo match from minute 13.
+
+| measure | n | p50 / p95 / max |
+|---|---|---|
+| connect -> `hello` | 10 | 3789 / 6506 / 6506 ms |
+| `state` inter-arrival (nominal 200 ms) | 8809 | 200 / 237 / 3421 ms |
+| decision -> `speech` (server resolve, approx. +/- one state batch) | 20 | 1436 / 3421 / 3421 ms |
+| `insight` -> `speech` (incl. Director hold) | 20 | 1559 / 3476 / 3476 ms |
+
+- `speech` EN by source: llm 20 (100%); with audio: 20 of 20
+- `speech` TR by source: llm 20 (100%); with audio: 20 of 20
+- Session errors: 0
+
+After the warm-up fix (redeployed 2026-10-21), same test: `hello` p50 12.9 s -> 3.8 s, longest `state` gap 15.8 s -> 3.4 s,
+speech p95 15.6 s -> 3.4 s. The container has 0.5 vCPU and every session runs its own state engine and detectors in real time;
+the remaining delay when 10 listeners start in the same second is most likely CPU contention (not measured separately).
