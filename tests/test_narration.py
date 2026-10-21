@@ -118,8 +118,18 @@ def test_ssml_escapes_and_aliases(monkeypatch):
 
     monkeypatch.setitem(azure.ALIASES, "tr", {"Usta": "Usta"})
     out = azure.ssml("Usta & Kurt <3", "tr", "tr-TR-EmelNeural")
-    assert "&amp;" in out and "&lt;3" in out and '<sub alias="Usta">Usta</sub>' in out and 'xml:lang="tr-TR"' in out
+    assert "&amp;" in out and '&lt;<sub alias="üç">3</sub>' in out and '<sub alias="Usta">Usta</sub>' in out and 'xml:lang="tr-TR"' in out
     assert "<prosody" not in out and "<prosody" in azure.ssml("Gol!", "tr", "tr-TR-EmelNeural", goal=True)
+
+
+def test_turkish_integers_are_spoken_from_words():
+    from htg.speech.azure import ssml, tr_words
+
+    assert [tr_words(n) for n in (0, 7, 10, 23, 100, 105, 342)] == ["sıfır", "yedi", "on", "yirmi üç", "yüz", "yüz beş", "üç yüz kırk iki"]
+    out = ssml("Son 8 dakikada yüzde 76, önceden yüzde 23. Skor 1-2, 2,3 saniye.", "tr", "v")
+    assert '<sub alias="yirmi üç">23</sub>.' in out and '<sub alias="sekiz">8</sub>' in out and '<sub alias="yetmiş altı">76</sub>' in out
+    assert "1-2" in out and "2,3" in out  # scores and decimals untouched
+    assert "<sub" not in ssml("Up from 23.", "en", "v")
 
 
 def test_demo_cache_fingerprints_unchanged():
