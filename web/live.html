@@ -31,8 +31,8 @@ body {
   padding-right: max(16px, env(safe-area-inset-right, 0px));
   padding-block: 20px 32px;
 }
-.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 18px; }
-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+header { display: flex; flex-wrap: wrap; min-width: 0; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
 h1 { font-family: var(--display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); letter-spacing: 0.01em; margin: 0; line-height: 1; text-transform: uppercase; }
 h1 span { color: var(--amber); }
 .sub { color: var(--muted); margin: 0; max-width: 62ch; }
@@ -50,7 +50,7 @@ h1 span { color: var(--amber); }
 .blind[hidden] { display: none; }
 .blind p { font-family: var(--display); font-size: clamp(22px, 4vw, 34px); text-transform: uppercase; letter-spacing: 0.06em; margin: 0; }
 .blind small { display: block; font-family: var(--body); font-size: 14px; color: var(--muted); text-transform: none; letter-spacing: 0; margin-top: 6px; }
-.caption { min-height: 3.2em; background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: flex; gap: 12px; align-items: flex-start; }
+.caption { min-width: 0; min-height: 3.2em; background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: flex; gap: 12px; align-items: flex-start; }
 .caption .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 2px 6px; border-radius: 3px; flex: none; margin-top: 2px; }
 .caption .tag.idle { background: var(--line); color: var(--muted); }
 #captionText { margin: 0; min-width: 0; }
@@ -88,7 +88,9 @@ ol.log .empty { color: var(--muted); display: block; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; padding: 6px 12px; background: transparent; font-size: 13px; }
 .seg button[aria-pressed="true"] { background: var(--amber); color: var(--night); }
-.hdr-right { display: flex; align-items: center; gap: 10px; }
+.hdr-right { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-width: 0; max-width: 100%; }
+.hdr-right .sub { flex: 1 1 240px; min-width: 0; }
+#appLang { flex: none; }
 .field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 .field select { width: 100%; color: var(--chalk); }
 .recap { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
@@ -569,7 +571,8 @@ function applyI18n() {
   document.querySelectorAll("#appLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === appLang)));
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
   if (!live.ws) $("status").textContent = t("off");
-  setTeamNames(); if (live.teams) fillFav(live.teams);
+  setTeamNames();
+  if (live.teams) fillFav(live.teams); else $("fav").replaceChildren(new Option(t("favNone"), ""));
   renderLog(); renderRecap(); pickVoices();
 }
 document.querySelectorAll("#appLang button").forEach(b => b.addEventListener("click", () => {
