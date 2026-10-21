@@ -16,8 +16,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 ## Day 3 progress
 - PR 1 (Narrator, Verifier, cached service) and PR 2 code (`htg/speech/azure.py`, `htg/narration/pregen.py`) done. Demo seed: **7**, window from minute 13
   (1 goal + 5 non-chance Insights in 10 min; `python -m htg.narration.pregen --find-demo`, seeds 1-10 only).
-- Owner to do: fill `.env`, `pip install -e ".[azure]"`, run `HTG_ENV=azure python -m htg.narration.pregen --seed 7`, listen to 10 clips per language
-  (fix names via `ALIASES` in `htg/speech/azure.py`), check `du -sh data/cache`, commit `data/cache/`.
+- Demo cache for seed 7 generated with Azure (33 sentences x EN+TR, all first-pass `llm`, 2.4 MB) and committed (`3fb901c`). Owner listened to most clips.
+- Known quality nits (not fixed): awkward chance/danger sentences ("17 - The Reds chance", "danger level 90"); voices are neutral (no SSML styles, deliberate cut).
+  Optional small PR later: radio-tone prompt + faster/higher SSML for goals. If names need `ALIASES`, regenerate and drop stale clips from `data/cache/audio`.
+- Next: PR 3 (live wiring in `run_local`, `web/live.html` language selector + clip playback with ducking, `eval/narration.py`, README commands).
 
 ## In progress
 - Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.
