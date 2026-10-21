@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-21 (end of Day 2). Next: Day 3 (Foundry narrator + Verifier, Azure TTS, clip cache).
+Last updated: 2026-10-22 (end of Day 3, merged to main). Next: Day 4 (UI day).
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -24,7 +24,8 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   `eval/narration.py` -> `eval/results/narration.md` (100 Insights, seeds 11-30): first-pass Verifier 100% EN and TR, fallback 0%, mutation catch rate 100% (synthetic).
 - **Finding:** model latency is p50 10.7 s / p95 17.4 s (gpt-5-mini, EN+TR in one call), TTS p50 0.4 s. A live cache miss therefore usually exceeds the 4 s deadline and
   falls back to template text; the demo relies on the pre-generated cache. Say so in the README; a faster non-reasoning model would fix it if live narration matters.
-- Browser playback of Azure clips is not yet listened to end-to-end by the owner.
+- Owner listened to Azure clips in the browser end-to-end (2026-10-22): works. Day 3 is closed and merged.
+- TODO later: model latency (p50 10.7 s). Try a faster non-reasoning deployment or shorter prompt, re-run `eval.narration`, update README numbers.
 
 ## In progress
 - Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.
@@ -49,6 +50,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Repo is public MIT. Fictional teams/players only.
 
 ## Risks
+- Live narration on a cache miss usually exceeds the 4 s deadline (model p50 10.7 s); the demo depends on the pre-generated cache. State this in the README.
 - Keep the deployed demo cheap: single container app; scale-to-zero is not ideal for a live demo, so use min 1 replica only during judging.
 - iOS Safari background audio untested.
 - No claim of blind-user validation unless it actually happens.
