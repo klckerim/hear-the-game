@@ -1,5 +1,9 @@
 # Hear the Game
 
+> **Original design (2026-10-20, Turkish).** The README describes what was built; items not built were cut on purpose.
+> Notably: narration is one Foundry model call per Insight plus a deterministic Verifier, not a set of agents; there is no
+> Event Hubs, Web PubSub or Cosmos DB. Measured numbers are in `eval/results/`, not here.
+
 Sistem tasarımı · Oct 20, 2026
 
 Hear the Game, sentetik maç event'lerini dinleyicinin cihazında anlık üretilen sese ve doğrulanmış, çok dilli kısa anlatıma çevirir. Sistem iki hızda çalışır: ses 100 ms'nin altında deterministik kodla, anlatım yaklaşık 2 saniyede Microsoft Foundry agent'larıyla üretilir. Hackathon teslimi Oct 28, 2026 09:59 (İstanbul).

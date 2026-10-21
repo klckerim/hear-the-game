@@ -1,6 +1,7 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-24 (Day 5 closed: deployed and verified). Next: Day 6 (eval numbers into README, listening tests, diagram).
+Last updated: 2026-10-21 evening (Day 6 in progress: steps 0-4, 6, 7 done; README next). Calendar note: the plan's dates (Day 5 = Oct 24)
+run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -25,7 +26,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Finding:** model latency is p50 10.7 s / p95 17.4 s (gpt-5-mini, EN+TR in one call), TTS p50 0.4 s. A live cache miss therefore usually exceeds the 4 s deadline and
   falls back to template text; the demo relies on the pre-generated cache. Say so in the README; a faster non-reasoning model would fix it if live narration matters.
 - Owner listened to Azure clips in the browser end-to-end (2026-10-22): works. Day 3 is closed and merged.
-- TODO later: model latency (p50 10.7 s). Try a faster non-reasoning deployment or shorter prompt, re-run `eval.narration`, update README numbers.
+- (Latency TODO resolved on Day 6: reasoning effort `minimal` + prompt v3, p50 1.54 s / p95 2.89 s.)
 
 ## Day 4 (closed 2026-10-23;  task: `docs/tasks/2026-10-23-day4.md`)
 - `web/live.html`: TR/EN app language (one `T` dictionary, also picks narration language), modes audio-only/casual/analyst (sent to the Director via `set_mode`),
@@ -63,8 +64,42 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Mobile/desktop layout:** TR/EN switch no longer moves the page (fixed caption height, one-line scorebar, title + switch on one row on phones, reserved text heights).
   Checked with headless Chrome screenshots at 1280/375/360/320 px, not on a real phone.
 
-## In progress
-- Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.
+## Day 6 (in progress; task: `docs/tasks/2026-10-25-day6.md`)
+- **Category: Best Use of Microsoft Foundry** (owner, 2026-10-21). Not "multi-agent": the code is one Foundry call per Insight + deterministic
+  Verifier, detectors and Director. README framing follows this.
+- **Quality pass (owner said yes):** prompt v3 (radio tone, <= 20 words, fact meanings, one hand-written EN/TR example per Insight kind with
+  fixture teams Greens/Whites), `recent_min` replaces `window_min` (`*_now` = last N min, `*_before` = earlier in the match; schema description
+  updated), no match minute and no danger value in claim_facts, goal facts without the opponent's name. Verifier: Turkish `42%`/`%42`,
+  jargon (window, danger level, pencere, tehlike seviyesi), code values (`off_target`), max 25 words. Director drops danger-only chances
+  (the sound carries danger; held until the ball was quiet they were stale). Goal SSML: rate +10%, pitch +6%.
+  Seed-7 cache regenerated (31 spoken Insights, all first-pass `llm`, 2.0 MB audio, stale clips deleted). **Owner still has to listen to 10 clips
+  per language.** Text to watch: "Arda levels it" (79'), "puts the Blues ahead but the score is 1-2" (87'): inferred from the score, correct.
+- **Found by reading samples, not by the Verifier:** prompt 2 read out `off_target` in 13 of 200 sentences, invented shot locations, and one
+  demo goal credited the score to the wrong team ("0-1 Kırmızılar lehine"). Fixed as above; documented in `eval/results/narration.md`.
+- Step 1 `eval/results/narration.md` (+ `narration_samples.jsonl`, `narration_samples_prompt2.jsonl`): prompt 3, minimal, 100 Insights:
+  narration p50 1.54 s / p95 2.89 s, first pass 100% EN and TR, fallback 0%, **0 real Verifier rejections** (reported as 0, not invented).
+  Dated history table: v1 default 10.73/17.42 s, v1 minimal (30) 1.87/4.90 s, v2 default 7.71/17.51 s, v2 minimal 1.58/2.79 s.
+  Local `.env` has no `FOUNDRY_REASONING_EFFORT` (owner to add `minimal`); the container sets it.
+- Step 2 `eval/latency.py` -> `eval/results/latency.md` (Istanbul -> Sweden Central): 1 session hello 1.5 s, state 200/214 ms, speech 100% `llm`
+  with audio. **10 sessions: hello ~13 s and a 15.8 s stall** (each listener ran its own warm-up on the shared CPU). Fixed: warm up once per
+  server, deep-copy per session (`serve.warmed`), resolver built off the loop; local 10-session hello p50 2218 -> 597 ms.
+  **Needs `azd up` and a re-measure on the deployed app.** `htg.speech.dropped_stale` count from the portal: not read yet.
+- Step 3 `eval/foundry_eval.py` -> `eval/results/foundry_eval.md`: Foundry Evals API (builtin groundedness + fluency, judge gpt-5-mini,
+  100 Insights x EN/TR). Groundedness 4.99 / 4.99; fluency 3.13 EN / 3.48 TR (136 of 139 reasons for a 3 cite brevity). Portal link in the file.
+- Step 4 (Bicep): `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental` + `CAPTURE_MESSAGE_CONTENT=span_only`; verified locally that
+  `gen_ai.input.messages` / `gen_ai.output.messages` land on the chat span. **Not yet seen in App Insights** (needs `azd up`, then owner checks).
+- Step 6 `docs/listening-test.md`: protocol, questions TR/EN, answer key for minutes 13-23 from the match data. 10 minutes, not 5 (the goal is
+  at 22:36). **Not run yet.**
+- Step 7: `docs/design.md` carries the "original design" note; this STATUS cleaned up.
+- Left: `azd up` + re-measure 10 sessions; owner trace check + screenshots; README rewrite (step 5); listening test (owner).
+
+## Day 7 needs (video)
+- Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
+  the Foundry evaluation run, the App Insights metrics chart (htg.speech.resolved by source).
+- Demo minute: seed 7 from minute 13; the goal (Baptiste, Blues) comes at 22:36, about 9.5 minutes in. For a short video, either cut, or
+  start the server at a later minute (would need a new pregen window check).
+- Numbers to show: detector recall/precision (seeds 11-30, flank precision 11% stated), narration p50 1.54 s / p95 2.89 s (was 10.7 / 17.4),
+  Verifier first pass 100% with 0 real rejections plus the samples finding, groundedness 4.99, deployed latency after the fix.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
@@ -84,9 +119,14 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - No Event Hubs / Cosmos / Web PubSub / Vite client / complex agent orchestration. Described as production path only.
 - Python 3.11+, vanilla JS client, local-first adapters (`EventSource`, `Broadcaster`, `Speech`).
 - Repo is public MIT. Fictional teams/players only.
+- Hackathon category: **Best Use of Microsoft Foundry** (2026-10-21).
+- Danger-only chances are not spoken (the sound carries danger); shots, goals and tactical Insights are.
 
 ## Risks
-- Live narration on a cache miss usually exceeds the 4 s deadline (model p50 10.7 s); the demo depends on the pre-generated cache. State this in the README.
+- Live narration on a cache miss: p50 1.54 s / p95 2.89 s (prompt 3, minimal effort, offline eval), so most misses now make the 4 s deadline;
+  the slowest still fall back to the template, and deployed misses also pay TTS (p50 ~0.45 s). The demo still uses the pre-generated cache.
+- Many listeners joining at once stalled the server before the warm-up fix; re-measure after `azd up` before judging.
+- The Verifier checks numbers, names, jargon and code values; it cannot catch invented details without a number or a name. Say so in the README.
 - Keep the deployed demo cheap: single container app; scale-to-zero is not ideal for a live demo, so use min 1 replica only during judging.
 - iOS Safari background audio untested.
 - No claim of blind-user validation unless it actually happens.
