@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from pathlib import Path
 from typing import Any
 
@@ -23,10 +23,10 @@ class FileEventSource:
 
 
 class WebSocketBroadcaster:
-    """Pushes every message to all connected clients. Listeners only receive; anything they send is ignored."""
+    """Pushes every message to all connected clients. Listeners only receive; what they send goes to `on_message` (if set)."""
 
-    def __init__(self, host: str = "localhost", port: int = 8765):
-        self.host, self.port = host, port
+    def __init__(self, host: str = "localhost", port: int = 8765, on_message: Callable[[dict], None] | None = None):
+        self.host, self.port, self.on_message = host, port, on_message
         self._clients: set[ServerConnection] = set()
         self._server: Server | None = None
         self._connected = asyncio.Event()
@@ -47,8 +47,13 @@ class WebSocketBroadcaster:
         self._clients.add(ws)
         self._connected.set()
         try:
-            async for _ in ws:
-                pass
+            async for raw in ws:
+                try:
+                    msg = json.loads(raw)
+                except ValueError:
+                    continue
+                if self.on_message and isinstance(msg, dict):
+                    self.on_message(msg)
         finally:
             self._clients.discard(ws)
 

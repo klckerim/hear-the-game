@@ -3,8 +3,9 @@
     python -m services.engine.run_local --seed 1 --speed 1 --start-minute 10
 
 then open `web/live.html` (it connects to ws://localhost:8765). Replay starts when the first listener connects.
+Listener -> server: {"type": "set_mode", "mode": "eyes_free" | "casual" | "analyst"} changes the Director's silence budget.
 Messages (JSON, one per WebSocket frame):
-    hello      match info, replay speed, mode (first message)
+    hello      match info (teams with outfield players), replay speed, mode (first message)
     state      batch of 10 Hz state packets, every ~200 ms of match time
     event_cue  one sound cue (pass, shot, save, goal, whistle ...)
     insight    a detected Insight (for the log)
@@ -48,6 +49,8 @@ class LivePipeline:
 
     def hello(self) -> dict:
         teams = {k: {"name_en": v["name"]["en"], "name_tr": v["name"]["tr"], "color": v["color"]} for k, v in self.meta["teams"].items()}
+        for k, v in self.meta["teams"].items():
+            teams[k]["players"] = [{"id": p["player_id"], "name": p["name"]} for p in v["players"] if p["role"] != "GK"]
         return {"type": "hello", "match_id": self.meta["match_id"], "teams": teams, "mode": self.mode,
                 "speed": self.speed if self.speed != float("inf") else 1.0}
 
@@ -59,7 +62,8 @@ class LivePipeline:
             self._batch += packets
         if item.kind == "event" and item.data["type"] in CUES:
             ev = item.data
-            out.append({"type": "event_cue", "t": ev["t"], "kind": ev["type"], "team": ev["team"], "seq": ev["seq"], "pan": self._last_pan})
+            out.append({"type": "event_cue", "t": ev["t"], "kind": ev["type"], "team": ev["team"], "seq": ev["seq"],
+                        "player_id": ev.get("player_id"), "pan": self._last_pan})
         for ins in self.detectors.step(item, packets):
             self.queue.append(ins)
             out.append({"type": "insight", "insight": ins})
@@ -114,7 +118,13 @@ async def main(seed: int, speed: float, start_minute: float, mode: str, port: in
         match_dir = generate(seed)
     load_env()
     meta = json.loads((Path(match_dir) / "meta.json").read_text())
-    pipe, bus, resolver = LivePipeline(meta, mode, speed), WebSocketBroadcaster(port=port), make_resolver(meta)
+    pipe, resolver = LivePipeline(meta, mode, speed), make_resolver(meta)
+
+    def on_message(msg: dict) -> None:  # the only thing a listener may send: the listening mode
+        if msg.get("type") == "set_mode" and msg.get("mode") in SILENCE_S:
+            pipe.mode = msg["mode"]
+
+    bus = WebSocketBroadcaster(port=port, on_message=on_message)
     await bus.start()
     print(f"seed {seed}, speed {speed}x, from minute {start_minute}, mode {mode}. Open web/live.html (ws://localhost:{bus.port}).")
     print("Waiting for a listener...")

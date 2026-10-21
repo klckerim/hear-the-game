@@ -59,6 +59,31 @@ def test_broadcaster_waits_for_listener_and_delivers():
     asyncio.run(go())
 
 
+def test_broadcaster_passes_listener_messages_to_handler():
+    async def go():
+        got: list[dict] = []
+        bus = WebSocketBroadcaster(port=0, on_message=got.append)
+        await bus.start()
+        async with websockets.connect(f"ws://localhost:{bus.port}") as ws:
+            await ws.send("not json")
+            await ws.send(json.dumps({"type": "set_mode", "mode": "analyst"}))
+            await ws.send(json.dumps({"type": "hello"}))
+            await asyncio.sleep(0.2)
+        await bus.close()
+        assert got[0] == {"type": "set_mode", "mode": "analyst"}
+
+    asyncio.run(go())
+
+
+def test_hello_lists_outfield_players_and_cues_carry_player(synth_dir):
+    meta = json.loads((synth_dir / "meta.json").read_text())
+    pipe = LivePipeline(meta)
+    hello = pipe.hello()
+    assert len(hello["teams"]["HOME"]["players"]) == 10 and all({"id", "name"} == set(p) for p in hello["teams"]["AWAY"]["players"])
+    cues = [m for item in iter_items(synth_dir) for m in pipe.feed(item) if m["type"] == "event_cue"]
+    assert cues and all(c["player_id"] for c in cues if c["kind"] in ("pass", "shot", "goal"))
+
+
 def test_warm_up_matches_full_run(synth_dir):
     meta = json.loads((synth_dir / "meta.json").read_text())
     full = LivePipeline(meta)
