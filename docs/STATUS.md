@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-24 (Day 5 code done, on `main`). Next: owner runs `azd up`, then Day 6.
+Last updated: 2026-10-24 (Day 5 closed: deployed and verified). Next: Day 6 (eval numbers into README, listening tests, diagram).
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -37,8 +37,11 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - `services/engine/serve.py`: static client + `/healthz` + `/ws` on one port, one replay session per listener (max 20, 15 min of match time each), seed 7 from minute 13.
   `web/live.html` defaults to same-origin WebSocket. `Dockerfile` (generates match 7 at build), `azure.yaml`, `infra/` Bicep (compiles): Log Analytics, App Insights,
   ACR, Container Apps env + app (min 1 replica), user-assigned identity with AcrPull. 2 new tests. Docker image built and run locally: healthz + WebSocket OK.
-- **Owner to do:** install azd (`brew install azd`), `azd up` (params: foundryEndpoint, speechEndpoint, speechRegion, speechResourceId), then grant the app identity
-  (output `APP_PRINCIPAL_ID`) "Cognitive Services User" on Speech and "Azure AI User" on the Foundry resource; open the URL; measure latency.
+- **Deployed** (`azd up`, env `htg-demo`, rg `rg-htg-demo`, swedencentral): https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/
+  Checked from outside: `/healthz` ok, WebSocket `hello` after 1.2 s, verified (`llm`) narration with audio from the cache. Roles on the `hearthegame` AIServices
+  resource for the app identity: Cognitive Services User, Azure AI Developer, Cognitive Services OpenAI User ("Azure AI User" does not exist in this tenant).
+  Owner ran a live Speech TTS call and a Foundry model call from inside the container: both OK, so cache misses can reach Foundry/Speech.
+- Min replicas is 1 (`minReplicas` param); set it to 0 after judging to save cost. Latency numbers on the deployed URL are not measured yet (Day 6).
 - Not done: App Insights is provisioned and its connection string is an env var, but the app sends no telemetry yet (Container Apps logs go to Log Analytics). Do not claim tracing in the README unless added.
 
 ## In progress
