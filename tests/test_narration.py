@@ -80,4 +80,12 @@ def test_service_survives_model_error_without_caching(ctx, tmp_path):
     out = narrate_insight(g, Boom(), names, tmp_path)
     assert out["source"] == {"en": "template", "tr": "template"} and not list(tmp_path.iterdir())
     assert fingerprint(g, "a") != fingerprint(g, "b")
-    assert narrate_insight(g, TemplateNarrator(), names, tmp_path)["source"]["en"] == "llm"
+    assert narrate_insight(g, TemplateNarrator(), names, tmp_path)["source"] == {"en": "template", "tr": "template"}
+
+
+def test_ssml_escapes_and_aliases(monkeypatch):
+    from htg.speech import azure
+
+    monkeypatch.setitem(azure.ALIASES, "tr", {"Usta": "Usta"})
+    out = azure.ssml("Usta & Kurt <3", "tr", "tr-TR-EmelNeural")
+    assert "&amp;" in out and "&lt;3" in out and '<sub alias="Usta">Usta</sub>' in out and 'xml:lang="tr-TR"' in out

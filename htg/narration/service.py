@@ -67,7 +67,7 @@ def narrate_insight(insight: dict, narrator: Narrator, names: list[str], cache_d
                 reasons.pop(lang, None)
         if len(text) == len(LANGS):
             break
-    source = {lang: "llm" if lang in text else "template" for lang in LANGS}
+    source = {lang: "llm" if lang in text and narrator.name != "template" else "template" for lang in LANGS}
     for lang in LANGS:
         text.setdefault(lang, narrate(insight, lang))
     result = {"en": text["en"], "tr": text["tr"], "source": source, "attempts": attempts, "reasons": reasons,
