@@ -78,7 +78,10 @@ resource engine 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'FOUNDRY_PROJECT_ENDPOINT', value: foundryEndpoint }
           { name: 'FOUNDRY_MODEL', value: foundryModel }
           { name: 'FOUNDRY_REASONING_EFFORT', value: foundryReasoningEffort }
-          { name: 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT', value: 'true' } // inputs are synthetic claim_facts only
+          // Prompt (synthetic claim_facts only) and model output as attributes on the chat span, next to htg.narrate_insight;
+          // the legacy 'true' sent them as separate gen_ai.* log events that the trace view did not show.
+          { name: 'OTEL_SEMCONV_STABILITY_OPT_IN', value: 'gen_ai_latest_experimental' }
+          { name: 'OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT', value: 'span_only' }
           { name: 'SPEECH_ENDPOINT', value: speechEndpoint }
           { name: 'SPEECH_REGION', value: speechRegion }
           { name: 'SPEECH_RESOURCE_ID', value: speechResourceId }
