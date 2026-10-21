@@ -19,8 +19,13 @@ def test_http_routes():
     assert process_request(None, Req("/ws")) is None
 
 
-def test_each_listener_gets_its_own_session():
+def test_each_listener_gets_its_own_session_and_the_warm_up_runs_once(monkeypatch):
     from services.engine import serve
+
+    calls = []
+    real = serve.warm_up
+    monkeypatch.setattr(serve, "_warm", {})
+    monkeypatch.setattr(serve, "warm_up", lambda *a: (calls.append(1), real(*a)))
 
     async def run() -> list[str]:
         from htg.generate import OUT_DIR, generate
@@ -39,6 +44,7 @@ def test_each_listener_gets_its_own_session():
                 return [json.loads(await asyncio.wait_for(c.recv(), 10))["type"] for c in (a, b)]
 
     assert asyncio.run(run()) == ["hello", "hello"]
+    assert len(calls) == 1  # the second listener got a copy of the warmed pipeline
 
 
 def test_warm_up_does_not_block_the_event_loop(monkeypatch):
@@ -47,6 +53,7 @@ def test_warm_up_does_not_block_the_event_loop(monkeypatch):
     from services.engine import serve
 
     monkeypatch.setattr(serve, "warm_up", lambda *a: time.sleep(0.3))
+    monkeypatch.setattr(serve, "_warm", {})
 
     async def run() -> int:
         from htg.generate import OUT_DIR, generate

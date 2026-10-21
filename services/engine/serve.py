@@ -9,8 +9,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import json
 import os
+import threading
 from http import HTTPStatus
 from pathlib import Path
 
@@ -29,6 +31,8 @@ from services.engine.run_local import LivePipeline, make_resolver, warm_up
 CLIENT = Path(__file__).resolve().parents[2] / "web" / "live.html"
 MAX_SESSIONS = 20
 END_AFTER_S = 15 * 60.0  # a demo session lasts at most this much match time
+_warm: dict[tuple, LivePipeline] = {}
+_warm_lock = threading.Lock()  # a thread lock: callers wait in their worker thread, never on the event loop
 
 
 def http_response(status: HTTPStatus, body: bytes, content_type: str) -> Response:
@@ -47,28 +51,47 @@ def process_request(connection, request):  # noqa: ANN001 - websockets hook; ret
     return http_response(HTTPStatus.NOT_FOUND, b"not found", "text/plain")
 
 
+def warmed(meta: dict, match_dir: Path, start_minute: float, speed: float) -> LivePipeline:
+    """Every listener replays the same match from the same minute, so the warm-up is computed once and each session gets a copy.
+
+    Measured on the deployed app: 10 listeners connecting together each ran their own warm-up and starved the event loop
+    (`hello` p50 12.9 s, a 15.8 s stall in `state`). A copy takes about 1 ms.
+    """
+    key = (str(match_dir), start_minute, speed)
+    with _warm_lock:
+        if key not in _warm:
+            pipe = LivePipeline(meta, "casual", speed)
+            warm_up(pipe, match_dir, start_minute)
+            _warm[key] = pipe
+        return copy.deepcopy(_warm[key])
+
+
 async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: float, sessions: set) -> None:
     if len(sessions) >= MAX_SESSIONS:
         await ws.close(1013, "busy")
         return
     sessions.add(ws)
     telemetry.sessions_active.add(1)
-    pipe, resolver = LivePipeline(meta, "casual", speed), make_resolver(meta)
+    resolver = await asyncio.to_thread(make_resolver, meta)  # Azure clients are built here; keep that off the loop too
+    pipe: LivePipeline | None = None
     insights: dict[str, dict] = {}
     tasks: set[asyncio.Task] = set()
-    now = start_minute * 60.0
+    now, mode = start_minute * 60.0, "casual"
 
     async def send(msg: dict) -> None:
         await ws.send(json.dumps(msg, separators=(",", ":")))
 
     async def listen() -> None:
+        nonlocal mode
         async for raw in ws:
             try:
                 msg = json.loads(raw)
             except ValueError:
                 continue
             if isinstance(msg, dict) and msg.get("type") == "set_mode" and msg.get("mode") in SILENCE_S:
-                pipe.mode = msg["mode"]
+                mode = msg["mode"]
+                if pipe:
+                    pipe.mode = mode
 
     async def deliver(msg: dict) -> None:
         final = await resolver.resolve(msg, insights[msg["insight_id"]])
@@ -78,8 +101,9 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
             await send(final)
 
     async def play() -> None:
-        nonlocal now
-        await asyncio.to_thread(warm_up, pipe, match_dir, start_minute)  # CPU-bound; keep the other listeners' loop free
+        nonlocal now, pipe
+        pipe = await asyncio.to_thread(warmed, meta, match_dir, start_minute, speed)  # off the loop; computed once per server
+        pipe.mode = mode
         await send(pipe.hello())
         async for item in FileEventSource(match_dir, speed, start_minute):
             now = item.t
@@ -117,6 +141,7 @@ async def main(seed: int, speed: float, start_minute: float, host: str, port: in
         match_dir = generate(seed)
     meta = json.loads((match_dir / "meta.json").read_text())
     sessions: set = set()
+    await asyncio.to_thread(warmed, meta, match_dir, start_minute, speed)  # before the first listener arrives
 
     async def handler(ws) -> None:  # noqa: ANN001
         await session(ws, match_dir, meta, start_minute, speed, sessions)
