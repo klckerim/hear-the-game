@@ -100,3 +100,14 @@ def test_demo_cache_fingerprints_unchanged():
     window = [ins for t, ins in spoken if 13 * 60 <= t < 23 * 60]
     assert window
     assert all((CACHE_DIR / f"{fingerprint(ins, 'foundry:gpt-5-mini')}.json").exists() for ins in window)
+
+
+def test_cached_flag_and_telemetry_is_off_without_connection_string(ctx, tmp_path, monkeypatch):
+    from htg import telemetry
+
+    monkeypatch.delenv("APPLICATIONINSIGHTS_CONNECTION_STRING", raising=False)
+    assert telemetry.setup() is False
+    insights, names = ctx
+    first = narrate_insight(insights[0], TemplateNarrator(), names, tmp_path)
+    again = narrate_insight(insights[0], TemplateNarrator(), names, tmp_path)
+    assert first["cached"] is False and again["cached"] is True and again["en"] == first["en"]

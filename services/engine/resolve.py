@@ -6,10 +6,12 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import time
 from typing import Any
 
 from htg.adapters.base import Narrator, Speech
 from htg.narration.service import narrate_insight
+from htg.telemetry import resolve_ms, speech_resolved
 
 LANGS = ("en", "tr")
 TIMEOUT_S = 4.0
@@ -30,6 +32,7 @@ class SpeechResolver:
         return n, {lang: self.speech.synthesize(n[lang], lang) for lang in LANGS}
 
     async def resolve(self, msg: dict, insight: dict) -> dict[str, Any]:
+        t0 = time.perf_counter()
         n, audio = None, {lang: None for lang in LANGS}
         if self.use_service:
             try:
@@ -37,6 +40,10 @@ class SpeechResolver:
             except Exception:  # timeout, model or network error: template text, no audio
                 n = None
         text = {lang: n[lang] for lang in LANGS} if n else msg["text"]
-        return {**msg, "text": text, "source": n["source"] if n else {lang: "template" for lang in LANGS},
+        source = n["source"] if n else {lang: "template" for lang in LANGS}
+        for lang in LANGS:
+            speech_resolved.add(1, {"source": "cache" if n and n["cached"] and source[lang] == "llm" else source[lang], "lang": lang})
+        resolve_ms.record((time.perf_counter() - t0) * 1000)
+        return {**msg, "text": text, "source": source,
                 "audio": {lang: base64.b64encode(a).decode() if a else None for lang, a in audio.items()},
                 "duration_s": {lang: round(len(a) / MP3_BYTES_PER_S, 1) if a else None for lang, a in audio.items()}}

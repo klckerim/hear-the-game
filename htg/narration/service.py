@@ -11,6 +11,7 @@ from htg.adapters.base import Narrator
 from htg.narration.foundry import PROMPT_VERSION
 from htg.narration.templates import narrate
 from htg.narration.verifier import verify
+from htg.telemetry import tracer
 
 LANGS = ("en", "tr")
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "cache" / "narration"
@@ -40,10 +41,25 @@ def get_narrator() -> Narrator:
 
 
 def narrate_insight(insight: dict, narrator: Narrator, names: list[str], cache_dir: Path = CACHE_DIR) -> dict:
-    """Returns {"en", "tr", "source": {lang: "llm"|"template"}, "attempts", "reasons", "latency_s"}. Never raises."""
+    """Returns {"en", "tr", "source": {lang: "llm"|"template"}, "attempts", "reasons", "latency_s", "cached"}. Never raises.
+
+    One span per call, so the Verifier's attempts and rejection reasons show up in the trace next to the model call.
+    """
+    with tracer.start_as_current_span("htg.narrate_insight") as span:
+        span.set_attribute("insight.type", insight["type"])
+        result = _narrate(insight, narrator, names, cache_dir)
+        span.set_attribute("cached", result["cached"])
+        span.set_attribute("verifier.attempts", result["attempts"])
+        span.set_attribute("verifier.reasons", "; ".join(f"{k}: {', '.join(v)}" for k, v in result["reasons"].items()))
+        for lang in LANGS:
+            span.set_attribute(f"source.{lang}", result["source"][lang])
+        return result
+
+
+def _narrate(insight: dict, narrator: Narrator, names: list[str], cache_dir: Path) -> dict:
     path = cache_dir / f"{fingerprint(insight, narrator.name)}.json"
     if path.exists():
-        return json.loads(path.read_text())
+        return {**json.loads(path.read_text()), "cached": True}
     t0 = time.perf_counter()
     text: dict[str, str] = {}
     reasons: dict[str, list[str]] = {}
@@ -78,4 +94,4 @@ def narrate_insight(insight: dict, narrator: Narrator, names: list[str], cache_d
     if not errored:
         cache_dir.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(result, ensure_ascii=False))
-    return result
+    return {**result, "cached": False}

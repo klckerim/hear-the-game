@@ -42,7 +42,21 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   resource for the app identity: Cognitive Services User, Azure AI Developer, Cognitive Services OpenAI User ("Azure AI User" does not exist in this tenant).
   Owner ran a live Speech TTS call and a Foundry model call from inside the container: both OK, so cache misses can reach Foundry/Speech.
 - Min replicas is 1 (`minReplicas` param); set it to 0 after judging to save cost. Latency numbers on the deployed URL are not measured yet (Day 6).
-- Not done: App Insights is provisioned and its connection string is an env var, but the app sends no telemetry yet (Container Apps logs go to Log Analytics). Do not claim tracing in the README unless added.
+- Telemetry code was added after this (see Pre-Day-6 fixes); do not claim tracing in the README until a trace is seen in App Insights.
+
+## Pre-Day-6 fixes (2026-10-24, three commits)
+- **Latency:** `FOUNDRY_REASONING_EFFORT` (default `minimal`, set in `.env.example`, Bicep param and container env) is passed to `chat.completions.create` only when set.
+  Not part of the fingerprint; a test checks the seed-7 demo cache still hits. `eval.narration` already used a temp cache; it now has `--out`.
+  Measured (HTG_ENV=azure, seeds 11-30, 30 Insights, gpt-5-mini, minimal): narration p50 **1.87 s** / p95 4.90 s (was 10.7 / 17.4), first-pass Verifier 93% EN and TR
+  (was 100% on 100 Insights; small sample), fallback 0%, TTS p50 0.53 s / p95 2.28 s. Result is in the scratchpad, **`eval/results/narration.md` is not overwritten yet** (Day 6: rerun with `--limit 100`).
+  p50 is under the 4 s deadline, but p95 is not: a few live cache misses still fall back to the template.
+- **warm_up** runs in `asyncio.to_thread` (serve and run_local); test shows the loop keeps ticking during a slow warm-up.
+- **Telemetry:** `htg/telemetry.py` (`setup()` only with `APPLICATIONINSIGHTS_CONNECTION_STRING`; Azure Monitor + OpenAI instrumentation, errors never stop the server).
+  Metrics `htg.sessions.active`, `htg.speech.resolved` (source cache|llm|template, lang), `htg.speech.resolve_ms`, `htg.speech.dropped_stale`; span `htg.narrate_insight`
+  (insight.type, cached, verifier.attempts, verifier.reasons, source.en/tr). `narrate_insight` result has a `cached` flag (not stored in the cache files).
+  Message content capture is on in the container (synthetic facts only). `opentelemetry-api` is a core dependency (no-op); exporters are in the `[azure]` extra.
+  Pins: `opentelemetry-util-genai==1.1b0` and `httpx` (openai-v2 2.4b0 breaks with util-genai 1.2b0 and imports httpx, while openai 3.x ships httpx2).
+  **Not yet verified in Azure:** owner runs `azd deploy`, then checks one trace. Portal step: Foundry project > Tracing > Connect the Bicep-created Application Insights (`appi-...`).
 
 ## In progress
 - Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.

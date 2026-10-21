@@ -18,6 +18,7 @@ import websockets
 from websockets.datastructures import Headers
 from websockets.http11 import Response
 
+from htg import telemetry
 from htg.adapters.local import FileEventSource
 from htg.engine.director import SILENCE_S
 from htg.env import load_env
@@ -51,6 +52,7 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
         await ws.close(1013, "busy")
         return
     sessions.add(ws)
+    telemetry.sessions_active.add(1)
     pipe, resolver = LivePipeline(meta, "casual", speed), make_resolver(meta)
     insights: dict[str, dict] = {}
     tasks: set[asyncio.Task] = set()
@@ -70,7 +72,9 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
 
     async def deliver(msg: dict) -> None:
         final = await resolver.resolve(msg, insights[msg["insight_id"]])
-        if not is_stale(final, now):
+        if is_stale(final, now):
+            telemetry.dropped_stale.add(1)
+        else:
             await send(final)
 
     async def play() -> None:
@@ -102,10 +106,12 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
         for t in tasks:
             t.cancel()
         sessions.discard(ws)
+        telemetry.sessions_active.add(-1)
 
 
 async def main(seed: int, speed: float, start_minute: float, host: str, port: int) -> None:
     load_env()
+    telemetry.setup()
     match_dir = OUT_DIR / f"match_{seed:04d}"
     if not match_dir.exists():
         match_dir = generate(seed)
