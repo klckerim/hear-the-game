@@ -41,7 +41,7 @@ header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-te
 .hdr-right { display: contents; }  /* its children sit in the header grid, so phones can put the TR/EN switch beside the title */
 h1 { grid-area: title; font-family: var(--display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); letter-spacing: 0.01em; margin: 0; line-height: 1; text-transform: uppercase; }
 h1 span { color: var(--amber); }
-.sub { grid-area: sub; color: var(--muted); margin: 0; max-width: 62ch; min-height: 3em; }
+.sub { grid-area: sub; justify-self: end; text-align: right; color: var(--muted); margin: 0; max-width: 62ch; min-height: 3em; }
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 .stage { display: grid; gap: 10px; min-width: 0; }
@@ -63,7 +63,7 @@ h1 span { color: var(--amber); }
 #captionText { margin: 0; min-width: 0; }
 @media (max-width: 600px) {
   header { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title lang" "sub sub"; }
-  .sub { font-size: 13px; min-height: 4.5em; }
+  .sub { font-size: 13px; min-height: 4.5em; justify-self: start; text-align: left; }
   .scorebar { font-size: 18px; gap: 10px; }
   .score { font-size: 16px; padding: 2px 8px; }
   .clock { font-size: 15px; }
