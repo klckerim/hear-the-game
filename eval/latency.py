@@ -76,8 +76,9 @@ def report(runs: list[dict], url: str, sessions: int, minutes: float, mode: str,
     resolve = [s["arrived"] - s["decided"] for s in speech if s["decided"] is not None]
     held = [s["arrived"] - s["insight"] for s in speech if s["insight"] is not None]
     errors = [r["error"] for r in runs if r["error"]]
+    target = "a local server" if "localhost" in url else "the deployed Container App"  # the public URL stays out of the repo
     rows = [f"### {datetime.date.today().isoformat()}: {sessions} session(s), {minutes:g} min, mode `{mode}`", "",
-            f"Client: {client} -> {region}. URL `{url}`. Sessions started together; each replays the demo match from minute 13.", "",
+            f"Client: {client} -> {region}. Target: {target}. Sessions started together; each replays the demo match from minute 13.", "",
             "| measure | n | p50 / p95 / max |", "|---|---|---|",
             f"| connect -> `hello` | {len(hello)} | {q(hello)} |",
             f"| `state` inter-arrival (nominal {NOMINAL_STATE_MS} ms) | {len(gaps)} | {q(gaps)} |",

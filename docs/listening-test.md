@@ -8,7 +8,7 @@ are; do not generalise from them.
 ## Setup
 
 - 1-3 participants, one at a time. Headphones (stereo matters: the wing is the left/right ear).
-- Deployed demo: https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/ (seed 7, starts at minute 13).
+- The deployed demo (seed 7, starts at minute 13).
   Mode **casual**, language the participant's choice (TR or EN). Screen hidden or turned away.
 - Listen for **10 minutes** (match minutes 13-23). The task said 5 minutes, but the demo's goal comes at 22:36, about
   9.5 minutes in; with 5 minutes the goal question has no answer.

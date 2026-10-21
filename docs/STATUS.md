@@ -38,7 +38,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - `services/engine/serve.py`: static client + `/healthz` + `/ws` on one port, one replay session per listener (max 20, 15 min of match time each), seed 7 from minute 13.
   `web/live.html` defaults to same-origin WebSocket. `Dockerfile` (generates match 7 at build), `azure.yaml`, `infra/` Bicep (compiles): Log Analytics, App Insights,
   ACR, Container Apps env + app (min 1 replica), user-assigned identity with AcrPull. 2 new tests. Docker image built and run locally: healthz + WebSocket OK.
-- **Deployed** (`azd up`, env `htg-demo`, rg `rg-htg-demo`, swedencentral): https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/
+- **Deployed** (`azd up`, env `htg-demo`, rg `rg-htg-demo`, swedencentral; app `ca-engine`, URL from `azd show` or the portal)
   Checked from outside: `/healthz` ok, WebSocket `hello` after 1.2 s, verified (`llm`) narration with audio from the cache. Roles on the `hearthegame` AIServices
   resource for the app identity: Cognitive Services User, Azure AI Developer, Cognitive Services OpenAI User ("Azure AI User" does not exist in this tenant).
   Owner ran a live Speech TTS call and a Foundry model call from inside the container: both OK, so cache misses can reach Foundry/Speech.

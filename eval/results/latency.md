@@ -10,7 +10,7 @@ Measured from outside with `python -m eval.latency` (see the module docstring). 
 
 ### 2026-10-21: 1 session(s), 3 min, mode `casual`
 
-Client: Istanbul -> Sweden Central. URL `wss://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/ws`. Sessions started together; each replays the demo match from minute 13.
+Client: Istanbul -> Sweden Central. Target: the deployed Container App. Sessions started together; each replays the demo match from minute 13.
 
 | measure | n | p50 / p95 / max |
 |---|---|---|
@@ -25,7 +25,7 @@ Client: Istanbul -> Sweden Central. URL `wss://ca-engine.proudflower-32a91b05.sw
 
 ### 2026-10-21: 10 session(s), 3 min, mode `casual`
 
-Client: Istanbul -> Sweden Central. URL `wss://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/ws`. Sessions started together; each replays the demo match from minute 13.
+Client: Istanbul -> Sweden Central. Target: the deployed Container App. Sessions started together; each replays the demo match from minute 13.
 
 | measure | n | p50 / p95 / max |
 |---|---|---|
@@ -45,7 +45,7 @@ on the deployed app below once redeployed.
 
 ### 2026-10-21: 1 session(s), 3 min, mode `analyst`
 
-Client: Istanbul -> Sweden Central. URL `wss://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/ws`. Sessions started together; each replays the demo match from minute 13.
+Client: Istanbul -> Sweden Central. Target: the deployed Container App. Sessions started together; each replays the demo match from minute 13.
 
 | measure | n | p50 / p95 / max |
 |---|---|---|
@@ -60,7 +60,7 @@ Client: Istanbul -> Sweden Central. URL `wss://ca-engine.proudflower-32a91b05.sw
 
 ### 2026-10-21: 10 session(s), 3 min, mode `casual`
 
-Client: Istanbul -> Sweden Central. URL `wss://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/ws`. Sessions started together; each replays the demo match from minute 13.
+Client: Istanbul -> Sweden Central. Target: the deployed Container App. Sessions started together; each replays the demo match from minute 13.
 
 | measure | n | p50 / p95 / max |
 |---|---|---|
