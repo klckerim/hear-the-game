@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-21 evening (Day 6 in progress: steps 0-4, 6, 7 done; README next). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 (Day 6 closed; owner items left: trace check + screenshots, clip listening, listening test). Next: Day 7 (video). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -64,7 +64,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Mobile/desktop layout:** TR/EN switch no longer moves the page (fixed caption height, one-line scorebar, title + switch on one row on phones, reserved text heights).
   Checked with headless Chrome screenshots at 1280/375/360/320 px, not on a real phone.
 
-## Day 6 (in progress; task: `docs/tasks/2026-10-25-day6.md`)
+## Day 6 (closed 2026-10-22; task: `docs/tasks/2026-10-25-day6.md`)
 - **Category: Best Use of Microsoft Foundry** (owner, 2026-10-21). Not "multi-agent": the code is one Foundry call per Insight + deterministic
   Verifier, detectors and Director. README framing follows this.
 - **Quality pass (owner said yes):** prompt v3 (radio tone, <= 20 words, fact meanings, one hand-written EN/TR example per Insight kind with
@@ -91,14 +91,23 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Step 6 `docs/listening-test.md`: protocol, questions TR/EN, answer key for minutes 13-23 from the match data. 10 minutes, not 5 (the goal is
   at 22:36). **Not run yet.**
 - Step 7: `docs/design.md` carries the "original design" note; this STATUS cleaned up.
-- Left: `azd up` + re-measure 10 sessions; owner trace check + screenshots; README rewrite (step 5); listening test (owner).
+- After listening (owner): Turkish voice spelled out number suffixes ("36'ydı") and read "yüzde 23." as an ordinal. Prompt 4 + Verifier
+  rule (no suffix on numbers in Turkish); SSML says Turkish integers from words (`<sub alias>`; say-as cardinal is not supported for tr-TR),
+  `SSML_VERSION` in the clip cache key. Cache regenerated. Narration re-measured with prompt 4: p50 1.58 s / p95 3.60 s, 100% first pass,
+  0 rejections. Foundry eval kept on prompt-3 sentences (`narration_samples_prompt3.jsonl`), stated in the file and README.
+- `azd up` done (warm-up fix + trace content). 10 sessions re-measured: hello p50 12.9 -> 3.8 s, longest state gap 15.8 -> 3.4 s. CPU stays 0.5.
+- Step 5: README rewritten for the jury (216 lines, Mermaid diagram, every number checked against a file; sound mappings checked against
+  `web/live.html`); long data detail moved to `docs/data.md`.
+- **Owner, still open:** trace check in App Insights (content on the chat span) and screenshots `docs/img/trace.png`, `foundry-eval.png`,
+  `metrics.png` (README does not embed them yet: add when the files exist); `htg.speech.dropped_stale` count; listen to the prompt-4 clips;
+  listening test (README says not run). If the trace content shows, README may drop "configured" from the tracing row.
 
 ## Day 7 needs (video)
 - Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
   the Foundry evaluation run, the App Insights metrics chart (htg.speech.resolved by source).
 - Demo minute: seed 7 from minute 13; the goal (Baptiste, Blues) comes at 22:36, about 9.5 minutes in. For a short video, either cut, or
   start the server at a later minute (would need a new pregen window check).
-- Numbers to show: detector recall/precision (seeds 11-30, flank precision 11% stated), narration p50 1.54 s / p95 2.89 s (was 10.7 / 17.4),
+- Numbers to show: detector recall/precision (seeds 11-30, flank precision 11% stated), narration p50 1.58 s / p95 3.60 s (was 10.7 / 17.4),
   Verifier first pass 100% with 0 real rejections plus the samples finding, groundedness 4.99, deployed latency after the fix.
 
 ## Plan (simplified, 2026-10-21)
@@ -123,9 +132,9 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Danger-only chances are not spoken (the sound carries danger); shots, goals and tactical Insights are.
 
 ## Risks
-- Live narration on a cache miss: p50 1.54 s / p95 2.89 s (prompt 3, minimal effort, offline eval), so most misses now make the 4 s deadline;
+- Live narration on a cache miss: p50 1.58 s / p95 3.60 s (prompt 4, minimal effort, offline eval), so most misses now make the 4 s deadline;
   the slowest still fall back to the template, and deployed misses also pay TTS (p50 ~0.45 s). The demo still uses the pre-generated cache.
-- Many listeners joining at once stalled the server before the warm-up fix; re-measure after `azd up` before judging.
+- 10 listeners joining in the same second still wait p50 3.8 s for the first message (0.5 vCPU); fine for judging, owner chose to keep 0.5.
 - The Verifier checks numbers, names, jargon and code values; it cannot catch invented details without a number or a name. Say so in the README.
 - Keep the deployed demo cheap: single container app; scale-to-zero is not ideal for a live demo, so use min 1 replica only during judging.
 - iOS Safari background audio untested.
