@@ -13,7 +13,7 @@
     "type": {"type": "string", "enum": ["pressure_shift", "tempo_change", "flank_overload", "physical_drop", "danger_peak", "milestone", "goal", "chance"]},
     "team": {"type": ["string", "null"], "enum": ["HOME", "AWAY", null]},
     "player_id": {"type": ["string", "null"]},
-    "claim_facts": {"type": "object", "description": "Every number the narration is allowed to use.", "additionalProperties": {"type": ["number", "string", "boolean"]}},
+    "claim_facts": {"type": "object", "description": "Every number the narration is allowed to use. Keys ending in _now are measured over the last recent_min minutes; keys ending in _before over the match before those minutes. No match minute and no raw danger value (the sound carries danger).", "additionalProperties": {"type": ["number", "string", "boolean"]}},
     "evidence": {"type": "array", "items": {"type": "integer"}, "minItems": 1, "description": "Event seq numbers that support the claim."},
     "confidence": {"type": "number", "minimum": 0, "maximum": 1},
     "priority": {"type": "integer", "minimum": 1, "maximum": 5, "description": "5 = must be told now (goal), 1 = filler."},

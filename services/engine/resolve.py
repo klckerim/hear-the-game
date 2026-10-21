@@ -29,7 +29,7 @@ class SpeechResolver:
 
     def _work(self, insight: dict) -> tuple[dict, dict[str, bytes | None]]:
         n = narrate_insight(insight, self.narrator, self.names)
-        return n, {lang: self.speech.synthesize(n[lang], lang) for lang in LANGS}
+        return n, {lang: self.speech.synthesize(n[lang], lang, insight["type"] == "goal") for lang in LANGS}
 
     async def resolve(self, msg: dict, insight: dict) -> dict[str, Any]:
         t0 = time.perf_counter()

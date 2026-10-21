@@ -141,7 +141,7 @@ class Detectors:
         if ratio < p.press_ratio:
             return None
         facts = {**self._team_facts(team), "share_now_pct": round(100 * now), "share_before_pct": round(100 * was),
-                 "window_min": round(p.press_window_s / 60)}
+                 "recent_min": round(p.press_window_s / 60)}
         evidence = [a["seq"] for a in recent if a.get("under_pressure")]
         return self._make(t, "pressure_shift", team, facts, evidence, ratio / 2, key=key)
 
@@ -165,7 +165,7 @@ class Detectors:
         if ratio < p.tempo_ratio:
             return None
         facts = {**self._team_facts(team), "gap_now_s": round(now, 1), "gap_before_s": round(was, 1),
-                 "slower_pct": round(100 * (ratio - 1)), "window_min": round(p.tempo_window_s / 60)}
+                 "slower_pct": round(100 * (ratio - 1)), "recent_min": round(p.tempo_window_s / 60)}
         return self._make(t, "tempo_change", team, facts, [s for _, s in recent], ratio / 2, key=key)
 
     def _flank_side(self, ev: dict, team: str) -> str | None:
@@ -193,7 +193,7 @@ class Detectors:
             return None
         ratio, side, was, hits = best
         facts = {**self._team_facts(team), "side": side, "side_tr": SIDE_TR[side], "share_now_pct": round(100 * len(hits) / len(recent)),
-                 "share_before_pct": round(100 * was), "window_min": round(p.flank_window_s / 60)}
+                 "share_before_pct": round(100 * was), "recent_min": round(p.flank_window_s / 60)}
         return self._make(t, "flank_overload", team, facts, hits, ratio / 3, key=key)
 
     # ------------------------------------------------------------------ physical rows
@@ -214,7 +214,7 @@ class Detectors:
             return []
         mine = [s for ts, s in self._by_player.get(pid, []) if ts > t - 60.0 * p.phys_recent_min]  # his own actions, if any
         facts = {**self._team_facts(row["team"]), "player": self.names[pid], "hsr_now_pct": round(100 * ratio),
-                 "window_min": p.phys_recent_min}
+                 "recent_min": p.phys_recent_min}
         return [self._make(t, "physical_drop", row["team"], facts, mine, 0.5 + (1 - ratio), player_id=pid, key=key)]
 
     # ------------------------------------------------------------------ milestones
@@ -224,14 +224,14 @@ class Detectors:
         shot = self._last_shot.get(team)
         scorer = ev.get("player_id") or (shot or {}).get("player_id")
         facts = {**self._team_facts(team), "player": self.names.get(scorer, ""), "home_score": self._score["HOME"],
-                 "away_score": self._score["AWAY"], "minute": int(ev["t"] // 60) + 1}
+                 "away_score": self._score["AWAY"]}
         evidence = [ev["seq"]] + ([shot["seq"]] if shot else [])
         return self._make(ev["t"], "goal", team, facts, sorted(evidence), 1.0, player_id=scorer)
 
     def _shot_chance(self, ev: dict) -> dict:
         self._last_shot_chance = ev["t"]
         facts = {**self._team_facts(ev["team"]), "source": "shot", "player": self.names.get(ev.get("player_id") or "", ""),
-                 "outcome": ev.get("outcome") or "", "minute": int(ev["t"] // 60) + 1}
+                 "outcome": ev.get("outcome") or ""}
         return self._make(ev["t"], "chance", ev["team"], facts, [ev["seq"]], 1.0, player_id=ev.get("player_id"))
 
     def _on_packet(self, pk: dict) -> list[dict]:
@@ -240,5 +240,5 @@ class Detectors:
                 or t - self._last_shot_chance < self.p.shot_quiet_s):
             return []
         self._last_danger_chance = t
-        facts = {**self._team_facts(pk["team"]), "source": "danger", "danger_pct": round(100 * pk["danger"])}
+        facts = {**self._team_facts(pk["team"]), "source": "danger"}  # no danger value: the sound already carries it
         return [self._make(t, "chance", pk["team"], facts, [self._last_seq], pk["danger"])]

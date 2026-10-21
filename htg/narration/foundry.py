@@ -5,9 +5,9 @@ import json
 import os
 from typing import Any
 
-from htg.narration.templates import narrate
+from htg.narration.examples import example_for
 
-PROMPT_VERSION = 1
+PROMPT_VERSION = 2
 
 SCHEMA = {
     "name": "narration",
@@ -21,12 +21,25 @@ SCHEMA = {
 }
 
 SYSTEM = (
-    "You write one short live-radio sentence about a football match, in English (en) and Turkish (tr), "
-    "for listeners who cannot see the pitch.\n"
-    "Rules: exactly one sentence per language, at most 25 words. Use only the facts you are given. Write numbers as digits, copied "
-    "exactly from the facts. Never introduce a number, a team or a player that is not in the facts. Do not explain causes and do not "
-    "mention injuries. Never write number words or multipliers (two, twice, double, half; iki katı, yarı). Plain broadcast tone. "
-    "In used_facts list the fact keys you used."
+    "You are a live radio football commentator for listeners who cannot see the pitch. Write one sentence in English (en) and one "
+    "in Turkish (tr) about the Insight you are given.\n"
+    "Rules:\n"
+    "- Exactly one sentence per language, at most 20 words, present tense, lively but plain radio tone.\n"
+    "- Use only the facts you are given. Copy numbers as digits exactly from the facts. Never introduce a number, a team or a player "
+    "that is not in the facts.\n"
+    "- Never start with or mention a match minute or a time stamp.\n"
+    "- No analyst words: window, level, danger level, data, metric, gap between touches; pencere, seviye, tehlike seviyesi, veri. "
+    "Say it the way a radio commentator would.\n"
+    "- Turkish percentages are 'yüzde 42' (suffixes allowed: 'yüzde 42'si'), never '42%' or '%42'. Turkish decimals use a comma: 2,3.\n"
+    "- Do not explain causes and do not mention injuries. No number words or multipliers (two, twice, double, half; iki katı, yarı).\n"
+    "- In used_facts list the fact keys you used.\n"
+    "Fact meanings: recent_min = length of the recent stretch in minutes. *_now = measured over those last recent_min minutes; "
+    "*_before = measured over the match before them (say 'earlier on' / 'maçın önceki bölümünde'), never 'in the last minutes'. "
+    "share_*_pct: pressure_shift = share of the opponent's actions under pressure; flank_overload = share of the team's passes ending "
+    "on that flank. gap_*_s = typical seconds between the team's touches; slower_pct = how much slower in percent. "
+    "hsr_now_pct = the player's recent high-speed running as a percentage of their earlier amount. home_score-away_score is the "
+    "score after the goal. outcome: saved, off_target or blocked. source danger = the team is close to goal with the ball (no number).\n"
+    "The example shows the tone and length for this kind of Insight; its teams, players and numbers are not this match's."
 )
 
 
@@ -44,8 +57,9 @@ class FoundryNarrator:
         self.tokens = 0
 
     def write(self, insight: dict, feedback: dict[str, list[str]] | None = None) -> dict[str, Any]:
-        user = {"type": insight["type"], "claim_facts": insight["claim_facts"],
-                "style_example": {"en": narrate(insight, "en"), "tr": narrate(insight, "tr")}}
+        user: dict[str, Any] = {"type": insight["type"], "claim_facts": insight["claim_facts"]}
+        if ex := example_for(insight):
+            user["example"] = ex
         if feedback:
             user["fix_these_problems"] = feedback
         extra = {"reasoning_effort": self.effort} if self.effort else {}

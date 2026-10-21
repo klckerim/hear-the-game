@@ -6,12 +6,15 @@ from __future__ import annotations
 
 import re
 
-MAX_WORDS = 30
+MAX_WORDS = 25
 NUMBER = re.compile(r"\d+(?:[.,]\d+)?")
 # Number words, multipliers, causal and medical claims. Substring match on the casefolded text, so TR suffixes are caught too.
 # TR "bir" and "iki" alone are allowed ("iki dokunuş arasında" is ordinary phrasing).
 BANNED_PHRASES = ["twice", "double", "triple", "half", "iki katı", "iki kat", "yarı", "because", "due to", "injur", "çünkü", "yüzünden",
                   "nedeniyle", "sakat"]
+# Analyst words a radio commentator would not say. "danger" alone is allowed ("dangerous"); a danger value is not in claim_facts anyway.
+JARGON = ["window", "pencere", "danger level", "level of danger", "tehlike seviye", "tehlike düzey"]
+TR_PERCENT_SIGN = re.compile(r"\d+ ?%|%\s?\d+")  # Turkish says "yüzde 42"; "42%" and "%42" are read inconsistently by the voice
 NUMBER_WORDS_EN = re.compile(r"\b(zero|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|hundred|dozen)\b")
 
 
@@ -38,6 +41,11 @@ def verify(text: str, lang: str, insight: dict, known_names: list[str]) -> list[
     for phrase in BANNED_PHRASES:
         if phrase in low:
             reasons.append(f"banned phrase '{phrase}' (no causes, medical claims, multipliers)")
+    for word in JARGON:
+        if word in low:
+            reasons.append(f"jargon '{word}' (say it like radio)")
+    if lang == "tr" and TR_PERCENT_SIGN.search(text):
+        reasons.append("percent sign in Turkish (write 'yüzde N')")
     if len(text.split()) > MAX_WORDS:
         reasons.append(f"longer than {MAX_WORDS} words")
     return reasons

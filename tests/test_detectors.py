@@ -88,8 +88,8 @@ def test_templates_use_only_claim_facts(seed42):
             text = narrate(i, lang)
             assert text and "{" not in text
             facts = {str(v) for v in i["claim_facts"].values()}
-            for token in re.findall(r"\d+(?:\.\d+)?", text):
-                assert token in facts, (lang, text)
+            for token in re.findall(r"\d+(?:[.,]\d+)?", text):  # TR writes decimals with a comma
+                assert token.replace(",", ".") in facts, (lang, text)
     with pytest.raises(ValueError):
         narrate(insights[0], "de")
 

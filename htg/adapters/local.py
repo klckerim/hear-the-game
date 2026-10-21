@@ -74,5 +74,5 @@ class TemplateNarrator:
 
 
 class NoSpeech:
-    def synthesize(self, text: str, lang: str) -> bytes | None:
+    def synthesize(self, text: str, lang: str, goal: bool = False) -> bytes | None:
         return None

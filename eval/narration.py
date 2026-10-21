@@ -66,7 +66,7 @@ def live_part(items: list[tuple[dict, list[str]]]) -> list[str]:
         lat.append(n["latency_s"])
         for lang in ("en", "tr"):
             t0 = time.perf_counter()
-            if speech.synthesize(n[lang], lang):
+            if speech.synthesize(n[lang], lang, ins["type"] == "goal"):
                 tts.append(time.perf_counter() - t0)
     rows = ["| | EN | TR |", "|---|---|---|"]
     first = [pct(sum(r["first_pass"][lg] for r in res) / len(res)) for lg in ("en", "tr")]

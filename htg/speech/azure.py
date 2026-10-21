@@ -10,12 +10,15 @@ CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "cache" / "audio"
 LOCALE = {"en": "en-GB", "tr": "tr-TR"}
 # Spoken form of names the voice mispronounces: {"Lindqvist": "Lindkvist"}. Fill after listening; never rename players.
 ALIASES: dict[str, dict[str, str]] = {"en": {}, "tr": {}}
+GOAL_PROSODY = {"rate": "+10%", "pitch": "+6%"}  # goals only: a little faster and higher, still the same neutral voice
 
 
-def ssml(text: str, lang: str, voice: str) -> str:
+def ssml(text: str, lang: str, voice: str, goal: bool = False) -> str:
     body = escape(text)
     for name, alias in ALIASES[lang].items():
         body = body.replace(name, f'<sub alias="{escape(alias)}">{name}</sub>')
+    if goal:
+        body = f'<prosody rate="{GOAL_PROSODY["rate"]}" pitch="{GOAL_PROSODY["pitch"]}">{body}</prosody>'
     return (f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="{LOCALE[lang]}">'
             f'<voice name="{voice}">{body}</voice></speak>')
 
@@ -37,13 +40,14 @@ class AzureSpeech:
         self.synth = sdk.SpeechSynthesizer(speech_config=cfg, audio_config=None)  # None: bytes in memory, no speaker
         self.characters = 0  # sent to TTS this run (cache hits excluded)
 
-    def synthesize(self, text: str, lang: str) -> bytes | None:
+    def synthesize(self, text: str, lang: str, goal: bool = False) -> bytes | None:
         voice = self.voices[lang]
-        path = self.cache_dir / f"{hashlib.sha256(f'{voice}|{text}'.encode()).hexdigest()[:32]}.mp3"
+        key = f"{voice}|{text}" + ("|goal" if goal else "")
+        path = self.cache_dir / f"{hashlib.sha256(key.encode()).hexdigest()[:32]}.mp3"
         if path.exists():
             return path.read_bytes()
         try:
-            result = self.synth.speak_ssml_async(ssml(text, lang, voice)).get()
+            result = self.synth.speak_ssml_async(ssml(text, lang, voice, goal)).get()
         except Exception:
             return None
         if result.reason != self.sdk.ResultReason.SynthesizingAudioCompleted:

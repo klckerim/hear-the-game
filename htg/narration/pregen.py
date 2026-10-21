@@ -61,7 +61,7 @@ def main(seed: int, mode: str) -> None:
         for lang in ("en", "tr"):
             sources[f"{lang}:{n['source'][lang]}"] += 1
             chars += len(n[lang])
-            clips += speech.synthesize(n[lang], lang) is not None
+            clips += speech.synthesize(n[lang], lang, ins["type"] == "goal") is not None
     print(f"seed {seed}, mode {mode}: {len(spoken)} spoken Insights, {clips} audio clips")
     print("sources:", dict(sorted(sources.items())))
     print(f"characters narrated: {chars}; sent to TTS this run: {getattr(speech, 'characters', 0)}; "

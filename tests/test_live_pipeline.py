@@ -110,7 +110,7 @@ def test_resolver_uses_service_and_falls_back_on_timeout(synth_dir, tmp_path, mo
     sp = next(m for m in msgs if m["type"] == "speech")
 
     class Voice:
-        def synthesize(self, text, lang):
+        def synthesize(self, text, lang, goal=False):
             return b"x" * 6000
 
     from htg.adapters.local import NoSpeech, TemplateNarrator
@@ -119,7 +119,7 @@ def test_resolver_uses_service_and_falls_back_on_timeout(synth_dir, tmp_path, mo
     assert base64.b64decode(ok["audio"]["tr"]) == b"x" * 6000 and ok["duration_s"]["en"] == 1.0 and ok["text"]["en"]
 
     class Slow(Voice):
-        def synthesize(self, text, lang):
+        def synthesize(self, text, lang, goal=False):
             time.sleep(0.5)
 
     slow = SpeechResolver(TemplateNarrator(), Slow(), names, True, timeout=0.05)
