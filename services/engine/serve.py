@@ -75,7 +75,7 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
 
     async def play() -> None:
         nonlocal now
-        warm_up(pipe, match_dir, start_minute)
+        await asyncio.to_thread(warm_up, pipe, match_dir, start_minute)  # CPU-bound; keep the other listeners' loop free
         await send(pipe.hello())
         async for item in FileEventSource(match_dir, speed, start_minute):
             now = item.t

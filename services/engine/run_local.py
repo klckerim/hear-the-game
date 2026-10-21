@@ -129,7 +129,7 @@ async def main(seed: int, speed: float, start_minute: float, mode: str, port: in
     print(f"seed {seed}, speed {speed}x, from minute {start_minute}, mode {mode}. Open web/live.html (ws://localhost:{bus.port}).")
     print("Waiting for a listener...")
     await bus.wait_for_client()
-    warm_up(pipe, match_dir, start_minute)
+    await asyncio.to_thread(warm_up, pipe, match_dir, start_minute)
     await bus.publish(pipe.hello())
     insights: dict[str, dict] = {}
     tasks: set[asyncio.Task] = set()
