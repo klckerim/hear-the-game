@@ -85,6 +85,18 @@ ol.log time { font-family: var(--mono); color: var(--muted); font-variant-numeri
 ol.log .fav { color: var(--amber); font-size: 11px; margin-left: 4px; }
 ol.log .empty { color: var(--muted); display: block; }
 .note { font-size: 12px; color: var(--muted); margin: 0; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 6px 12px; background: transparent; font-size: 13px; }
+.seg button[aria-pressed="true"] { background: var(--amber); color: var(--night); }
+.hdr-right { display: flex; align-items: center; gap: 10px; }
+.field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
+.field select { width: 100%; color: var(--chalk); }
+.recap { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
+.recap time { font-family: var(--mono); color: var(--muted); margin-right: 8px; }
+body[data-mode="eyes_free"] .analyst-only, body[data-mode="casual"] .analyst-only { display: none; }
+body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
+.fav-flash { animation: flash 0.9s ease-out; }
+@keyframes flash { from { box-shadow: 0 0 0 3px var(--amber); } to { box-shadow: 0 0 0 3px transparent; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -92,60 +104,76 @@ ol.log .empty { color: var(--muted); display: block; }
 <div class="wrap">
   <header>
     <h1>Hear the <span>Game</span></h1>
-    <p class="sub">Canlı akış: sunucu maçı veri olarak gönderir, sesi senin cihazın üretir. En iyi kulaklıkla dinlenir.</p>
+    <div class="hdr-right">
+      <p class="sub" data-i18n="sub"></p>
+      <div class="seg" role="group" aria-label="Language / Dil" id="appLang">
+        <button type="button" data-lang="tr" aria-pressed="false">TR</button>
+        <button type="button" data-lang="en" aria-pressed="false">EN</button>
+      </div>
+    </div>
   </header>
 
   <div class="grid">
-    <section class="stage" aria-label="Maç görünümü">
+    <section class="stage" data-i18n-aria="matchView">
       <div class="scorebar">
-        <span class="team"><span class="dot" id="dotHome" style="background: var(--red)"></span><span id="nameHome">Ev sahibi</span></span>
+        <span class="team"><span class="dot" id="dotHome" style="background: var(--red)"></span><span id="nameHome" data-i18n="home"></span></span>
         <span class="score" id="score">0 – 0</span>
-        <span class="team"><span id="nameAway">Deplasman</span><span class="dot" id="dotAway" style="background: var(--blue)"></span></span>
+        <span class="team"><span id="nameAway" data-i18n="away"></span><span class="dot" id="dotAway" style="background: var(--blue)"></span></span>
         <span class="clock" id="clock">0:00</span>
       </div>
       <div class="pitch-box">
-        <canvas id="pitch" aria-label="Topun saha üzerindeki konumu"></canvas>
-        <div class="blind" id="blind" hidden><p>Gözlerin kapalı<small>Maçı yalnızca sesle takip ediyorsun.</small></p></div>
+        <canvas id="pitch" data-i18n-aria="pitchAria"></canvas>
+        <div class="blind" id="blind" hidden><p><span data-i18n="blindTitle"></span><small data-i18n="blindSub"></small></p></div>
       </div>
       <div class="caption" aria-live="polite">
-        <span class="tag idle" id="captionTag">Anlatım</span>
-        <p id="captionText">"Dinlemeye başla"ya bas. Anlatıcı yalnızca top oyun dışındayken ya da tehlike düşükken konuşur.</p>
+        <span class="tag idle" id="captionTag" data-i18n="tagIdle"></span>
+        <p id="captionText" data-i18n="captionIdle"></p>
       </div>
     </section>
 
     <aside>
       <div class="panel">
         <div class="row">
-          <button id="playBtn" type="button">Dinlemeye başla</button>
-          <button id="blindBtn" type="button" aria-pressed="false">Gözümü kapat</button>
+          <button id="playBtn" type="button"></button>
+          <button id="blindBtn" type="button" aria-pressed="false" data-i18n="blindBtn"></button>
         </div>
-        <label class="row" style="align-items:center" for="lang">Anlatım dili
-          <select id="lang">
-            <option value="tr">Türkçe</option>
-            <option value="en">English</option>
-          </select>
+        <div class="field"><span data-i18n="modeLabel" id="modeLabel"></span>
+          <div class="seg" role="group" aria-labelledby="modeLabel" id="modes">
+            <button type="button" data-mode="eyes_free" aria-pressed="false" data-i18n="mode_eyes_free"></button>
+            <button type="button" data-mode="casual" aria-pressed="true" data-i18n="mode_casual"></button>
+            <button type="button" data-mode="analyst" aria-pressed="false" data-i18n="mode_analyst"></button>
+          </div>
+        </div>
+        <label class="field" for="fav"><span data-i18n="favLabel"></span>
+          <select id="fav"></select>
         </label>
-        <p class="note" id="status" role="status">Bağlı değil.</p>
+        <p class="note" id="status" role="status"></p>
         <p class="note" id="voiceNote"></p>
       </div>
 
-      <div class="panel" aria-live="off">
-        <h2>Şu an</h2>
-        <div class="meter"><span>Tehlike</span><span class="bar"><span class="fill" id="mDanger" style="background: var(--amber)"></span></span><span class="val" id="vDanger">0.00</span></div>
-        <div class="meter"><span>Baskı</span><span class="bar"><span class="fill" id="mPress" style="background: var(--muted)"></span></span><span class="val" id="vPress">0.00</span></div>
-        <div class="meter pan"><span>Kanat</span><span class="bar"><span class="mid"></span><span class="knob" id="mPan"></span></span><span class="val" id="vPan">orta</span></div>
-        <div class="panlabels"><span>sol kulak</span><span>sağ kulak</span></div>
-        <ol class="log" id="log"><li><span class="empty">Olaylar burada akacak.</span></li></ol>
+      <div class="panel">
+        <h2 data-i18n="recapTitle"></h2>
+        <button id="recapBtn" type="button" data-i18n="recapBtn"></button>
+        <ol class="recap" id="recap" aria-live="polite"></ol>
+      </div>
+
+      <div class="panel analyst-only" aria-live="off">
+        <h2 data-i18n="nowTitle"></h2>
+        <div class="meter"><span data-i18n="danger"></span><span class="bar"><span class="fill" id="mDanger" style="background: var(--amber)"></span></span><span class="val" id="vDanger">0.00</span></div>
+        <div class="meter"><span data-i18n="pressure"></span><span class="bar"><span class="fill" id="mPress" style="background: var(--muted)"></span></span><span class="val" id="vPress">0.00</span></div>
+        <div class="meter pan"><span data-i18n="wing"></span><span class="bar"><span class="mid"></span><span class="knob" id="mPan"></span></span><span class="val" id="vPan">orta</span></div>
+        <div class="panlabels"><span data-i18n="earL"></span><span data-i18n="earR"></span></div>
+        <ol class="log" id="log"></ol>
       </div>
 
       <div class="panel">
-        <h2>Katmanlar</h2>
+        <h2 data-i18n="layersTitle"></h2>
         <div class="toggles">
-          <label for="L_ball"><input type="checkbox" id="L_ball" checked> Top sesi (tehlike, kanat, takım)</label>
-          <label for="L_press"><input type="checkbox" id="L_press" checked> Baskı nabzı</label>
-          <label for="L_crowd"><input type="checkbox" id="L_crowd" checked> Tribün</label>
-          <label for="L_cue"><input type="checkbox" id="L_cue" checked> Olay sesleri</label>
-          <label for="L_voice"><input type="checkbox" id="L_voice" checked> Anlatım</label>
+          <label for="L_ball"><input type="checkbox" id="L_ball" checked> <span data-i18n="lBall"></span></label>
+          <label for="L_press"><input type="checkbox" id="L_press" checked> <span data-i18n="lPress"></span></label>
+          <label for="L_crowd"><input type="checkbox" id="L_crowd" checked> <span data-i18n="lCrowd"></span></label>
+          <label for="L_cue"><input type="checkbox" id="L_cue" checked> <span data-i18n="lCue"></span></label>
+          <label for="L_voice"><input type="checkbox" id="L_voice" checked> <span data-i18n="lVoice"></span></label>
         </div>
       </div>
     </aside>
@@ -160,11 +188,40 @@ const $ = id => document.getElementById(id);
 const COLOR = { red: "#f06a4f", blue: "#5b9cf5" };
 const LABEL = { tr: { shot: "Şut", save: "Kurtarış", goal: "GOL", out: "Top dışarıda", foul: "Faul", kickoff: "Santra" },
   en: { shot: "Shot", save: "Save", goal: "GOAL", out: "Ball out", foul: "Foul", kickoff: "Kick-off" } };
-const UI = { tr: { idle: "Dinlemeye başla", stop: "Durdur", off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", lost: "Bağlantı koptu.",
-  fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür." },
-  en: { idle: "Start listening", stop: "Stop", off: "Not connected.", wait: "Connected, waiting for the match.", lost: "Connection lost.",
-  fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions." } };
-const lang = () => $("lang").value;
+// One dictionary for every UI string. The app language also picks the narration language.
+const T = {
+  tr: { sub: "Sunucu maçı veri olarak gönderir, sesi senin cihazın üretir. En iyi kulaklıkla dinlenir.", matchView: "Maç görünümü",
+    pitchAria: "Topun saha üzerindeki konumu", home: "Ev sahibi", away: "Deplasman", blindTitle: "Gözlerin kapalı",
+    blindSub: "Maçı yalnızca sesle takip ediyorsun.", tagIdle: "Anlatım",
+    captionIdle: "\"Dinlemeye başla\"ya bas. Anlatıcı yalnızca top oyun dışındayken ya da tehlike düşükken konuşur.",
+    idle: "Dinlemeye başla", stop: "Durdur", blindBtn: "Gözümü kapat", modeLabel: "Dinleme modu",
+    mode_eyes_free: "Gözsüz", mode_casual: "Rahat", mode_analyst: "Analist", favLabel: "Favori oyuncu (kulaklık sesi)", favNone: "Yok",
+    recapTitle: "Ne kaçırdım?", recapBtn: "Son anlatımları oku", recapEmpty: "Henüz anlatım yok.", recapScore: "Skor",
+    nowTitle: "Şu an", danger: "Tehlike", pressure: "Baskı", wing: "Kanat", earL: "sol kulak", earR: "sağ kulak",
+    left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
+    layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lVoice: "Anlatım",
+    off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Canlı", lost: "Bağlantı koptu.",
+    fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
+    voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)" },
+  en: { sub: "The server sends the match as data; your device makes the sound. Best with headphones.", matchView: "Match view",
+    pitchAria: "Ball position on the pitch", home: "Home", away: "Away", blindTitle: "Eyes closed",
+    blindSub: "You follow the match by sound alone.", tagIdle: "Narration",
+    captionIdle: "Press \"Start listening\". The narrator only speaks when the ball is dead or danger is low.",
+    idle: "Start listening", stop: "Stop", blindBtn: "Close my eyes", modeLabel: "Listening mode",
+    mode_eyes_free: "Eyes-free", mode_casual: "Casual", mode_analyst: "Analyst", favLabel: "Favourite player (headphone cue)", favNone: "None",
+    recapTitle: "What did I miss?", recapBtn: "Read the latest narration", recapEmpty: "No narration yet.", recapScore: "Score",
+    nowTitle: "Right now", danger: "Danger", pressure: "Pressure", wing: "Wing", earL: "left ear", earR: "right ear",
+    left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
+    layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lVoice: "Narration",
+    off: "Not connected.", wait: "Connected, waiting for the match.", live: "Live", lost: "Connection lost.",
+    fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
+    voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)" } };
+const MODES = ["eyes_free", "casual", "analyst"];
+const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+let appLang = ["tr", "en"].includes(store.get("htg.lang")) ? store.get("htg.lang") : (navigator.language || "en").toLowerCase().startsWith("tr") ? "tr" : "en";
+let mode = MODES.includes(store.get("htg.mode")) ? store.get("htg.mode") : "casual";
+const t = k => T[appLang][k];
+const lang = () => appLang;
 
 /* ---------------- audio ---------------- */
 let ctx, master, duck, voiceBus, noiseBuf, waves, session = null, clip = null;
@@ -275,7 +332,7 @@ function applyLayers() {
 
 /* ---------------- live stream ---------------- */
 // Match clock -> audio clock: audioTime = clock0 + matchT / speed. Everything the server sends carries a match time.
-const live = { ws: null, clock0: null, speed: 1, teams: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [] };
+const live = { ws: null, clock0: null, speed: 1, teams: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], favT: -99 };
 const matchNow = () => (ctx.currentTime - live.clock0) * live.speed;
 const audioAt = t => Math.max(ctx.currentTime, live.clock0 + t / live.speed);
 
@@ -284,33 +341,33 @@ function connect() {
   primeVoice();
   resetLive();
   session = newSession(); applyLayers();
-  $("playBtn").textContent = UI[lang()].stop;
-  $("status").textContent = UI[lang()].wait;
+  $("playBtn").textContent = t("stop");
+  $("status").textContent = t("wait");
   const ws = live.ws = new WebSocket(WS_URL);
   ws.onmessage = e => onMessage(JSON.parse(e.data));
-  ws.onclose = () => { if (live.ws === ws) { stopListening(UI[lang()].lost); } };
-  ws.onerror = () => { if (live.ws === ws) { stopListening(UI[lang()].fail); } };
+  ws.onclose = () => { if (live.ws === ws) { stopListening(t("lost")); } };
+  ws.onerror = () => { if (live.ws === ws) { stopListening(t("fail")); } };
   live.timer = setInterval(schedule, 25);
 }
 function stopListening(msg) {
   const ws = live.ws; live.ws = null;
   if (ws) { ws.onclose = ws.onerror = null; ws.close(); }
   clearInterval(live.timer); endSession(session); session = null; stopSpeech();
-  $("playBtn").textContent = UI[lang()].idle; $("status").textContent = msg || UI[lang()].off;
+  $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off");
 }
 function resetLive() {
-  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [] });
-  $("score").textContent = "0 – 0"; $("log").innerHTML = '<li><span class="empty">Olaylar burada akacak.</span></li>';
+  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [] });
+  $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
 }
 
 function onMessage(m) {
   if (m.type === "hello") {
     live.speed = m.speed || 1; live.teams = m.teams;
     for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) {
-      $("name" + id).textContent = lang() === "tr" ? m.teams[side].name_tr : m.teams[side].name_en;
       $("dot" + id).style.background = COLOR[m.teams[side].color] || "#ccc";
     }
-    $("status").textContent = "Canlı · " + m.match_id;
+    $("status").textContent = t("live") + " · " + m.match_id;
+    fillFav(m.teams); setTeamNames(); sendMode();
   } else if (m.type === "state") {
     if (live.clock0 === null) live.clock0 = ctx.currentTime + JITTER_S - m.packets[0].t / live.speed;
     live.frames.push(...m.packets);
@@ -348,10 +405,15 @@ function cue(m, a) {
   else if (["out", "foul"].includes(k)) sndWhistle(L, a + 0.1, 0.4, 0.04);
   else if (k === "kickoff") sndWhistle(L, a, 0.7, 0.05);
   else if (k === "goal") { sndGoal(L, a, m.team); live.score[m.team === "HOME" ? 0 : 1]++; $("score").textContent = live.score.join(" – "); }
-  if (LABEL[lang()][k]) addLog(m.t, m.team, LABEL[lang()][k], a);
+  const fav = $("fav").value && m.player_id === $("fav").value;
+  if (fav) {  // the favourite player touched the ball: a two-note chime on the side the ball is on, at most every 3 s of match time
+    if (m.t - live.favT > 3) { sndEarcon(L, a + 0.02, m.pan); live.favT = m.t; flashFav(); }
+  }
+  if (LABEL[lang()][k]) addLog(m.t, m.team, LABEL[lang()][k] + (fav ? " ★" : ""), a);
 }
 function speech(m, a) {
   const text = m.text[lang()];
+  live.recap.unshift({ t: m.t, text: m.text }); live.recap.length = Math.min(live.recap.length, 5); setTimeout(renderRecap, Math.max(0, (a - ctx.currentTime) * 1000));
   m.buf = decodeClip(m, lang());  // decode ahead; the clip plays when its match time arrives
   setTimeout(() => { if (live.ws) say(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
   addLog(m.t, null, "🎙 " + text, a);
@@ -364,22 +426,40 @@ function decodeClip(m, l) {
   return ctx.decodeAudioData(bytes.buffer).catch(() => null);
 }
 function addLog(t, team, label, a) {
-  setTimeout(() => {
-    live.log.unshift({ t, team, label }); live.log.length = Math.min(live.log.length, 6);
-    $("log").innerHTML = live.log.map(e => `<li><time>${clock(e.t)}</time><span class="dot" style="background:${e.team ? COLOR[live.teams[e.team].color] : "var(--muted)"};width:8px;height:8px"></span><span></span></li>`).join("");
-    [...$("log").children].forEach((li, i) => li.lastChild.textContent = live.log[i].label);
-  }, Math.max(0, (a - ctx.currentTime) * 1000));
+  setTimeout(() => { live.log.unshift({ t, team, label }); live.log.length = Math.min(live.log.length, 6); renderLog(); }, Math.max(0, (a - ctx.currentTime) * 1000));
+}
+function renderLog() {
+  const ol = $("log"); ol.replaceChildren();
+  if (!live.log.length) { const li = document.createElement("li"); li.innerHTML = '<span class="empty"></span>'; li.firstChild.textContent = t("logEmpty"); ol.append(li); return; }
+  for (const e of live.log) {
+    const li = document.createElement("li"), tm = document.createElement("time"), dot = document.createElement("span"), tx = document.createElement("span");
+    tm.textContent = clock(e.t); dot.className = "dot"; dot.style.cssText = `background:${e.team ? COLOR[live.teams[e.team].color] : "var(--muted)"};width:8px;height:8px`;
+    tx.textContent = e.label; li.append(tm, dot, tx); ol.append(li);
+  }
+}
+function renderRecap() {
+  const ol = $("recap"); ol.replaceChildren();
+  if (!live.recap.length) { const li = document.createElement("li"); li.className = "note"; li.textContent = t("recapEmpty"); ol.append(li); return; }
+  for (const r of live.recap) { const li = document.createElement("li"), tm = document.createElement("time"); tm.textContent = clock(r.t); li.append(tm, r.text[lang()]); ol.append(li); }
+}
+// "What did I miss": speak the score and the last three narrations, oldest first, with the device voice (not the clip bus, so it never overlaps a live clip)
+function readRecap() {
+  if (!live.recap.length) { setCaption(t("recapEmpty"), false); return; }
+  const lines = [`${t("recapScore")}: ${live.score.join(" - ")}.`, ...live.recap.slice(0, 3).reverse().map(r => r.text[lang()])];
+  setCaption(lines.join(" "), true); $("captionTag").textContent = t("recapTitle");
+  const v = voiceFor[lang()];
+  if ("speechSynthesis" in window && v) { speechSynthesis.cancel(); lines.forEach(l => { const u = new SpeechSynthesisUtterance(l); u.voice = v; u.lang = v.lang; u.rate = 1.05; speechSynthesis.speak(u); }); }
 }
 const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
 
 /* ---------------- narration ---------------- */
 let voiceFor = {}, fallbackTimer = null;
 function pickVoices() {
-  if (!("speechSynthesis" in window)) { $("voiceNote").textContent = UI[lang()].novoice; return; }
+  if (!("speechSynthesis" in window)) { $("voiceNote").textContent = t("novoice"); return; }
   const vs = speechSynthesis.getVoices();
   voiceFor.tr = vs.find(v => v.lang && v.lang.toLowerCase().startsWith("tr"));
   voiceFor.en = vs.find(v => /en[-_]gb/i.test(v.lang)) || vs.find(v => v.lang && v.lang.toLowerCase().startsWith("en"));
-  $("voiceNote").textContent = voiceFor[lang()] ? "Ses: " + voiceFor[lang()].name + " (cihaz sesi; sunucu Azure klibi gönderirse o çalar)." : UI[lang()].novoice;
+  $("voiceNote").textContent = voiceFor[lang()] ? `${t("voice")}: ${voiceFor[lang()].name} ${t("voiceTail")}` : t("novoice");
 }
 function primeVoice() { if ("speechSynthesis" in window) speechSynthesis.speak(new SpeechSynthesisUtterance("")); }  // unlock on the user gesture
 function setCaption(text, liveNow) { $("captionText").textContent = text; $("captionTag").classList.toggle("idle", !liveNow); }
@@ -449,7 +529,7 @@ function drawPanel() {
   $("mDanger").style.width = (r.danger * 100) + "%"; $("vDanger").textContent = r.danger.toFixed(2);
   $("mPress").style.width = (r.pressure * 100) + "%"; $("vPress").textContent = r.pressure.toFixed(2);
   $("mPan").style.left = `calc(${(r.pan + 1) * 50}% - 7px)`;
-  $("vPan").textContent = !r.in_play ? "—" : r.pan < -0.33 ? "sol" : r.pan > 0.33 ? "sağ" : "orta";
+  $("vPan").textContent = !r.in_play ? "—" : r.pan < -0.33 ? t("left") : r.pan > 0.33 ? t("right") : t("mid");
   $("clock").textContent = clock(r.t);
 }
 function loop() { drawPitch(); drawPanel(); requestAnimationFrame(loop); }
@@ -462,13 +542,46 @@ $("blindBtn").addEventListener("click", e => {
 });
 ["L_ball", "L_press", "L_crowd", "L_cue"].forEach(id => $(id).addEventListener("change", applyLayers));
 $("L_voice").addEventListener("change", () => { if (!$("L_voice").checked) stopSpeech(); });
-$("lang").addEventListener("change", () => {
-  stopSpeech(); pickVoices();
-  if (!live.ws) $("playBtn").textContent = UI[lang()].idle;
-  if (live.teams) for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) $("name" + id).textContent = lang() === "tr" ? live.teams[side].name_tr : live.teams[side].name_en;
-});
+function setTeamNames() {
+  if (!live.teams) return;
+  for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) $("name" + id).textContent = live.teams[side]["name_" + lang()];
+}
+function fillFav(teams) {
+  const sel = $("fav"), keep = sel.value; sel.replaceChildren(new Option(t("favNone"), ""));
+  for (const side of ["HOME", "AWAY"]) {
+    const g = document.createElement("optgroup"); g.label = teams[side]["name_" + lang()];
+    teams[side].players.forEach(p => g.append(new Option(p.name, p.id))); sel.append(g);
+  }
+  sel.value = keep;
+}
+function flashFav() { const c = $("captionTag"); c.classList.remove("fav-flash"); void c.offsetWidth; c.classList.add("fav-flash"); }
+function sendMode() { if (live.ws && live.ws.readyState === 1) live.ws.send(JSON.stringify({ type: "set_mode", mode })); }
+function applyMode() {
+  document.body.dataset.mode = mode;
+  document.querySelectorAll("#modes button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+  const eyes = mode === "eyes_free";  // eyes-free hides the pitch; the other modes leave the choice to the "close my eyes" button
+  $("blindBtn").setAttribute("aria-pressed", String(eyes)); $("blind").hidden = !eyes;
+}
+function applyI18n() {
+  document.documentElement.lang = appLang;
+  document.querySelectorAll("[data-i18n]").forEach(e => { if (!(e.id === "captionText" && live.ws)) e.textContent = t(e.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
+  document.querySelectorAll("#appLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === appLang)));
+  $("playBtn").textContent = live.ws ? t("stop") : t("idle");
+  if (!live.ws) $("status").textContent = t("off");
+  setTeamNames(); if (live.teams) fillFav(live.teams);
+  renderLog(); renderRecap(); pickVoices();
+}
+document.querySelectorAll("#appLang button").forEach(b => b.addEventListener("click", () => {
+  appLang = b.dataset.lang; store.set("htg.lang", appLang); stopSpeech(); applyI18n();
+}));
+document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
+  mode = b.dataset.mode; store.set("htg.mode", mode); applyMode(); sendMode();
+}));
+$("recapBtn").addEventListener("click", readRecap);
 document.addEventListener("keydown", e => { if (e.code === "Space" && e.target === document.body) { e.preventDefault(); $("playBtn").click(); } });
-if ("speechSynthesis" in window) { pickVoices(); speechSynthesis.onvoiceschanged = pickVoices; } else pickVoices();
+if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = pickVoices;
+applyMode(); applyI18n();
 requestAnimationFrame(loop);
 </script>
 </body>

@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-21 (end of Day 2). Next: Day 3 (Foundry narrator + Verifier, Azure TTS, clip cache).
+Last updated: 2026-10-23 (Day 4 code done on `day4/ui`, owner review pending). Next: Day 5 (deploy).
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -24,7 +24,14 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   `eval/narration.py` -> `eval/results/narration.md` (100 Insights, seeds 11-30): first-pass Verifier 100% EN and TR, fallback 0%, mutation catch rate 100% (synthetic).
 - **Finding:** model latency is p50 10.7 s / p95 17.4 s (gpt-5-mini, EN+TR in one call), TTS p50 0.4 s. A live cache miss therefore usually exceeds the 4 s deadline and
   falls back to template text; the demo relies on the pre-generated cache. Say so in the README; a faster non-reasoning model would fix it if live narration matters.
-- Browser playback of Azure clips is not yet listened to end-to-end by the owner.
+- Owner listened to Azure clips in the browser end-to-end (2026-10-22): works. Day 3 is closed and merged.
+- TODO later: model latency (p50 10.7 s). Try a faster non-reasoning deployment or shorter prompt, re-run `eval.narration`, update README numbers.
+
+## Day 4 progress (`day4/ui`, task: `docs/tasks/2026-10-23-day4.md`)
+- `web/live.html`: TR/EN app language (one `T` dictionary, also picks narration language), modes eyes-free/casual/analyst (sent to the Director via `set_mode`),
+  favourite-player chime, "what did I miss" panel. Server: `WebSocketBroadcaster(on_message=)`, `hello.teams[*].players`, `event_cue.player_id`. 2 new tests.
+- Loads without console errors in headless Chrome; audio/layout NOT yet checked by ears/eyes. Owner: try all 3 modes, favourite chime, recap, phone width.
+- Not done (cut): further visual polish beyond this; revisit only if time remains.
 
 ## In progress
 - Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.
@@ -34,7 +41,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 |---|---|---|
 | 2 | Oct 21 | Replay, state engine, detectors scored vs truth, Director, live sound page (see `docs/tasks/`) |
 | 3 | Oct 22 | Foundry narrator + Verifier (fallback to templates), Azure TTS TR/EN, clip cache; pre-generate demo match narration |
-| 4 | Oct 23 | UI day: good-looking single-page client (vanilla JS), modes (eyes-free / casual / analyst), favorite-player earcon, simple "what did I miss" |
+| 4 | Oct 23 | UI day: good-looking single-page client (vanilla JS), modes (eyes-free / casual / analyst), favorite-player earcon, simple "what did I miss", app language TR/EN (all UI strings in one dictionary, browser language as default, one selector for both UI and narration) |
 | 5 | Oct 24 | Deploy: one Container App (engine + static client), Speech + Foundry, App Insights, azd/Bicep; measure latency |
 | 6 | Oct 25 | Eval numbers into README, 1-2 listening tests, docs, architecture diagram |
 | 7 | Oct 26 | Demo video, buffer fixes |
@@ -49,6 +56,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Repo is public MIT. Fictional teams/players only.
 
 ## Risks
+- Live narration on a cache miss usually exceeds the 4 s deadline (model p50 10.7 s); the demo depends on the pre-generated cache. State this in the README.
 - Keep the deployed demo cheap: single container app; scale-to-zero is not ideal for a live demo, so use min 1 replica only during judging.
 - iOS Safari background audio untested.
 - No claim of blind-user validation unless it actually happens.
