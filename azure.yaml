@@ -1,0 +1,9 @@
+name: hear-the-game
+services:
+  engine:
+    project: .
+    host: containerapp
+    language: python
+    docker:
+      path: ./Dockerfile
+      remoteBuild: true

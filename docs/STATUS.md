@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-23 (Day 4 closed, on `main`). Next: Day 5 (deploy).
+Last updated: 2026-10-24 (Day 5 code done, on `main`). Next: owner runs `azd up`, then Day 6.
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -32,6 +32,14 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   favourite-player chime, "what did I miss" panel. Server: `WebSocketBroadcaster(on_message=)`, `hello.teams[*].players`, `event_cue.player_id`. 2 new tests.
 - Mobile layout fixed (TR/EN switch was off-screen). Owner tried it by ear, by eye and with a screen reader (VoiceOver): OK. This is a manual check, not blind-user validation; do not claim more in the README.
 - Cut: visual polish beyond the above. Work now goes straight to `main` (no branches/PRs).
+
+## Day 5 (code done 2026-10-24; task: `docs/tasks/2026-10-24-day5.md`)
+- `services/engine/serve.py`: static client + `/healthz` + `/ws` on one port, one replay session per listener (max 20, 15 min of match time each), seed 7 from minute 13.
+  `web/live.html` defaults to same-origin WebSocket. `Dockerfile` (generates match 7 at build), `azure.yaml`, `infra/` Bicep (compiles): Log Analytics, App Insights,
+  ACR, Container Apps env + app (min 1 replica), user-assigned identity with AcrPull. 2 new tests. Docker image built and run locally: healthz + WebSocket OK.
+- **Owner to do:** install azd (`brew install azd`), `azd up` (params: foundryEndpoint, speechEndpoint, speechRegion, speechResourceId), then grant the app identity
+  (output `APP_PRINCIPAL_ID`) "Cognitive Services User" on Speech and "Azure AI User" on the Foundry resource; open the URL; measure latency.
+- Not done: App Insights is provisioned and its connection string is an env var, but the app sends no telemetry yet (Container Apps logs go to Log Analytics). Do not claim tracing in the README unless added.
 
 ## In progress
 - Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.

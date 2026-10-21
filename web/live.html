@@ -183,7 +183,8 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
 </div>
 
 <script>
-const WS_URL = new URLSearchParams(location.search).get("ws") || "ws://localhost:8765";
+const WS_URL = new URLSearchParams(location.search).get("ws")
+  || (location.protocol.startsWith("http") ? `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws` : "ws://localhost:8765");
 const JITTER_S = 0.3;  // how far behind the server clock we play, so packets arrive before they are due
 const PENTA = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24].map(s => 220 * Math.pow(2, s / 12));
 const $ = id => document.getElementById(id);
