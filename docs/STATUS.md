@@ -56,7 +56,12 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   (insight.type, cached, verifier.attempts, verifier.reasons, source.en/tr). `narrate_insight` result has a `cached` flag (not stored in the cache files).
   Message content capture is on in the container (synthetic facts only). `opentelemetry-api` is a core dependency (no-op); exporters are in the `[azure]` extra.
   Pins: `opentelemetry-util-genai==1.1b0` and `httpx` (openai-v2 2.4b0 breaks with util-genai 1.2b0 and imports httpx, while openai 3.x ships httpx2).
-  **Not yet verified in Azure:** owner runs `azd deploy`, then checks one trace. Portal step: Foundry project > Tracing > Connect the Bicep-created Application Insights (`appi-...`).
+  **Verified in Azure (owner, after `azd deploy`):** `htg.narrate_insight` spans arrive in App Insights `appi-tv2ah3k7jdu46`, including one `cached=false`
+  (live Foundry call; Analyst mode, minute 21:42 chance is not in the demo cache). Foundry project `hearthegame` is connected to it (Tracing, project managed identity).
+  Prompt/response content was **not** seen yet: on the legacy path it goes out as `gen_ai.*` log events. Optional fix: `OTEL_SEMCONV_STABILITY_OPT_IN=gen_ai_latest_experimental`
+  + `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT=span_only` puts it on the span. README may claim tracing of narration + Verifier, not of message content.
+- **Mobile/desktop layout:** TR/EN switch no longer moves the page (fixed caption height, one-line scorebar, title + switch on one row on phones, reserved text heights).
+  Checked with headless Chrome screenshots at 1280/375/360/320 px, not on a real phone.
 
 ## In progress
 - Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.
