@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 (Day 6 closed; owner items left: trace check + screenshots, clip listening, listening test). Next: Day 7 (video). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 (Day 6 closed; prompt-4 clips listened to by the owner; left for later: trace check + screenshots, listening test). Next: Day 7 (video). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -99,7 +99,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Step 5: README rewritten for the jury (216 lines, Mermaid diagram, every number checked against a file; sound mappings checked against
   `web/live.html`); long data detail moved to `docs/data.md`.
 - **Owner, still open:** trace check in App Insights (content on the chat span) and screenshots `docs/img/trace.png`, `foundry-eval.png`,
-  `metrics.png` (README does not embed them yet: add when the files exist); `htg.speech.dropped_stale` count; listen to the prompt-4 clips;
+  `metrics.png` (README does not embed them yet: add when the files exist); `htg.speech.dropped_stale` count (both deferred to a later session);
   listening test (README says not run). If the trace content shows, README may drop "configured" from the tracing row.
 
 ## Day 7 needs (video)
