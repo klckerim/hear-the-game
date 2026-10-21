@@ -4,8 +4,7 @@
 your own device, plus short, verified narration in English or Turkish, so blind and partially sighted fans (and anyone who can't
 look at a screen) can follow the shape of a match as it happens.
 
-**[Live demo](https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/)** · **Video:** _coming soon_ ·
-**Use headphones** (left and right matter).
+**Video:** _coming soon_ · **Use headphones** (left and right matter).
 
 > Built for the Microsoft × Premier League **Inside the Game** hackathon (October 2026), category **Best Use of Microsoft Foundry**.
 > All teams, players and matches are fictional and synthetic.
