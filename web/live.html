@@ -25,6 +25,12 @@
   --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
 }
 * { box-sizing: border-box; }
+html { scrollbar-gutter: stable; overflow-anchor: none; }  /* TR and EN texts differ in length: no scrollbar jump, no scroll-anchoring jump */
+.sub { min-height: 3em; }
+#status { min-height: 1.5em; }
+#voiceNote { min-height: 4.5em; }
+#modes { display: flex; width: 100%; }
+#modes button { flex: 1 1 0; white-space: nowrap; }
 body {
   background: var(--night); color: var(--chalk); font-family: var(--body); font-size: 15px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
