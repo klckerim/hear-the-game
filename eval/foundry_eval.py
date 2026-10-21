@@ -110,12 +110,12 @@ def slim(o: dict) -> dict:
             "results": {str(r.get("name")): {"score": r.get("score"), "reason": r.get("reason")} for r in o.get("results") or []}}
 
 
-def report(run, output: list[dict], judge: str, n_insights: int) -> list[str]:
+def report(run, output: list[dict], judge: str, n_insights: int, samples: str = "narration_samples.jsonl") -> list[str]:
     by = scores(output)
     portal = getattr(run, "report_url", None) or "(link: add from the portal)"
     lines = ["# Foundry evaluation of the narration", "",
              f"{datetime.date.today().isoformat()}. {n_insights} Insights from "
-             "[narration_samples.jsonl](narration_samples.jsonl) (seeds 11-30, the sentences that ship: model text that passed the",
+             f"[{samples}]({samples}) (seeds 11-30, the sentences that ship: model text that passed the",
              f"Verifier). Built-in evaluators `builtin.groundedness` and `builtin.fluency` (1-5, pass threshold 3), judge `{judge}`.",
              "Groundedness context = the Insight's claim_facts plus what each key means, as the narrator saw them.", "",
              f"Foundry run: `{run.id}` (eval `{run.eval_id}`). Portal: {portal}", "",
@@ -146,7 +146,7 @@ def main(samples: Path, out: Path, resume: str | None = None) -> None:
     items = rows(samples)
     run, output = run_eval(items, judge, resume)
     (RESULTS / "foundry_eval_items.jsonl").write_text("".join(json.dumps(slim(o), ensure_ascii=False) + "\n" for o in output))
-    lines = report(run, output, judge, len(items) // 2)
+    lines = report(run, output, judge, len(items) // 2, samples.name)
     out.write_text("\n".join(lines))
     print("\n".join(lines))
 

@@ -2,16 +2,16 @@
 
 Seeds 11-30 (reporting seeds), mode `casual`, 100 spoken Insights sampled evenly.
 
-## Live model and voice (100 Insights, model `foundry:gpt-5-mini`, reasoning effort `minimal`, prompt v3, 2026-10-21)
+## Live model and voice (100 Insights, model `foundry:gpt-5-mini`, reasoning effort `minimal`, prompt v4, 2026-10-22)
 
 | | EN | TR |
 |---|---|---|
 | first-pass Verifier rate | 100% | 100% |
 | template fallback rate (after one retry) | 0% | 0% |
 
-- Narration latency per Insight, EN+TR in one call incl. retries (p50 / p95): 1.54 s / 2.89 s
-- TTS latency per clip (p50 / p95): 0.47 s / 0.89 s over 200 clips
-- Model tokens: 67616; characters sent to TTS: 12620
+- Narration latency per Insight, EN+TR in one call incl. retries (p50 / p95): 1.58 s / 3.60 s
+- TTS latency per clip (p50 / p95): 0.56 s / 2.13 s over 200 clips
+- Model tokens: 70653; characters sent to TTS: 12420
 
 ### Latency before and after (all measured, same seeds and model)
 
@@ -22,6 +22,7 @@ Seeds 11-30 (reporting seeds), mode `casual`, 100 spoken Insights sampled evenly
 | 2026-10-21 | 2 | default | 100 | 7.71 s / 17.51 s | 100% / 100% |
 | 2026-10-21 | 2 | minimal | 100 | 1.58 s / 2.79 s | 100% / 100% |
 | 2026-10-21 | 3 | minimal | 100 | 1.54 s / 2.89 s | 100% / 100% |
+| 2026-10-22 | 4 | minimal | 100 | 1.58 s / 3.60 s | 100% / 100% |
 
 Reading the prompt-2 samples ([narration_samples_prompt2.jsonl](narration_samples_prompt2.jsonl)) by hand found what
 the Verifier then missed: 13 of 200 accepted sentences read out a code value (`off_target`), some invented shot locations
@@ -29,6 +30,10 @@ the Verifier then missed: 13 of 200 accepted sentences read out a code value (`o
 Fixes: a Verifier rule for code values, prompt 3 (say only what the facts say), and goal facts
 without the opponent's name, so naming the wrong team fails the name check.
 Invented details without a number or a name are still not caught deterministically.
+Listening to the demo clips then found two Turkish voice problems: a suffix on a number ("36'ydı") was spelled out, and a
+number before a full stop ("yüzde 23.") was read as an ordinal. Prompt 4 and a Verifier rule forbid number suffixes in
+Turkish; the speech layer now says Turkish integers from words (`htg/speech/azure.py`).
+Prompt-3 samples: [narration_samples_prompt3.jsonl](narration_samples_prompt3.jsonl) (used by the Foundry evaluation).
 
 ## Real catches (model errors the Verifier stopped)
 

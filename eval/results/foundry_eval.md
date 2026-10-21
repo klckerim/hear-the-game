@@ -1,8 +1,9 @@
 # Foundry evaluation of the narration
 
-2026-10-21. 100 Insights from [narration_samples.jsonl](narration_samples.jsonl) (seeds 11-30, the sentences that ship: model text that passed the
+2026-10-21. 100 Insights from [narration_samples_prompt3.jsonl](narration_samples_prompt3.jsonl) (prompt 3, seeds 11-30, the sentences that ship: model text that passed the
 Verifier). Built-in evaluators `builtin.groundedness` and `builtin.fluency` (1-5, pass threshold 3), judge `gpt-5-mini`.
 Groundedness context = the Insight's claim_facts plus what each key means, as the narrator saw them.
+Evaluated on prompt-3 sentences. Prompt 4 (shipping) changed only how Turkish attaches suffixes to numbers; not re-evaluated.
 
 Foundry run: `evalrun_d1e544f071134e49b9cd4e97c3efac09` (eval `eval_a693656d65f94bc6a057dff3657fa2f0`). Portal: https://ai.azure.com/nextgen/r/LEIDGpBYStWgkYX9XBMwXQ,hear-the-game,,hearthegame,hearthegame/build/evaluations/eval_a693656d65f94bc6a057dff3657fa2f0/run/evalrun_d1e544f071134e49b9cd4e97c3efac09
 

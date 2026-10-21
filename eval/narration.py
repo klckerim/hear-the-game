@@ -33,13 +33,18 @@ RESULTS = Path(__file__).resolve().parent / "results" / "narration.md"
 HISTORY = ["| 2026-10-21 | 1 | default | 100 | 10.73 s / 17.42 s | 100% / 100% |",
            "| 2026-10-21 | 1 | minimal | 30 | 1.87 s / 4.90 s | 93% / 93% |",
            "| 2026-10-21 | 2 | default | 100 | 7.71 s / 17.51 s | 100% / 100% |",
-           "| 2026-10-21 | 2 | minimal | 100 | 1.58 s / 2.79 s | 100% / 100% |"]
+           "| 2026-10-21 | 2 | minimal | 100 | 1.58 s / 2.79 s | 100% / 100% |",
+           "| 2026-10-21 | 3 | minimal | 100 | 1.54 s / 2.89 s | 100% / 100% |"]
 NOTES = ["Reading the prompt-2 samples ([narration_samples_prompt2.jsonl](narration_samples_prompt2.jsonl)) by hand found what",
          "the Verifier then missed: 13 of 200 accepted sentences read out a code value (`off_target`), some invented shot locations",
          "(\"from the edge\"), and one goal sentence on the demo match credited the score to the wrong team.",
          "Fixes: a Verifier rule for code values, prompt 3 (say only what the facts say), and goal facts",
          "without the opponent's name, so naming the wrong team fails the name check.",
-         "Invented details without a number or a name are still not caught deterministically."]
+         "Invented details without a number or a name are still not caught deterministically.",
+         "Listening to the demo clips then found two Turkish voice problems: a suffix on a number (\"36'ydı\") was spelled out, and a",
+         "number before a full stop (\"yüzde 23.\") was read as an ordinal. Prompt 4 and a Verifier rule forbid number suffixes in",
+         "Turkish; the speech layer now says Turkish integers from words (`htg/speech/azure.py`).",
+         "Prompt-3 samples: [narration_samples_prompt3.jsonl](narration_samples_prompt3.jsonl) (used by the Foundry evaluation)."]
 CAUSE = {"en": " because of tiredness.", "tr": " çünkü yoruldular."}
 NUM = re.compile(r"\d+(?:[.,]\d+)?")
 
