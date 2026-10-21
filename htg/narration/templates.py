@@ -19,7 +19,7 @@ def _tr_num(x: float) -> str:
 
 def _en(i: dict) -> str:
     f, ty = i["claim_facts"], i["type"]
-    team, opp = _cap(f["team_en"]), f["opponent_en"]
+    team, opp = _cap(f["team_en"]), f.get("opponent_en")
     last = f"in the last {f.get('recent_min')} minutes"
     if ty == "pressure_shift":
         return (f"{team} are pressing harder: {f['share_now_pct']}% of {opp}' actions are under pressure {last}, "
@@ -41,7 +41,7 @@ def _en(i: dict) -> str:
 
 def _tr(i: dict) -> str:
     f, ty = i["claim_facts"], i["type"]
-    team, opp = f["team_tr"], f["opponent_tr"]
+    team, opp = f["team_tr"], f.get("opponent_tr")
     last = f"Son {f.get('recent_min')} dakikada"
     if ty == "pressure_shift":
         return (f"{team} baskıyı artırdı. {last} {opp} için baskı altındaki hareket oranı yüzde {f['share_now_pct']}, "

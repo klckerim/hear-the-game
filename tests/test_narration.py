@@ -54,6 +54,8 @@ def test_rejects_turkish_percent_sign_and_jargon(ctx):
     assert verify(f"It is {n}% now.", "en", i, names) == []  # the percent sign is fine in English
     assert verify("Over the last window the Reds attack.", "en", i, names)
     assert verify("Tehlike seviyesi yüksek.", "tr", i, names)
+    assert "code value 'off_target' (say it in words)" in verify("The shot goes off_target.", "en", i, names)
+    assert verify("Şut off_target oluyor.", "tr", i, names)
 
 
 def test_every_example_passes_the_verifier_and_covers_every_kind(ctx):

@@ -2,6 +2,7 @@
 
 Rules, in order, for each Insight in the queue:
 1. expired (`now > expires_at`)             -> drop
+   chance from danger alone (no shot)       -> drop (the sound already carries danger; by the time the ball is quiet it is stale)
 2. goal                                     -> speak immediately (no other rule applies)
 3. same type and team spoken < 5 min ago    -> drop
 4. ball live and danger >= 0.15             -> hold (never talk over an attack)
@@ -42,6 +43,8 @@ def decide(queue: Sequence[dict], state: dict, now: float, mode: str = "casual",
         key = ins["insight_id"]
         if now > ins["expires_at"]:
             out[key] = Decision("drop", ins, "expired")
+        elif ins["type"] == "chance" and ins["claim_facts"].get("source") == "danger":
+            out[key] = Decision("drop", ins, "sound carries danger")
         elif ins["type"] == "goal":
             ready.append(ins)
         elif any(ty == ins["type"] and tm == ins["team"] and now - t < REPEAT_S for t, ty, tm in spoken):

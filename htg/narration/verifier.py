@@ -14,6 +14,7 @@ BANNED_PHRASES = ["twice", "double", "triple", "half", "iki katı", "iki kat", "
                   "nedeniyle", "sakat"]
 # Analyst words a radio commentator would not say. "danger" alone is allowed ("dangerous"); a danger value is not in claim_facts anyway.
 JARGON = ["window", "pencere", "danger level", "level of danger", "tehlike seviye", "tehlike düzey"]
+CODE_VALUE = re.compile(r"\b[a-z]+_[a-z_]+\b")  # a fact key or enum value read out ("off_target", "share_now_pct")
 TR_PERCENT_SIGN = re.compile(r"\d+ ?%|%\s?\d+")  # Turkish says "yüzde 42"; "42%" and "%42" are read inconsistently by the voice
 NUMBER_WORDS_EN = re.compile(r"\b(zero|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|twenty|thirty|hundred|dozen)\b")
 
@@ -44,6 +45,8 @@ def verify(text: str, lang: str, insight: dict, known_names: list[str]) -> list[
     for word in JARGON:
         if word in low:
             reasons.append(f"jargon '{word}' (say it like radio)")
+    for code in CODE_VALUE.findall(text):
+        reasons.append(f"code value '{code}' (say it in words)")
     if lang == "tr" and TR_PERCENT_SIGN.search(text):
         reasons.append("percent sign in Turkish (write 'yüzde N')")
     if len(text.split()) > MAX_WORDS:

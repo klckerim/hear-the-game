@@ -7,7 +7,7 @@ from typing import Any
 
 from htg.narration.examples import example_for
 
-PROMPT_VERSION = 2
+PROMPT_VERSION = 3
 
 SCHEMA = {
     "name": "narration",
@@ -31,6 +31,8 @@ SYSTEM = (
     "- No analyst words: window, level, danger level, data, metric, gap between touches; pencere, seviye, tehlike seviyesi, veri. "
     "Say it the way a radio commentator would.\n"
     "- Turkish percentages are 'yüzde 42' (suffixes allowed: 'yüzde 42'si'), never '42%' or '%42'. Turkish decimals use a comma: 2,3.\n"
+    "- Say only what the facts say. Do not add where a shot came from, distances, pressing, crowds or anything else not in the "
+    "facts. Never write a fact key or a code value such as off_target; say it in words.\n"
     "- Do not explain causes and do not mention injuries. No number words or multipliers (two, twice, double, half; iki katı, yarı).\n"
     "- In used_facts list the fact keys you used.\n"
     "Fact meanings: recent_min = length of the recent stretch in minutes. *_now = measured over those last recent_min minutes; "
@@ -38,7 +40,8 @@ SYSTEM = (
     "share_*_pct: pressure_shift = share of the opponent's actions under pressure; flank_overload = share of the team's passes ending "
     "on that flank. gap_*_s = typical seconds between the team's touches; slower_pct = how much slower in percent. "
     "hsr_now_pct = the player's recent high-speed running as a percentage of their earlier amount. home_score-away_score is the "
-    "score after the goal. outcome: saved, off_target or blocked. source danger = the team is close to goal with the ball (no number).\n"
+    "score after the goal. outcome: saved = the keeper saves it, off_target = the shot misses the target, blocked = the shot is blocked. "
+    "source danger = the team has the ball close to the opponent's goal; say only that, in your own words.\n"
     "The example shows the tone and length for this kind of Insight; its teams, players and numbers are not this match's."
 )
 

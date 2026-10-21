@@ -31,7 +31,7 @@ EXAMPLES: dict[str, dict] = {
         "tr": "Yeşiller'de Varga yoruluyor: son 8 dakikadaki yüksek tempolu koşuları, maçın önceki bölümünün yüzde 45'i kadar.",
     },
     "goal": {
-        "facts": {**TEAMS, "player": "Duran", "home_score": 2, "away_score": 1},
+        "facts": {"team_en": "the Greens", "team_tr": "Yeşiller", "player": "Duran", "home_score": 2, "away_score": 1},
         "en": "Goal! Duran scores for the Greens, and it's 2-1!",
         "tr": "Gol! Duran Yeşiller için ağları sarsıyor, skor 2-1!",
     },

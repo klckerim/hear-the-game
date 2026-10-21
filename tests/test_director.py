@@ -1,8 +1,8 @@
 from htg.engine.director import SILENCE_S, decide
 
 
-def ins(id_="a", type_="pressure_shift", team="HOME", t=100.0, ttl=120.0, priority=3):
-    return {"insight_id": id_, "type": type_, "team": team, "t": t, "expires_at": t + ttl, "priority": priority}
+def ins(id_="a", type_="pressure_shift", team="HOME", t=100.0, ttl=120.0, priority=3, **facts):
+    return {"insight_id": id_, "type": type_, "team": team, "t": t, "expires_at": t + ttl, "priority": priority, "claim_facts": facts}
 
 
 DEAD = {"in_play": False, "danger": 0.0}
@@ -26,6 +26,11 @@ def test_holds_during_an_attack():
 def test_goal_speaks_immediately_even_in_an_attack_and_inside_the_budget():
     goal = ins("g", "goal", priority=5, ttl=60)
     assert actions([goal], ATTACK, 101, spoken=[(100.0, "tempo_change", "AWAY")]) == ["speak"]
+
+
+def test_drops_danger_only_chance_but_speaks_a_shot():
+    assert actions([ins(type_="chance", priority=4, source="danger")], DEAD, 110) == ["drop"]
+    assert actions([ins(type_="chance", priority=4, source="shot")], DEAD, 110) == ["speak"]
 
 
 def test_drops_expired():

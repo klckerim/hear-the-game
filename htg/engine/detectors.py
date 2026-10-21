@@ -120,9 +120,10 @@ class Detectors:
             "confidence": round(min(max(confidence, 0.0), 1.0), 2), "priority": PRIORITY[type_], "expires_at": round(t + TTL_S[type_], 3),
         }
 
-    def _team_facts(self, team: str) -> dict[str, str]:
+    def _team_facts(self, team: str, opponent: bool = True) -> dict[str, str]:
         me, other = self.teams[team]["name"], self.teams[OTHER[team]]["name"]
-        return {"team_en": me["en"], "team_tr": me["tr"], "opponent_en": other["en"], "opponent_tr": other["tr"]}
+        out = {"team_en": me["en"], "team_tr": me["tr"]}
+        return {**out, "opponent_en": other["en"], "opponent_tr": other["tr"]} if opponent else out
 
     # ------------------------------------------------------------------ periodic detectors
     def _pressure_shift(self, t: float, team: str) -> dict | None:
@@ -223,7 +224,8 @@ class Detectors:
         self._score[team] += 1
         shot = self._last_shot.get(team)
         scorer = ev.get("player_id") or (shot or {}).get("player_id")
-        facts = {**self._team_facts(team), "player": self.names.get(scorer, ""), "home_score": self._score["HOME"],
+        # No opponent name: a goal sentence names the scorer's team only, so "1-0 to <the wrong team>" cannot pass the Verifier.
+        facts = {**self._team_facts(team, opponent=False), "player": self.names.get(scorer, ""), "home_score": self._score["HOME"],
                  "away_score": self._score["AWAY"]}
         evidence = [ev["seq"]] + ([shot["seq"]] if shot else [])
         return self._make(ev["t"], "goal", team, facts, sorted(evidence), 1.0, player_id=scorer)
