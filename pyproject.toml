@@ -16,13 +16,14 @@ dependencies = [
   "scipy>=1.11",
   "matplotlib>=3.8",
   "jsonschema>=4.20",
+  "websockets>=12",
 ]
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
 
 [tool.setuptools]
-packages = ["htg"]
+packages = ["htg", "htg.adapters", "htg.engine", "htg.narration"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
