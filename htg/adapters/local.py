@@ -10,6 +10,7 @@ from typing import Any
 import websockets
 from websockets.asyncio.server import Server, ServerConnection
 
+from htg.narration.templates import narrate
 from htg.replay import Item, replay
 
 
@@ -56,3 +57,17 @@ class WebSocketBroadcaster:
             return
         payload = json.dumps(message, separators=(",", ":"))
         await asyncio.gather(*(c.send(payload) for c in list(self._clients)), return_exceptions=True)
+
+
+class TemplateNarrator:
+    """Local narrator: the deterministic template sentence, no model."""
+
+    name = "template"
+
+    def write(self, insight: dict, feedback: dict[str, list[str]] | None = None) -> dict[str, Any]:
+        return {"en": narrate(insight, "en"), "tr": narrate(insight, "tr"), "used_facts": sorted(insight["claim_facts"])}
+
+
+class NoSpeech:
+    def synthesize(self, text: str, lang: str) -> bytes | None:
+        return None

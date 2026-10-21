@@ -21,6 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "ruff>=0.6"]
+azure = ["openai>=1.60", "azure-identity>=1.17", "azure-cognitiveservices-speech>=1.40"]
 
 [tool.setuptools]
 packages = ["htg", "htg.adapters", "htg.engine", "htg.narration", "services", "services.engine"]
