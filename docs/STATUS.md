@@ -9,6 +9,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 ## Done
 - Day 0: sound prototype (`prototype/`) proves the idea.
 - Day 1: schemas, calibration from real open data, seeded generator with hidden scenarios, validation, 8 tests, CI config.
+- Day 2 PR 1 (branch `day2/state-engine`): `state.schema.json`, `htg/replay.py`, local adapters, `htg/engine/state.py`, 15 new tests. Next: PR 2 (detectors + `eval/scenarios.py`).
 
 ## In progress
 - Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.

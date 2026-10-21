@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hear-the-game/schemas/state.schema.json",
+  "title": "State packet",
+  "description": "One 10 Hz snapshot of the match, computed deterministically from the event feed and the ball track. This is the fast path: the listener's device turns it into sound. Position is in the global frame (x 0..105 m, y 0..68 m, HOME attacks towards x=105); danger, pressure, tempo and control are 0..1; pan is -1 (attacker's left flank) .. +1 (right flank).",
+  "type": "object",
+  "required": ["t", "x", "y", "team", "in_play", "danger", "pressure", "pan", "tempo", "control"],
+  "additionalProperties": false,
+  "properties": {
+    "t": {"type": "number", "minimum": 0, "description": "Match clock in seconds since kickoff."},
+    "x": {"type": "number", "minimum": 0, "maximum": 105},
+    "y": {"type": "number", "minimum": 0, "maximum": 68},
+    "team": {"type": "string", "enum": ["HOME", "AWAY"], "description": "Team in possession (or about to restart)."},
+    "in_play": {"type": "boolean"},
+    "danger": {"type": "number", "minimum": 0, "maximum": 1, "description": "Expected Threat at the ball in the attacking frame, scaled so the 99th percentile of a match is about 1. 0 when the ball is dead."},
+    "pressure": {"type": "number", "minimum": 0, "maximum": 1, "description": "Exponentially weighted rate of pressure events against the team in possession (half-life 4 s)."},
+    "pan": {"type": "number", "minimum": -1, "maximum": 1},
+    "tempo": {"type": "number", "minimum": 0, "maximum": 1, "description": "On-ball actions in the last 60 s relative to the calibrated match average; 0.5 is average."},
+    "control": {"type": "number", "minimum": 0, "maximum": 1, "description": "HOME share of in-play time over the last 5 minutes."}
+  }
+}
