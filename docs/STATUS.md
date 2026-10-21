@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-23 (Day 4 code done on `day4/ui`, owner review pending). Next: Day 5 (deploy).
+Last updated: 2026-10-23 (Day 4 closed, on `main`). Next: Day 5 (deploy).
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -27,11 +27,11 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Owner listened to Azure clips in the browser end-to-end (2026-10-22): works. Day 3 is closed and merged.
 - TODO later: model latency (p50 10.7 s). Try a faster non-reasoning deployment or shorter prompt, re-run `eval.narration`, update README numbers.
 
-## Day 4 progress (`day4/ui`, task: `docs/tasks/2026-10-23-day4.md`)
-- `web/live.html`: TR/EN app language (one `T` dictionary, also picks narration language), modes eyes-free/casual/analyst (sent to the Director via `set_mode`),
+## Day 4 (closed 2026-10-23;  task: `docs/tasks/2026-10-23-day4.md`)
+- `web/live.html`: TR/EN app language (one `T` dictionary, also picks narration language), modes audio-only/casual/analyst (sent to the Director via `set_mode`),
   favourite-player chime, "what did I miss" panel. Server: `WebSocketBroadcaster(on_message=)`, `hello.teams[*].players`, `event_cue.player_id`. 2 new tests.
-- Loads without console errors in headless Chrome; audio/layout NOT yet checked by ears/eyes. Owner: try all 3 modes, favourite chime, recap, phone width.
-- Not done (cut): further visual polish beyond this; revisit only if time remains.
+- Mobile layout fixed (TR/EN switch was off-screen). Owner tried it by ear, by eye and with a screen reader (VoiceOver): OK. This is a manual check, not blind-user validation; do not claim more in the README.
+- Cut: visual polish beyond the above. Work now goes straight to `main` (no branches/PRs).
 
 ## In progress
 - Local setup (venv with Python 3.11+, GitHub push). `microsoft-learn` MCP via `.mcp.json`; Azure MCP intentionally skipped.
