@@ -12,23 +12,22 @@ EXAMPLES: dict[str, dict] = {
     "pressure_shift": {
         "facts": {**TEAMS, "share_now_pct": 41, "share_before_pct": 24, "recent_min": 5},
         "en": "The Greens press harder: 41% of the Whites' play is under pressure in the last 5 minutes, 24% earlier.",
-        "tr": ("Yeşiller baskıyı artırdı: son 5 dakikada Beyazlar'ın hareketlerinin yüzde 41'i baskı altında, "
-               "maçın önceki bölümünde yüzde 24'tü."),
+        "tr": "Yeşiller baskıyı artırdı: son 5 dakikada Beyazlar için baskı oranı yüzde 41, maçın önceki bölümünde yüzde 24.",
     },
     "tempo_change": {
         "facts": {**TEAMS, "gap_now_s": 2.3, "gap_before_s": 1.5, "slower_pct": 53, "recent_min": 7},
         "en": "The Greens are slowing it down: about 2.3 seconds on every touch in the last 7 minutes, 1.5 earlier.",
-        "tr": "Yeşiller oyunu soğutuyor: son 7 dakikada her dokunuşta yaklaşık 2,3 saniye, maçın önceki bölümünde 1,5 saniyeydi.",
+        "tr": "Yeşiller oyunu soğutuyor: son 7 dakikada her dokunuşta yaklaşık 2,3 saniye, maçın önceki bölümünde 1,5 saniye.",
     },
     "flank_overload": {
         "facts": {**TEAMS, "side": "right", "side_tr": "sağ", "share_now_pct": 58, "share_before_pct": 27, "recent_min": 8},
         "en": "The Greens keep going down the right: 58% of their passes end there in the last 8 minutes, 27% earlier.",
-        "tr": "Yeşiller sağ kanada yükleniyor: son 8 dakikada paslarının yüzde 58'i orada bitiyor, önceki bölümde yüzde 27'ydi.",
+        "tr": "Yeşiller sağ kanada yükleniyor: son 8 dakikada pasların yüzde 58 kadarı orada bitiyor, önceden yüzde 27.",
     },
     "physical_drop": {
         "facts": {**TEAMS, "player": "Varga", "hsr_now_pct": 45, "recent_min": 8},
         "en": "Varga is tiring for the Greens: high-speed running over the last 8 minutes is down to 45% of earlier.",
-        "tr": "Yeşiller'de Varga yoruluyor: son 8 dakikadaki yüksek tempolu koşuları, maçın önceki bölümünün yüzde 45'i kadar.",
+        "tr": "Yeşiller'de Varga yoruluyor: son 8 dakikadaki yüksek tempolu koşuları, maçın önceki bölümünün yüzde 45 kadarı.",
     },
     "goal": {
         "facts": {"team_en": "the Greens", "team_tr": "Yeşiller", "player": "Duran", "home_score": 2, "away_score": 1},

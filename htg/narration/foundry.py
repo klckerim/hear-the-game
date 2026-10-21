@@ -7,7 +7,7 @@ from typing import Any
 
 from htg.narration.examples import example_for
 
-PROMPT_VERSION = 3
+PROMPT_VERSION = 4
 
 SCHEMA = {
     "name": "narration",
@@ -30,7 +30,8 @@ SYSTEM = (
     "- Never start with or mention a match minute or a time stamp.\n"
     "- No analyst words: window, level, danger level, data, metric, gap between touches; pencere, seviye, tehlike seviyesi, veri. "
     "Say it the way a radio commentator would.\n"
-    "- Turkish percentages are 'yüzde 42' (suffixes allowed: 'yüzde 42'si'), never '42%' or '%42'. Turkish decimals use a comma: 2,3.\n"
+    "- Turkish percentages are 'yüzde 42', never '42%' or '%42'. Never attach a suffix to a number in Turkish (not 42'si, 36'ydı, "
+    "1-1'e): the voice spells it out. Rephrase instead ('yüzde 42 kadarı', 'önceden yüzde 36'). Turkish decimals use a comma: 2,3.\n"
     "- Say only what the facts say. Do not add where a shot came from, distances, pressing, crowds or anything else not in the "
     "facts. Never write a fact key or a code value such as off_target; say it in words.\n"
     "- Do not explain causes and do not mention injuries. No number words or multipliers (two, twice, double, half; iki katı, yarı).\n"

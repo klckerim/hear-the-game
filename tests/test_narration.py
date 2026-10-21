@@ -50,7 +50,10 @@ def test_rejects_turkish_percent_sign_and_jargon(ctx):
     n = i["claim_facts"]["home_score"]
     for bad in (f"Skor {n}% oldu.", f"Skor {n} % oldu.", f"Skor %{n} oldu.", f"Skor % {n} oldu."):
         assert "percent sign in Turkish (write 'yüzde N')" in verify(bad, "tr", i, names), bad
-    assert verify(f"Skor yüzde {n}'i.", "tr", i, names) == []
+    assert verify(f"Skor yüzde {n}.", "tr", i, names) == []
+    for bad in (f"Önceden yüzde {n}'ydı.", f"Skor {n}'e çıktı.", f"Yüzde {n}’si orada."):
+        assert "suffix on a number in Turkish (the voice misreads it; write 'yüzde 36' and rephrase)" in verify(bad, "tr", i, names), bad
+    assert verify(f"It is {n}'s day.", "en", i, names) == []  # English is not affected
     assert verify(f"It is {n}% now.", "en", i, names) == []  # the percent sign is fine in English
     assert verify("Over the last window the Reds attack.", "en", i, names)
     assert verify("Tehlike seviyesi yüksek.", "tr", i, names)
