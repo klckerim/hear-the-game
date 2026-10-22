@@ -44,7 +44,8 @@ def test_seed_1_events_are_pinned(tmp_path, cal):
     """README detector numbers rest on these exact matches: renaming clubs or players must not change a single event."""
     d = generate(1, cal, tmp_path)
     digest = hashlib.sha256((d / "events.jsonl").read_bytes()).hexdigest()
-    assert digest == "a8a47768dc4985966a6f615e81240ed4e2468500ca1cf282307e3f93402f0838"
+    # Re-pinned when fouls gained `card`; test_cards_change_no_other_field shows nothing else moved.
+    assert digest == "bfafb118d6d420bdc29cb9cb3db8072b0c3bda8b2c4e2b70afef181a0f27944a"
 
 
 def test_different_seeds_differ(cal):
@@ -91,3 +92,17 @@ def test_fatigued_player_slows_down(match_dir):
     before = p[p["minute"] * 60 < s["start"]]["hsr_m"].mean()
     after = p[p["minute"] * 60 >= s["start"] + 300]["hsr_m"].mean()
     assert after < 0.7 * before
+
+
+# Hash of every event without `card`, taken before cards were added: cards come from their own RNG stream and must change nothing else.
+PRE_CARD_HASHES = {1: "a8f104c7db5ee9a9", 2: "0e32a1faf1132f19", 3: "e6e714d29f8df604", 7: "0dad5431b8d730af"}
+
+
+@pytest.mark.parametrize("seed", sorted(PRE_CARD_HASHES))
+def test_cards_change_no_other_field(cal, seed):
+    ev = Match(seed, cal).run().events
+    rest = [{k: v for k, v in e.items() if k != "card"} for e in ev]
+    assert hashlib.sha256(json.dumps(rest, sort_keys=True).encode()).hexdigest()[:16] == PRE_CARD_HASHES[seed]
+    cards = [e["card"] for e in ev if e.get("card")]
+    assert all(e["type"] == "foul" for e in ev if e.get("card"))
+    assert 1 <= cards.count("yellow") <= 6

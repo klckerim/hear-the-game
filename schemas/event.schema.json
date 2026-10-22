@@ -21,7 +21,8 @@
     "under_pressure": {"type": "boolean"},
     "possession_id": {"type": "integer", "minimum": 0},
     "speed_mps": {"type": ["number", "null"], "minimum": 0, "description": "Ball speed for passes and shots, carrier speed for carries."},
-    "duration_s": {"type": ["number", "null"], "minimum": 0}
+    "duration_s": {"type": ["number", "null"], "minimum": 0},
+    "card": {"type": ["string", "null"], "enum": ["yellow", "red", null], "description": "Fouls only: the card shown to the fouling player, if any."}
   },
   "$defs": {
     "point": {

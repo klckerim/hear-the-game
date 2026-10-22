@@ -234,6 +234,13 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   off in Analyst. Checked in headless Chrome (first-goal chapter, ~4 min): 13 callouts incl. "Goal! Baptiste", no console errors.
   **Deviations:** no "recovered" word (ball recoveries are not cues; nothing would say it); the shot callout says the outcome
   itself, because a separate "saved!" 0.5 s later would be dropped by the one-at-a-time rule. Owner listened in Chrome (2026-10-23): part 1 closed.
+  Follow-up: a sentence waits for a callout already under way (max 3 s) instead of cutting it off mid-name.
+- **Part 2, cards (done, 2026-10-23):** fouls carry `card` (`yellow` / `red` / null) from a separate RNG stream
+  (`[seed, 0xCA2D]`): 15% of fouls yellow (a booked player gets no second one), 0.6% straight red; seeds 1-30 average 3.1 yellows
+  and 0.17 reds per match. Schema first. `test_cards_change_no_other_field` hashes every event without `card` for seeds 1, 2, 3, 7
+  against hashes taken before the change (identical); `eval.scenarios` rerun, `scenarios.md` unchanged; the seed-1 file pin was
+  re-pinned. `event_cue` carries `card`; the client plays a booking whistle (short + long, louder), the log says "Foul · Yellow card
+  · Name", the callout says "Foul... yellow card, Name". Seed 7: four yellows in the opening chapter, one at 83'.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |

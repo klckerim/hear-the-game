@@ -85,6 +85,8 @@ def test_hello_lists_outfield_players_and_cues_carry_player(synth_dir):
     assert [c["period"] for c in cues if c["kind"] == "period_end"] == [1, 2]  # half-time and full-time whistles reach the client
     restarts = [c for c in cues if c["kind"] == "restart"]
     assert restarts and {c["restart"] for c in restarts} <= {"throw_in", "corner", "free_kick", "goal_kick", "keeper"}  # callouts say it
+    cards = [c for c in cues if c.get("card")]
+    assert cards and all(c["kind"] == "foul" and c["card"] in ("yellow", "red") for c in cards)  # whistle variant + callout
 
 
 def test_listener_messages_set_mode_persona_and_favourite(synth_dir):

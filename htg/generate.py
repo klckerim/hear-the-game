@@ -49,6 +49,11 @@ FOUL_SHARE = 0.45
 # Synthetic shots come from slightly better zones than real ones, so conversion is scaled once
 # (fitted by simulation) to keep goals per match realistic.
 FINISH_SCALE = 0.85
+# Cards come from their own RNG stream (seeded from the match seed), so adding them changes no other field of any event.
+# About 3-4 yellows per match at ~22 fouls; a straight red is rare. A booked player gets no second yellow (players are never
+# sent off: the generator keeps eleven a side).
+CARD_STREAM = 0xCA2D
+YELLOW_SHARE, RED_SHARE = 0.15, 0.006
 
 # Fictional squads. Anchors are attacking-frame positions (left flank = high y).
 # Club names are fictional (no professional club uses them) and never feed the RNG: renaming does not change the match.
@@ -169,6 +174,8 @@ class Match:
 
     def __post_init__(self):
         self.rng = np.random.default_rng(self.seed)
+        self.card_rng = np.random.default_rng([self.seed, CARD_STREAM])
+        self.booked: set[str] = set()
         self.match_id = f"synth_{self.seed:04d}"
         self.rosters = {t: roster(t) for t in ("HOME", "AWAY")}
         self.scenarios = draw_scenarios(self.rng, self.rosters)
@@ -209,6 +216,15 @@ class Match:
             w.append(math.exp(-d2 / (2 * 14.0 ** 2)) if gk_ok else 0.0)
         w = np.array(w) + 1e-9
         return self.rosters[team][int(self.rng.choice(len(w), p=w / w.sum()))]
+
+    def card(self, fouler: dict) -> str | None:
+        r = self.card_rng.random()
+        if r < RED_SHARE:
+            return "red"
+        if r < RED_SHARE + YELLOW_SHARE and fouler["player_id"] not in self.booked:
+            self.booked.add(fouler["player_id"])
+            return "yellow"
+        return None
 
     def keeper(self, team):
         return self.rosters[team][0]
@@ -277,7 +293,7 @@ class Match:
             elif action == "loss":
                 if rng.random() < FOUL_SHARE:  # challenge stopped by the referee: free kick, possession kept
                     fouler = self.pick(OTHER[team], pos, False)
-                    self.emit(t + 0.3, "foul", OTHER[team], fouler, (LENGTH - pos[0], WIDTH - pos[1]))
+                    self.emit(t + 0.3, "foul", OTHER[team], fouler, (LENGTH - pos[0], WIDTH - pos[1]), card=self.card(fouler))
                     t, team, pos = self.restart(t + 0.3, pos, team, "free_kick", team, pos, rng.uniform(18, 40))
                 else:
                     team, pos = self.turnover(t + 0.4, pos, team)

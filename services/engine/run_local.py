@@ -11,7 +11,8 @@ Messages (JSON, one per WebSocket frame):
     state      batch of 10 Hz state packets, every ~200 ms of match time
     event_cue  one sound cue (pass, shot, save, goal, whistle ..., period_end = half-time / full-time whistle), with the period;
                shots and goals add x, y (where the shot was taken; global frame, as the client draws it), events that have them add
-               speed_mps and outcome, passes add length_m, restarts add restart (throw_in, corner, free_kick, goal_kick, keeper)
+               speed_mps and outcome, passes add length_m, restarts add restart (throw_in, corner, free_kick, goal_kick, keeper),
+               fouls with a card add card (yellow, red)
     insight    a detected Insight, its template text {en, tr}, evidence_points (one {seq, t, type, team, x, y} per evidence seq, max 30)
                and zone (flank overload: the flank band the detector counted, {x: [lo, hi], y: [lo, hi]} in the global frame; else null)
     speech     the Insight the Director decided to tell now: team, persona, text, source ("llm" verified / "template") and base64 MP3 audio
@@ -119,6 +120,8 @@ class LivePipeline:
             cue["outcome"] = ev["outcome"]
         if ev["type"] == "restart":
             cue["restart"] = ev["restart"]
+        if ev["type"] == "foul" and ev.get("card"):
+            cue["card"] = ev["card"]
         if ev["type"] == "pass" and ev.get("start") and ev.get("end"):
             cue["length_m"] = round(math.dist((ev["start"]["x"], ev["start"]["y"]), (ev["end"]["x"], ev["end"]["y"])), 1)
         return cue

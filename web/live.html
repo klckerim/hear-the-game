@@ -343,8 +343,8 @@ const JITTER_S = 0.3;  // how far behind the server clock we play, so packets ar
 const PENTA = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24].map(s => 220 * Math.pow(2, s / 12));
 const $ = id => document.getElementById(id);
 const COLOR = { red: "#f06a4f", blue: "#5b9cf5" };
-const LABEL = { tr: { shot: "Şut", save: "Kurtarış", goal: "GOL", out: "Top dışarıda", foul: "Faul", kickoff: "Santra" },
-  en: { shot: "Shot", save: "Save", goal: "GOAL", out: "Ball out", foul: "Foul", kickoff: "Kick-off" } };
+const LABEL = { tr: { shot: "Şut", save: "Kurtarış", goal: "GOL", out: "Top dışarıda", foul: "Faul", kickoff: "Santra", yellow: "Sarı kart", red: "Kırmızı kart" },
+  en: { shot: "Shot", save: "Save", goal: "GOAL", out: "Ball out", foul: "Foul", kickoff: "Kick-off", yellow: "Yellow card", red: "Red card" } };
 // One dictionary for every UI string, in the interface language. The commentary language (what is spoken) is set apart.
 const T = {
   tr: { sub: "Sunucu maçı veri olarak gönderir, sesi senin cihazın üretir. En iyi kulaklıkla dinlenir.", matchView: "Maç görünümü",
@@ -617,6 +617,7 @@ function cue(m, a) {
   if (["pass", "restart"].includes(k)) sndClick(L, a, m.pan);
   else if (k === "shot") sndWhoosh(L, a - 0.1, m.pan);
   else if (k === "save") sndThud(L, a, m.pan);
+  else if (k === "foul" && m.card) { sndWhistle(L, a + 0.1, 0.25, 0.05); sndWhistle(L, a + 0.45, 0.9, 0.06); }  // booking: short + long, louder
   else if (["out", "foul"].includes(k)) sndWhistle(L, a + 0.1, 0.4, 0.04);
   else if (k === "kickoff") sndWhistle(L, a, 0.7, 0.05);
   else if (k === "period_end") {  // two short whistles at half-time; two short and a long one at full time
@@ -637,12 +638,13 @@ function cue(m, a) {
   if (label) addLog(m.t, m.team, label + (fav ? " ★" : ""), a);
   callout(m, a);
 }
-// Analyst log line: shots with speed and outcome, goals with the scorer, passes only when long (> 30 m) with their length.
+// Analyst log line: shots with speed and outcome, goals with the scorer, cards with the player, passes only when long (> 30 m) with their length.
 function logLabel(m) {
   const k = m.kind, who = live.players[m.player_id];
   if (k === "pass") return m.length_m > 30 ? [t("longPass"), who, `${Math.round(m.length_m)} m`].filter(Boolean).join(" · ") : null;
   if (k === "shot") return [LABEL[uiLang].shot, who, m.speed_mps ? `${Math.round(m.speed_mps * 3.6)} ${t("kmh")}` : "", m.outcome && t("outcome")[m.outcome]].filter(Boolean).join(" · ");
   if (k === "goal") return [LABEL[uiLang].goal, who].filter(Boolean).join(" · ");
+  if (k === "foul" && m.card) return [LABEL[uiLang].foul, LABEL[uiLang][m.card], who].filter(Boolean).join(" · ");
   return LABEL[uiLang][k] || null;
 }
 function speech(m, a) {
