@@ -45,7 +45,8 @@ body {
 header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "title sub lang"; align-items: center; gap: 8px 24px; min-width: 0; }
 .hdr-right { display: contents; }  /* its children sit in the header grid, so phones can put the TR/EN switch beside the title */
 h1 { grid-area: title; font-family: var(--display); font-weight: 700; font-size: clamp(30px, 5vw, 44px); letter-spacing: 0.01em; margin: 0; line-height: 1; text-transform: uppercase; }
-h1 span { color: var(--amber); }
+h1 .accent { color: var(--amber); }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; text-transform: none; }
 .sub { grid-area: sub; justify-self: end; text-align: right; color: var(--muted); margin: 0; max-width: 62ch; min-height: 3em; }
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
@@ -140,6 +141,10 @@ ol.log .empty { color: var(--muted); display: block; }
 #appLang select { border: 0; background: transparent; padding: 6px 4px; font-size: 13px; }
 #appLang select:focus-visible { outline: none; }
 #appLang option { background: var(--desk); }
+@media (max-width: 380px) {  /* keeps the pill clear of the title at 320 px */
+  #appLang { gap: 3px; padding-left: 7px; }
+  #appLang select { padding: 5px 0; font-size: 12px; }
+}
 .field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 .field select { width: 100%; color: var(--chalk); }
 .recap { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
@@ -154,7 +159,7 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
 <body>
 <div class="wrap">
   <header>
-    <h1>Hear the <span>Game</span></h1>
+    <h1><span class="sr-only">Hear the Game</span><span aria-hidden="true">Hear the <span class="accent">Game</span></span></h1>  <!-- one text for screen readers; VoiceOver split the coloured word -->
     <div class="hdr-right">
       <p class="sub" data-i18n="sub"></p>
       <label id="appLang">
@@ -176,7 +181,7 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <canvas id="pitch" data-i18n-aria="pitchAria"></canvas>
         <div class="blind" id="blind" hidden><p><span data-i18n="blindTitle"></span><small data-i18n="blindSub"></small></p></div>
       </div>
-      <div class="caption" aria-live="polite">
+      <div class="caption" id="caption" aria-live="polite">
         <span class="tags"><span class="tag idle" id="captionTag" data-i18n="tagIdle"></span><span class="tag mine" id="captionMine" data-i18n="yourTeam" hidden></span></span>
         <p id="captionText"><span id="captionMain" data-i18n="captionIdle"></span><small id="captionSub" hidden></small></p>
       </div>
@@ -315,6 +320,8 @@ const layerOn = () => ({ ball: $("L_ball").checked, press: $("L_press").checked,
 
 function initAudio() {
   if (ctx) return;
+  // iOS treats Web Audio as ambient sound and mutes it with the silent switch; "playback" makes it play like a music app (Safari 17+).
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
   ctx = new (window.AudioContext || window.webkitAudioContext)();
   const comp = ctx.createDynamicsCompressor();
   comp.threshold.value = -14; comp.ratio.value = 4;
@@ -693,7 +700,7 @@ function tourVoice(step) {
 }
 async function runTour() {
   initAudio(); ctx.resume(); primeVoice();
-  tour.on = true; tour.bus = ctx.createGain(); tour.bus.connect(duck);
+  tour.on = true; tour.bus = ctx.createGain(); tour.bus.connect(duck); syncLiveRegions();
   renderTourBtn();
   for (const l of ["en", "tr"]) tour.steps.forEach(s => tourClip(s, l));  // fetch and decode ahead, so steps follow without gaps
   for (const step of tour.steps) {
@@ -714,7 +721,7 @@ async function runTour() {
 }
 function endTour() {
   if (!tour.on) return;
-  tour.on = false; store.set(TOUR_DONE, "1");
+  tour.on = false; store.set(TOUR_DONE, "1"); syncLiveRegions();
   tour.timers.forEach(clearTimeout); tour.timers = [];
   const src = tour.src; tour.src = null; if (src) { src.onended = null; try { src.stop(); } catch (e) {} }
   if ("speechSynthesis" in window) speechSynthesis.cancel();
@@ -784,7 +791,13 @@ $("blindBtn").addEventListener("click", e => {
   e.currentTarget.setAttribute("aria-pressed", String(on)); $("blind").hidden = !on;
 });
 ["L_ball", "L_press", "L_crowd", "L_cue"].forEach(id => $(id).addEventListener("change", applyLayers));
-$("L_voice").addEventListener("change", () => { if (!$("L_voice").checked) stopSpeech(); });
+$("L_voice").addEventListener("change", () => { if (!$("L_voice").checked) stopSpeech(); syncLiveRegions(); });
+// While the app speaks (Narration layer on, or the tour), the caption and recap must not also be announced by the screen reader:
+// both voices talked at once. With the Narration layer off, the screen reader reads them instead.
+function syncLiveRegions() {
+  const v = $("L_voice").checked || tour.on ? "off" : "polite";
+  $("caption").setAttribute("aria-live", v); $("recap").setAttribute("aria-live", v);
+}
 function setTeamNames() {
   if (!live.teams) return;
   for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) $("name" + id).textContent = live.teams[side]["name_" + lang()];
@@ -854,7 +867,7 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keyup", e => { if (e.code === "Space" && spaceHandled) { e.preventDefault(); spaceHandled = false; } });
 if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = pickVoices;
-applyMode(); applyChapter(); applyI18n();
+applyMode(); applyChapter(); applyI18n(); syncLiveRegions();
 requestAnimationFrame(loop);
 </script>
 </body>
