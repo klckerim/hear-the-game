@@ -48,6 +48,20 @@ pressing noticeably harder now, and Valemont are under more pressure."). Analyst
 comparison ("Northport press harder: 39% of Valemont's play is under pressure in the last 5 minutes, 22% earlier on."). Both
 come from the same facts and pass the same Verifier.
 
+**Evidence timeline (what you see).** Under the pitch, a strip covers the session's 15 minutes: goals (large ringed dot), shots
+(small dot) and Insights (diamond, filled once spoken), in club colour, with a playhead on the match clock. A new Insight's marker
+flashes when it is detected. Every marker is a button with a screen-reader label ("Insight, 21:25, Northport slowing the tempo"). Selecting
+one lights up its evidence on the pitch for six seconds: the events (by `seq`) the Insight rests on, the flank band a flank overload
+counted, or a shot's position with a line to goal. The **Why** card shows the sentence (verified or template, and whether it was
+spoken), the `claim_facts` it was allowed to use, and how many events back it. Hidden in Audio only.
+
+**Analyst view.** Analyst adds a team stats table (possession, shots on target, pass completion, pressing, corners, fouls; whole
+match or last 10 minutes), updated every 10 s of match time from the same `get_stats` tool the [Recap agent](#recap-agent) calls, so
+the table and the agent never disagree. The event log shows shot speed and outcome ("Shot · Arda · 72 km/h · blocked") and passes
+longer than 30 m with their length. Casual and Audio only stay simple: no table.
+
+<!-- Screenshots: docs/img/timeline.png (Why card after selecting an Insight), docs/img/analyst.png (stats table). Owner to add. -->
+
 **Chapters.** The demo match (seed 7) starts where you choose: **Kick-off** (0'), **First goal** (19', the goal comes at 22:38) or
 **Late drama** (76', goals at 79' and 87'). Each session plays 15 match-minutes; the detectors are warmed up on everything before
 the start, so the score and the tactical baselines are already right. **Space** starts and stops listening.
@@ -200,10 +214,11 @@ Every message carries match time `t` (seconds); schemas for the payloads are in 
 
 | message | content |
 |---|---|
-| `hello` | match id, seed, teams (names EN/TR, colour, outfield players), score at the chapter start, mode |
+| `hello` | match id, seed, teams (names EN/TR, colour, outfield players), score at the chapter start, mode, session `window` (match seconds) |
 | `state` | 10 Hz state packets: ball position, team, danger (xT), pressure, pan, tempo ([`state.schema.json`](schemas/state.schema.json)) |
-| `event_cue` | pass, shot, save, goal, whistle, half-time and full time (`period_end`), with team, player, period and event `seq` |
-| `insight` | a detected tactical story: `claim_facts` (every number in it) and `evidence` (event `seq`s) ([`insight.schema.json`](schemas/insight.schema.json)) |
+| `event_cue` | pass, shot, save, goal, whistle, half-time and full time (`period_end`), with team, player, period and event `seq`; shots and goals add `x`, `y` (where the shot was taken), events that have them `speed_mps` and `outcome`, passes `length_m` |
+| `insight` | a detected tactical story: `claim_facts` (every number in it) and `evidence` (event `seq`s) ([`insight.schema.json`](schemas/insight.schema.json)), plus the template `text`, `evidence_points` (`{seq, t, type, team, x, y}` per evidence event, max 30, pitch frame x 0-105, y 0-68) and `zone` (the flank band for a flank overload, else null) |
+| `stats` | every 10 s: per team possession, shots (on target), pass completion, pressing, corners, fouls, for the `match` so far and the `last10` minutes |
 | `speech` | the Insight told now: EN + TR text, `source` (`llm` verified or `template`), persona, MP3 per language |
 | `recap` | "What did I miss?" (`kind: missed`) or full time (`kind: full_time`): 2-3 sentences per language, `source` (`agent` or `template`), MP3 per language |
 
@@ -212,7 +227,10 @@ Real messages from seed 7, the first goal (audio trimmed):
 ```json
 {"type": "insight", "insight": {"insight_id": "synth_0007:goal:A09:1358", "match_id": "synth_0007", "t": 1358.39, "type": "goal",
  "team": "AWAY", "player_id": "A09", "claim_facts": {"team_en": "Valemont", "team_tr": "Valemont", "player": "Baptiste",
- "home_score": 0, "away_score": 1}, "evidence": [561, 562], "confidence": 1.0, "priority": 5, "expires_at": 1418.39}}
+ "home_score": 0, "away_score": 1}, "evidence": [561, 562], "confidence": 1.0, "priority": 5, "expires_at": 1418.39},
+ "text": {"en": "Goal! Baptiste scores for Valemont. It is now 0-1.", "tr": "Gol! Baptiste Valemont için attı. Skor 0-1."},
+ "evidence_points": [{"seq": 561, "t": 1357.98, "type": "shot", "team": "AWAY", "x": 5.6, "y": 27.97},
+                     {"seq": 562, "t": 1358.39, "type": "goal", "team": "AWAY", "x": 0.0, "y": 36.53}], "zone": null}
 
 {"type": "speech", "t": 1358.4, "insight_id": "synth_0007:goal:A09:1358", "priority": 5, "team": "AWAY", "persona": "fan",
  "evidence": [561, 562], "text": {"en": "Goal! Baptiste gives Valemont the lead, and it's 0-1!",

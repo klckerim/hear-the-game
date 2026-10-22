@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 night (language split deployed and checked; Features C in progress: `docs/tasks/2026-10-24-features-c.md`). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 night (Features C code done: evidence timeline + Analyst stats; owner to deploy and check). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -186,6 +186,27 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Checked in headless Chrome via CDP (local serve, 30x): EN page + TR commentary and the reverse, both stored and restored after reload,
   no console errors; screenshots at 1280 and 375 px. Deployed by the owner, who listened to EN page + TR commentary and the reverse
   (2026-10-22): closed.
+
+## Features C (2026-10-22; task: `docs/tasks/done/2026-10-24-features-c.md`)
+- **Evidence timeline** (Casual + Analyst, hidden in Audio only): strip for the session window under the pitch (`hello.window`; run_local
+  falls back to first packet + 15 min). Markers are buttons: goal (large ringed dot), shot (small dot), Insight (diamond, filled once
+  spoken), club colour; new Insights flash. Chance/goal Insights attach to their shot/goal marker (by evidence seq); danger-only chances
+  are left out. Selecting one: evidence dots on the pitch for 6 s (fade), flank band for flank overloads, shot position + line to goal;
+  "Why?" card (sentence by caption rules, verified/template/not spoken tag, `claim_facts` as key/value, evidence count).
+- Server: `insight` message gains `text` (template EN/TR, for unspoken Insights), `evidence_points` (max 30; detector evidence is
+  already <= 10) and `zone`; `event_cue` gains `x, y` for shots and goals (goal = the scoring shot's position), `speed_mps`, `outcome`,
+  `length_m` for passes. Flank overload points are the pass **ends** (what the detector counted), others the start.
+- **Deviation:** no pressure zone. On seeds 1-10, 223 of 338 pressed actions were in the pressed team's attacking half and 115 in its
+  own, so the "pressed team's half" shade contradicted its own dots. Pressure shows dots only.
+- **Analyst panel:** `stats` message every 10 s of match time from `htg/recap/tools.get_stats` (match / last 10 min), `serve` only
+  (not run_local). Table with bars and a Match / Last 10 min toggle. Log: "Shot · Arda · 72 km/h · blocked", goals with scorer, passes
+  > 30 m with length. Warmed-pipeline copy is now ~8 ms (was ~1 ms) because of the evidence position map.
+- Tests: evidence points match events by seq and stay on the pitch, cap 30, flank zone frame, shot/goal cue positions, stats cadence
+  and equality with `get_stats`. 80 tests pass. Checked in headless Chrome at 1280 and 375 px (casual, analyst, TR UI), no console errors.
+- **MCP (part 3): not done**, gated on parts 1-2 being deployed. Fact keys in the Why card are the raw `claim_facts` names in both
+  languages (e.g. "share now pct").
+- **Owner, open:** `azd deploy`; check timeline + Why card at 1280 px and phone width (three Insights, one goal), switch to Analyst
+  and back; screenshots `docs/img/timeline.png`, `docs/img/analyst.png` (README has a placeholder comment).
 
 - Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
   the Foundry evaluation run, the App Insights metrics chart (htg.speech.resolved by source).
