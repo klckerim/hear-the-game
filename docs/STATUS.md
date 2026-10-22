@@ -125,6 +125,8 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Pregen (all chapters x modes x favourite clubs): 36 (chapter, persona, Insight) rows, 34 narrations, 68 clips, **2.3 MB**, all
   first-pass `llm`; 26 stale narration files and 58 stale clips deleted. 3 sentences regenerated after reading (see narration.md).
   All sentences: `eval/results/demo_sentences.md`.
+- Deployed by the owner with `azd deploy` (2026-10-22). Chapter minutes stay 0' / 19' / 76' (owner decided; 21' / 77' would
+  cut the wait for the first goal from 3:38 to 1:38 and still keep one narration before it, if it matters for the video).
 - **Owner, open:** read `demo_sentences.md`, listen to 5 clips per persona and language, check how the Turkish voice says
   "Northport" and "Valemont" (add `ALIASES` in `htg/speech/azure.py` if needed, then regenerate); check the deployed
   demo. Listening test protocol now runs locally from minute 13 (`docs/listening-test.md`).
