@@ -16,8 +16,8 @@
     {
       "id": "teams",
       "demo": "teams",
-      "en": "Each team has its own tone: Northport, then Valemont.",
-      "tr": "Her takımın kendi tınısı var: önce Northport, sonra Valemont."
+      "en": "Each team has its own tone: first the home team, then the away team.",
+      "tr": "Her takımın kendi tınısı var: önce ev sahibi, sonra deplasman."
     },
     {
       "id": "pressure",
@@ -40,8 +40,8 @@
     {
       "id": "goal",
       "demo": "goal",
-      "en": "A goal for your club is bright and long; a goal against is short and muted.",
-      "tr": "Takımının golü parlak ve uzun, rakibin golü kısa ve boğuk."
+      "en": "When your club scores, the crowd roars and a fanfare plays; when the other side scores, only a short, quiet murmur.",
+      "tr": "Takımın gol atınca tribün coşar ve bir melodi çalar; rakip atınca yalnızca kısa, sessiz bir uğultu duyulur."
     },
     {
       "id": "favourite",
