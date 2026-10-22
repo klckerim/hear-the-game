@@ -15,6 +15,9 @@ def test_http_routes():
     assert process_request(None, Req("/healthz")).status_code == 200
     page = process_request(None, Req("/?x=1"))
     assert page.status_code == 200 and b"<html" in page.body.lower()
+    icon = process_request(None, Req("/apple-touch-icon.png"))
+    assert icon.status_code == 200 and icon.body.startswith(b"\x89PNG")
+    assert process_request(None, Req("/icon.svg")).headers["Content-Type"] == "image/svg+xml"
     assert process_request(None, Req("/nope")).status_code == 404
     assert process_request(None, Req("/ws")) is None
 

@@ -44,6 +44,7 @@ CLIENT = ROOT / "web" / "live.html"
 TOUR_TEXT = ROOT / "web" / "tour.json"
 TOUR_AUDIO = ROOT / "data" / "cache" / "tour"
 TOUR_CLIP = re.compile(r"/tour/([a-z_]+_(?:en|tr)\.mp3)")
+ICONS = {"/apple-touch-icon.png": "image/png", "/icon.svg": "image/svg+xml"}  # home-screen icon (iOS asks for the PNG) and favicon
 MAX_SESSIONS = 20
 END_AFTER_S = 15 * 60.0  # a demo session lasts at most this much match time
 # Demo start points in match minutes, for seed 7 (goals at 22:38, 79:11 and 87:14): nobody should wait 9 minutes for a goal.
@@ -71,6 +72,8 @@ def process_request(connection, request):  # noqa: ANN001 - websockets hook; ret
         return http_response(HTTPStatus.OK, CLIENT.read_bytes(), "text/html; charset=utf-8")
     if path == "/tour/tour.json":
         return http_response(HTTPStatus.OK, TOUR_TEXT.read_bytes(), "application/json")
+    if path in ICONS:
+        return http_response(HTTPStatus.OK, (ROOT / "web" / path[1:]).read_bytes(), ICONS[path])
     if (m := TOUR_CLIP.fullmatch(path)) and (TOUR_AUDIO / m.group(1)).exists():
         return http_response(HTTPStatus.OK, (TOUR_AUDIO / m.group(1)).read_bytes(), "audio/mpeg")
     return http_response(HTTPStatus.NOT_FOUND, b"not found", "text/plain")
