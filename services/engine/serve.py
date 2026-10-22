@@ -3,8 +3,12 @@
     python -m services.engine.serve --seed 7 --port 8000
 
 GET /         -> web/live.html     GET /healthz -> ok     WS /ws?chapter=first_goal -> messages as in `run_local`.
+GET /tour/tour.json, /tour/<step>_<lang>.mp3 -> the sound tour's text table and pre-generated voice lines.
 Each listener gets its own pipeline and replay clock, starting at the chosen chapter (unknown or missing -> the default);
 the Director mode and favourite club are set per listener with `set_mode` and `set_favourite`.
+{"type": "recap_request", "since_min": optional} -> a `recap` message ("What did I miss?"; default the last 10 minutes), and at the
+end of period 2 the server sends a full-time `recap` by itself. Both come from the Recap agent (`htg/recap/agent.py`) with the
+template recap as fallback, and never block the replay.
 """
 from __future__ import annotations
 
@@ -13,6 +17,7 @@ import asyncio
 import copy
 import json
 import os
+import re
 import threading
 from http import HTTPStatus
 from pathlib import Path
@@ -23,13 +28,22 @@ from websockets.datastructures import Headers
 from websockets.http11 import Response
 
 from htg import telemetry
+from htg.adapters.base import Speech
 from htg.adapters.local import FileEventSource
 from htg.env import load_env
 from htg.generate import OUT_DIR, generate
+from htg.narration.service import known_names, persona_for
+from htg.recap.agent import AUDIO_DIR, RecapModel, get_recap_model
+from htg.recap.tools import MatchRecord
+from services.engine.recap import recap_message, since_for
 from services.engine.resolve import is_stale
 from services.engine.run_local import LivePipeline, apply_listener_message, make_resolver, warm_up
 
-CLIENT = Path(__file__).resolve().parents[2] / "web" / "live.html"
+ROOT = Path(__file__).resolve().parents[2]
+CLIENT = ROOT / "web" / "live.html"
+TOUR_TEXT = ROOT / "web" / "tour.json"
+TOUR_AUDIO = ROOT / "data" / "cache" / "tour"
+TOUR_CLIP = re.compile(r"/tour/([a-z_]+_(?:en|tr)\.mp3)")
 MAX_SESSIONS = 20
 END_AFTER_S = 15 * 60.0  # a demo session lasts at most this much match time
 # Demo start points in match minutes, for seed 7 (goals at 22:38, 79:11 and 87:14): nobody should wait 9 minutes for a goal.
@@ -37,6 +51,9 @@ CHAPTERS = {"kickoff": 0.0, "first_goal": 19.0, "late": 76.0}
 DEFAULT_CHAPTER = "first_goal"
 _warm: dict[tuple, LivePipeline] = {}
 _warm_lock = threading.Lock()  # a thread lock: callers wait in their worker thread, never on the event loop
+_records: dict[str, MatchRecord] = {}
+_recap_model: RecapModel | None = None  # set in main(); None -> the template recap
+_recap_speech: Speech | None = None  # Azure voice with the recap clip cache; None -> the session's (local: no audio)
 
 
 def http_response(status: HTTPStatus, body: bytes, content_type: str) -> Response:
@@ -52,6 +69,10 @@ def process_request(connection, request):  # noqa: ANN001 - websockets hook; ret
         return http_response(HTTPStatus.OK, b"ok", "text/plain")
     if path in ("/", "/index.html"):
         return http_response(HTTPStatus.OK, CLIENT.read_bytes(), "text/html; charset=utf-8")
+    if path == "/tour/tour.json":
+        return http_response(HTTPStatus.OK, TOUR_TEXT.read_bytes(), "application/json")
+    if (m := TOUR_CLIP.fullmatch(path)) and (TOUR_AUDIO / m.group(1)).exists():
+        return http_response(HTTPStatus.OK, (TOUR_AUDIO / m.group(1)).read_bytes(), "audio/mpeg")
     return http_response(HTTPStatus.NOT_FOUND, b"not found", "text/plain")
 
 
@@ -77,6 +98,14 @@ def warmed(meta: dict, match_dir: Path, start_minute: float, speed: float) -> Li
         return copy.deepcopy(_warm[key])
 
 
+def record_for(match_dir: Path) -> MatchRecord:
+    """The recap tools' view of the match, loaded once per server."""
+    with _warm_lock:
+        if str(match_dir) not in _records:
+            _records[str(match_dir)] = MatchRecord.load(match_dir)
+        return _records[str(match_dir)]
+
+
 async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: float, sessions: set) -> None:
     if len(sessions) >= MAX_SESSIONS:
         await ws.close(1013, "busy")
@@ -93,16 +122,32 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
     async def send(msg: dict) -> None:
         await ws.send(json.dumps(msg, separators=(",", ":")))
 
+    async def recap(kind: str, t: float, since_min: object = None) -> None:
+        rec = await asyncio.to_thread(record_for, match_dir)
+        fav, mode = (pipe.favourite, pipe.mode) if pipe else (None, "casual")
+        speech = _recap_speech or resolver.speech
+        await send(await recap_message(rec, _recap_model, speech, known_names(meta), t, kind, since_for(kind, t, since_min), fav,
+                                       persona_for(mode)))
+
+    def spawn(coro) -> None:  # noqa: ANN001
+        task = asyncio.create_task(coro)
+        tasks.add(task)
+        task.add_done_callback(tasks.discard)
+
     async def listen() -> None:
         async for raw in ws:
             try:
                 msg = json.loads(raw)
             except ValueError:
                 continue
-            if isinstance(msg, dict):
-                prefs.append(msg)
-                if pipe:
-                    apply_listener_message(pipe, msg)
+            if not isinstance(msg, dict):
+                continue
+            if msg.get("type") == "recap_request":
+                spawn(recap("missed", now, msg.get("since_min")))
+                continue
+            prefs.append(msg)
+            if pipe:
+                apply_listener_message(pipe, msg)
 
     async def deliver(msg: dict) -> None:
         final = await resolver.resolve(msg, insights[msg["insight_id"]])
@@ -122,11 +167,11 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
             now = item.t
             if now - start_minute * 60.0 > END_AFTER_S:
                 break
+            if item.kind == "event" and item.data["type"] == "period_end" and item.data["period"] == 2:
+                spawn(recap("full_time", item.t))
             for msg in pipe.feed(item):
                 if msg["type"] == "speech":
-                    task = asyncio.create_task(deliver(msg))
-                    tasks.add(task)
-                    task.add_done_callback(tasks.discard)
+                    spawn(deliver(msg))
                     continue
                 if msg["type"] == "insight":
                     insights[msg["insight"]["insight_id"]] = msg["insight"]
@@ -156,6 +201,16 @@ async def main(seed: int, speed: float, host: str, port: int) -> None:
     sessions: set = set()
     for minute in CHAPTERS.values():  # before the first listener arrives
         await asyncio.to_thread(warmed, meta, match_dir, minute, speed)
+    global _recap_model, _recap_speech
+    await asyncio.to_thread(record_for, match_dir)
+    _recap_model = await asyncio.to_thread(get_recap_model)
+    if _recap_model is not None:
+        try:
+            from htg.speech.azure import AzureSpeech
+
+            _recap_speech = AzureSpeech(cache_dir=AUDIO_DIR)
+        except Exception as e:
+            print(f"Recap voice unavailable ({type(e).__name__}); recaps use the session voice.")
 
     async def handler(ws) -> None:  # noqa: ANN001
         await session(ws, match_dir, meta, CHAPTERS[chapter_of(ws.request.path)], speed, sessions)

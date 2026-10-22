@@ -97,6 +97,12 @@ button, select { font: inherit; color: var(--chalk); background: #1c2a25; border
 button:hover, select:hover { border-color: var(--muted); }
 button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 #playBtn { background: var(--amber); color: var(--night); border-color: var(--amber); font-weight: 500; min-width: 120px; }
+#tourBtn { justify-self: start; border-style: dashed; border-color: var(--amber); color: var(--amber); background: transparent; }
+#tourBtn[aria-pressed="true"] { border-style: solid; background: transparent; color: var(--chalk); border-color: var(--chalk); }
+#tourBtn[hidden] { display: none; }
+#recapBtn[aria-busy="true"] { opacity: 0.7; cursor: progress; }
+.recap .out { display: grid; gap: 4px; padding: 8px 10px; border-left: 3px solid var(--amber); background: #101a16; border-radius: 0 4px 4px 0; }
+.recap .out b { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); }
 button[aria-pressed="true"] { background: var(--chalk); color: var(--night); border-color: var(--chalk); }
 .chips button { padding: 5px 9px; font-size: 13px; }
 .toggles { display: grid; gap: 7px; }
@@ -176,6 +182,7 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
           <span class="note" aria-hidden="true"><kbd data-i18n="spaceKey"></kbd></span>
           <button id="blindBtn" type="button" aria-pressed="false" data-i18n="blindBtn"></button>
         </div>
+        <button id="tourBtn" type="button" hidden></button>
         <div class="field"><span data-i18n="modeLabel" id="modeLabel"></span>
           <div class="seg" role="group" aria-labelledby="modeLabel" id="modes">
             <button type="button" data-mode="eyes_free" aria-pressed="false" data-i18n="mode_eyes_free"></button>
@@ -239,7 +246,9 @@ const T = {
     captionIdle: "\"Dinlemeye başla\"ya bas. Anlatıcı yalnızca top oyun dışındayken ya da tehlike düşükken konuşur.",
     idle: "Dinlemeye başla", stop: "Durdur", blindBtn: "Sahayı gizle", modeLabel: "Dinleme modu",
     mode_eyes_free: "Sadece ses", mode_casual: "Rahat", mode_analyst: "Analist", favLabel: "Favori oyuncu (kulaklık sesi)", favNone: "Yok",
-    recapTitle: "Ne kaçırdım?", recapBtn: "Son anlatımları oku", recapEmpty: "Henüz anlatım yok.", recapScore: "Skor",
+    recapTitle: "Ne kaçırdım?", recapBtn: "Beni özetle", recapEmpty: "Henüz anlatım yok.", recapScore: "Skor",
+    preparing: "Hazırlanıyor…", recapTag: "Özet", fullTime: "Maç sonu özeti", missedSince: "Dakika", recapSince: "sonrası",
+    tourOffer: "Yeni misin? 60 saniyelik ses turu", tourSkip: "Turu geç", tourTag: "Ses turu",
     nowTitle: "Şu an", danger: "Tehlike", pressure: "Baskı", wing: "Kanat", earL: "sol kulak", earR: "sağ kulak",
     left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
     layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lVoice: "Anlatım",
@@ -254,7 +263,9 @@ const T = {
     captionIdle: "Press \"Start listening\". The narrator only speaks when the ball is dead or danger is low.",
     idle: "Start listening", stop: "Stop", blindBtn: "Hide pitch", modeLabel: "Listening mode",
     mode_eyes_free: "Audio only", mode_casual: "Casual", mode_analyst: "Analyst", favLabel: "Favourite player (headphone cue)", favNone: "None",
-    recapTitle: "What did I miss?", recapBtn: "Read the latest narration", recapEmpty: "No narration yet.", recapScore: "Score",
+    recapTitle: "What did I miss?", recapBtn: "Catch me up", recapEmpty: "No narration yet.", recapScore: "Score",
+    preparing: "Preparing…", recapTag: "Recap", fullTime: "Full-time recap", missedSince: "Since minute", recapSince: "",
+    tourOffer: "New here? 60-second sound tour", tourSkip: "Skip tour", tourTag: "Sound tour",
     nowTitle: "Right now", danger: "Danger", pressure: "Pressure", wing: "Wing", earL: "left ear", earR: "right ear",
     left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
     layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lVoice: "Narration",
@@ -409,7 +420,8 @@ function stopListening(msg) {
   $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off");
 }
 function resetLive() {
-  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [] });
+  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null });
+  clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
 }
 
@@ -429,6 +441,9 @@ function onMessage(m) {
     live.due.push({ t: m.t, kind: "cue", m });
   } else if (m.type === "speech") {
     live.due.push({ t: m.t, kind: "speech", m });
+  } else if (m.type === "recap") {
+    if (m.kind === "full_time") { live.due.push({ t: m.t, kind: "recap", m }); return; }  // plays when its match time arrives
+    clearTimeout(recapWait); recapWait = null; setRecapBusy(false); playRecap(m);
   }
 }
 
@@ -448,7 +463,9 @@ function schedule() {
   live.due.sort((x, y) => x.t - y.t);
   while (live.due.length && live.due[0].t < horizon) {
     const d = live.due.shift(), m = d.m, a = audioAt(m.t);
-    if (d.kind === "cue") cue(m, a); else speech(m, a);
+    if (d.kind === "cue") cue(m, a);
+    else if (d.kind === "recap") setTimeout(() => { if (live.ws) playRecap(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
+    else speech(m, a);
   }
 }
 function cue(m, a) {
@@ -493,10 +510,34 @@ function renderLog() {
 }
 function renderRecap() {
   const ol = $("recap"); ol.replaceChildren();
-  if (!live.recap.length) { const li = document.createElement("li"); li.className = "note"; li.textContent = t("recapEmpty"); ol.append(li); return; }
+  const r0 = live.recapOut;
+  if (r0) {  // the latest agent (or template) recap, above the narration list
+    const li = document.createElement("li"), b = document.createElement("b"), p = document.createElement("span");
+    li.className = "out";
+    b.textContent = r0.kind === "full_time" ? t("fullTime") : `${t("recapTag")} · ${t("missedSince")} ${r0.since_min}${t("recapSince") ? " " + t("recapSince") : ""}`;
+    p.textContent = r0.text[lang()].join(" "); li.append(b, p); ol.append(li);
+  }
+  if (!live.recap.length) { if (!r0) { const li = document.createElement("li"); li.className = "note"; li.textContent = t("recapEmpty"); ol.append(li); } return; }
   for (const r of live.recap) { const li = document.createElement("li"), tm = document.createElement("time"); tm.textContent = clock(r.t); li.append(tm, r.text[lang()]); ol.append(li); }
 }
-// "What did I miss": speak the score and the last three narrations, oldest first, with the device voice (not the clip bus, so it never overlaps a live clip)
+// "What did I miss?": the server's Recap agent writes 2-3 verified sentences (template recap if the agent fails). Without a server
+// answer in RECAP_WAIT_MS, or before the match is connected, the old behaviour: score + the last three narrations.
+const RECAP_WAIT_MS = 30000;
+let recapWait = null;
+function setRecapBusy(on) { const b = $("recapBtn"); b.textContent = on ? t("preparing") : t("recapBtn"); b.setAttribute("aria-busy", String(on)); }
+function askRecap() {
+  if (!(live.ws && live.ws.readyState === 1 && live.teams)) { readRecap(); return; }
+  if (recapWait) return;
+  live.ws.send(JSON.stringify({ type: "recap_request" }));
+  setRecapBusy(true);
+  recapWait = setTimeout(() => { recapWait = null; setRecapBusy(false); readRecap(); }, RECAP_WAIT_MS);
+}
+function playRecap(m) {
+  live.recapOut = m; renderRecap();
+  const joined = { en: m.text.en.join(" "), tr: m.text.tr.join(" ") };
+  say({ text: joined, source: m.source, audio: m.audio, team: null }, m.kind === "full_time" ? t("fullTime") : t("recapTag"));
+}
+// The old "What did I miss": speak the score and the last three narrations, oldest first, with the device voice
 function readRecap() {
   if (!live.recap.length) { setCaption(t("recapEmpty"), false); return; }
   const lines = [`${t("recapScore")}: ${live.score.join(" - ")}.`, ...live.recap.slice(0, 3).reverse().map(r => r.text[lang()])];
@@ -518,11 +559,11 @@ function pickVoices() {
 function primeVoice() { if ("speechSynthesis" in window) speechSynthesis.speak(new SpeechSynthesisUtterance("")); }  // unlock on the user gesture
 function setCaption(text, liveNow) { $("captionText").textContent = text; $("captionTag").classList.toggle("idle", !liveNow); }
 function duckTo(v) { if (duck) duck.gain.setTargetAtTime(v, ctx.currentTime, 0.08); }
-const TAG = { tr: { llm: "doğrulandı", template: "şablon" }, en: { llm: "verified", template: "template" } };
-async function say(m) {
+const TAG = { tr: { llm: "doğrulandı", agent: "doğrulandı", template: "şablon" }, en: { llm: "verified", agent: "verified", template: "template" } };
+async function say(m, prefix) {
   const l = lang(), text = m.text[l];
   setCaption(text, true);
-  $("captionTag").textContent = TAG[l][(m.source && m.source[l]) || "template"];
+  $("captionTag").textContent = (prefix ? prefix + " · " : "") + TAG[l][(m.source && m.source[l]) || "template"];
   $("captionMine").hidden = !(club && m.team === club);
   const finish = () => { duckTo(1); setTimeout(() => { $("captionTag").classList.add("idle"); $("captionMine").hidden = true; }, 400); };
   if (!$("L_voice").checked) return;
@@ -544,6 +585,109 @@ async function say(m) {
 }
 function stopClip() { const c = clip; clip = null; if (c) { c.onended = null; try { c.stop(); } catch (e) {} } }
 function stopSpeech() { stopClip(); if ("speechSynthesis" in window) speechSynthesis.cancel(); clearTimeout(fallbackTimer); duckTo(1); }
+
+/* ---------------- sound tour ---------------- */
+// Before the first start: each step shows a caption, plays its pre-generated voice line (device voice if the clip is missing), then
+// the real sound through the same functions the match uses. Text table: web/tour.json. Never starts the match; Skip stops at once.
+const tour = { on: false, steps: null, bus: null, src: null, timers: [], clips: {}, wake: null };
+const TOUR_DONE = "htg.tour";
+const tourWait = s => new Promise(r => { tour.wake = r; tour.timers.push(setTimeout(r, s * 1000)); });
+function tourBed(d, a, len, danger) {  // ticks + crowd, as under a live match
+  for (let x = 0; x < len; x += 0.2) sndTick(d, a + x, "HOME", danger, 0, 0.14);
+  const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+  const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 900;
+  const g = ctx.createGain(); g.gain.setValueAtTime(0.06, a); g.gain.linearRampToValueAtTime(0.0001, a + len);
+  s.connect(f); f.connect(g); g.connect(d); s.start(a); s.stop(a + len + 0.05);
+}
+// Each demo schedules its sound from audio time `a` and returns its length in seconds.
+const TOUR_DEMO = {
+  ball: (d, a) => { for (let i = 0; i < 10; i++) sndTick(d, a + i * 0.2, "HOME", i / 9, 0, 0.2); return 2.1; },
+  wing: (d, a) => { for (let i = 0; i < 10; i++) sndTick(d, a + i * 0.2, "HOME", 0.4, -1 + 2 * i / 9, 0.2); return 2.1; },
+  teams: (d, a) => {
+    for (let i = 0; i < 5; i++) { sndTick(d, a + i * 0.2, "HOME", 0.4, 0, 0.22); sndTick(d, a + 1.4 + i * 0.2, "AWAY", 0.4, 0, 0.22); }
+    return 2.5;
+  },
+  pressure: (d, a) => { let x = a; for (let i = 0; i < 8; i++) { const p = i / 7; sndBeat(d, x, 0.35 + 0.5 * p); x += 1 / (0.9 + 2.3 * p); } return x - a + 0.2; },
+  crowd: (d, a) => {
+    const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 900;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.03, a); g.gain.linearRampToValueAtTime(0.16, a + 2.2); g.gain.linearRampToValueAtTime(0.0001, a + 2.8);
+    s.connect(f); f.connect(g); g.connect(d); s.start(a); s.stop(a + 2.9);
+    for (let i = 0; i < 11; i++) sndTick(d, a + i * 0.2, "HOME", i / 10, 0, 0.14);
+    return 2.9;
+  },
+  events: (d, a) => { sndClick(d, a, -0.3); sndWhoosh(d, a + 0.6, 0.3); sndThud(d, a + 1.3, 0.3); sndWhistle(d, a + 2.0, 0.4, 0.05); return 2.6; },
+  goal: (d, a) => { sndGoal(d, a, "HOME", "for"); sndGoal(d, a + 3.6, "AWAY", "against"); return 5.0; },
+  favourite: (d, a) => { sndEarcon(d, a, -0.5); sndEarcon(d, a + 0.8, 0.5); return 1.6; },
+};
+async function loadTour() {
+  if (!location.protocol.startsWith("http")) return null;  // opened as a file (run_local): no tour
+  try { const r = await fetch("tour/tour.json"); return r.ok ? (await r.json()).steps : null; } catch (e) { return null; }
+}
+async function tourClip(step, l) {
+  const key = step.id + "_" + l;
+  if (!(key in tour.clips)) {
+    tour.clips[key] = fetch(`tour/${key}.mp3`).then(r => r.ok ? r.arrayBuffer() : null).then(b => b ? ctx.decodeAudioData(b) : null).catch(() => null);
+  }
+  return tour.clips[key];
+}
+function tourVoice(step) {
+  const l = lang(), text = step[l];
+  setCaption(text, true); $("captionTag").textContent = t("tourTag"); $("captionMine").hidden = true;
+  return new Promise(async done => {
+    tour.wake = done;
+    const buf = await tourClip(step, l);
+    if (!tour.on) return done();
+    if (buf) {
+      const src = tour.src = ctx.createBufferSource(); src.buffer = buf; src.connect(voiceBus); src.onended = done; src.start();
+      return;
+    }
+    const v = voiceFor[l];
+    if ("speechSynthesis" in window && v) {
+      const u = new SpeechSynthesisUtterance(text); u.voice = v; u.lang = v.lang; u.onend = done; u.onerror = done;
+      speechSynthesis.cancel(); speechSynthesis.speak(u);
+    } else tour.timers.push(setTimeout(done, text.length * 60));
+  });
+}
+async function runTour() {
+  initAudio(); ctx.resume(); primeVoice();
+  tour.on = true; tour.bus = ctx.createGain(); tour.bus.connect(duck);
+  renderTourBtn();
+  for (const l of ["en", "tr"]) tour.steps.forEach(s => tourClip(s, l));  // fetch and decode ahead, so steps follow without gaps
+  for (const step of tour.steps) {
+    if (!tour.on) return;
+    if (step.demo === "duck") {  // the voice line itself shows the ducking: the match bed dips under it
+      tourBed(tour.bus, ctx.currentTime + 0.05, 6, 0.35);
+      await tourWait(1.0); if (!tour.on) return;
+      duckTo(0.3); await tourVoice(step); duckTo(1);
+      await tourWait(0.6);
+      continue;
+    }
+    await tourVoice(step);
+    if (!tour.on) return;
+    const demo = TOUR_DEMO[step.demo];
+    await tourWait(demo ? demo(tour.bus, ctx.currentTime + 0.1) + 0.4 : 0.2);
+  }
+  endTour();
+}
+function endTour() {
+  if (!tour.on) return;
+  tour.on = false; store.set(TOUR_DONE, "1");
+  tour.timers.forEach(clearTimeout); tour.timers = [];
+  const src = tour.src; tour.src = null; if (src) { src.onended = null; try { src.stop(); } catch (e) {} }
+  if ("speechSynthesis" in window) speechSynthesis.cancel();
+  if (tour.bus) { const b = tour.bus; tour.bus = null; b.gain.setTargetAtTime(0, ctx.currentTime, 0.01); setTimeout(() => b.disconnect(), 200); }
+  duckTo(1);
+  if (tour.wake) { const w = tour.wake; tour.wake = null; w(); }  // lets the running step return at once
+  setCaption(t("captionIdle"), false); $("captionTag").textContent = t("tagIdle");
+  renderTourBtn();
+}
+function renderTourBtn() {
+  const b = $("tourBtn");
+  b.hidden = !tour.steps || (!tour.on && store.get(TOUR_DONE) === "1");
+  b.textContent = tour.on ? t("tourSkip") : t("tourOffer");
+  b.setAttribute("aria-pressed", String(tour.on));
+}
 
 /* ---------------- drawing ---------------- */
 const pc = $("pitch");
@@ -590,7 +734,9 @@ function drawPanel() {
 function loop() { drawPitch(); drawPanel(); requestAnimationFrame(loop); }
 
 /* ---------------- wiring ---------------- */
-$("playBtn").addEventListener("click", () => live.ws ? stopListening() : connect());
+$("playBtn").addEventListener("click", () => { endTour(); live.ws ? stopListening() : connect(); });
+$("tourBtn").addEventListener("click", () => tour.on ? endTour() : runTour());
+loadTour().then(steps => { tour.steps = steps && steps.length ? steps : null; renderTourBtn(); });
 $("blindBtn").addEventListener("click", e => {
   const on = e.currentTarget.getAttribute("aria-pressed") !== "true";
   e.currentTarget.setAttribute("aria-pressed", String(on)); $("blind").hidden = !on;
@@ -636,7 +782,7 @@ function applyI18n() {
   setTeamNames(); fillClub();
   if (live.ws && live.seed !== undefined) $("status").textContent = `${t("live")} ${live.seed}`;
   if (live.teams) fillFav(live.teams); else $("fav").replaceChildren(new Option(t("favNone"), ""));
-  renderLog(); renderRecap(); pickVoices();
+  renderLog(); renderRecap(); pickVoices(); renderTourBtn(); setRecapBusy(!!recapWait);
 }
 document.querySelectorAll("#appLang button").forEach(b => b.addEventListener("click", () => {
   appLang = b.dataset.lang; store.set("htg.lang", appLang); stopSpeech(); applyI18n();
@@ -649,7 +795,7 @@ document.querySelectorAll("#chapters button").forEach(b => b.addEventListener("c
   chapter = b.dataset.chapter; applyChapter();
   if (live.ws) { stopListening(); connect(); }  // jump: a new session from the chosen chapter
 }));
-$("recapBtn").addEventListener("click", readRecap);
+$("recapBtn").addEventListener("click", askRecap);
 // Space starts and stops listening, except while typing or choosing in a field. Handled on keydown; the keyup is swallowed so a
 // focused button does not also get clicked.
 const typing = el => el && (el.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName));

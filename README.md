@@ -31,7 +31,13 @@ The browser synthesises all match sound itself (Web Audio) from small state pack
 **When the narrator speaks** (the Director, `htg/engine/director.py`): goals immediately; otherwise never during an attack
 (danger ≥ 0.15), never the same kind of Insight for the same team within 5 minutes, one sentence at a time, and only after a
 mode-dependent silence (Audio only 10 s, Analyst 15 s, Casual 25 s). Moments of danger are left to the sound: they are not
-narrated. **What did I miss?** reads the score and the last three sentences. Interface and narration are in **Turkish or English**.
+narrated. **What did I miss?** asks the [Recap agent](#recap-agent) for 2-3 verified sentences about the last 10 minutes, told from
+your club's side; at the end of the match it gives a **full-time recap** by itself. Interface and narration are in **Turkish or English**.
+
+**Sound tour.** Before the first start the page offers a 60-second tour: each step plays the real sound (ball tick low to high,
+left to right, the two team tones, heartbeat, crowd, pass/shot/save/whistle, goal for and against your club, the favourite-player
+chime, the sound dipping under the narrator) with a caption and a short Azure voice line. It never starts the match, Skip stops it
+at once, and it is offered until done or skipped.
 
 **Two narrators.** Casual and Audio only hear a **fan**: radio excitement, at most one number, at most 16 words ("Northport are
 pressing noticeably harder now, and Valemont are under more pressure."). Analyst hears an **analyst**: the key numbers and the
@@ -58,6 +64,9 @@ flowchart LR
     V -- ok --> SP[Azure AI Speech<br/>neural voice MP3]
     T --> SP
     SP --> WS
+    WS -- What did I miss? --> RA[Recap agent<br/>Foundry Agent Service,<br/>4 deterministic tools]
+    RA --> RV[Verifier<br/>tool results = facts]
+    RV --> SP
   end
   WS --> B[Browser<br/>Web Audio makes the sound,<br/>plays the clip]
   Server -. traces, metrics .-> AI[Application Insights<br/>+ Foundry tracing]
@@ -89,6 +98,39 @@ under the team names used then). Each
 became a rule: code values are rejected, the prompt says to use only the facts, and goal facts no longer contain the opponent's
 name, so naming the wrong team fails the name check. Invented details without a number or a name are still not caught
 deterministically. Details: [`eval/results/narration.md`](eval/results/narration.md).
+
+## Recap agent
+
+The brief asks for automated match recaps; this is the one agent in the system. **What did I miss?** and the full-time recap are
+written by a **Foundry Agent Service prompt agent** (gpt-5-mini) with four function tools, run through the Responses API
+([`htg/recap/agent.py`](htg/recap/agent.py)). The agent decides which tools to call (at most 4), then writes 2-3 sentences per
+language, in the fan or analyst persona, from the favourite club's side ("your team").
+
+- **Tools are plain code** ([`htg/recap/tools.py`](htg/recap/tools.py)): `get_score` (score, minutes, goals with scorer and minute),
+  `get_stats` (possession, shots, on target, pass completion, pressing, corners, fouls per team in a window), `get_insights` (the
+  detected Insights in a window) and `get_player`. They read the replay **only up to the moment of the request**; the model cannot
+  ask about later. Tests check that nothing after `t` leaks.
+- **Verifier:** every sentence goes through the same Verifier as the narration; the known facts are exactly the values the tools
+  returned in this run. Rejected sentences go back to the agent once with the reasons; a sentence that still fails is dropped. A
+  language with no surviving sentence gets a **template recap** (score, possession and shots, latest goal). If the agent errors or
+  takes longer than 25 s, the listener gets the template recap; if the server does not answer at all, the page falls back to the
+  score and the last three narrations.
+- **Demo:** the full-time recaps of the demo match (3 favourite choices × 2 personas, EN + TR, with audio) are pre-generated
+  ([`eval/results/recap_fulltime.md`](eval/results/recap_fulltime.md)); "What did I miss?" is always live.
+
+Measured on reporting seeds 11-30, 20 random moments in the second half ([`eval/results/recap.md`](eval/results/recap.md)):
+
+| | EN | TR |
+|---|---|---|
+| Sentences passing the Verifier, first draft | 95% | 83% |
+| ... after the one revision | 98% | 88% |
+| Recaps that fell back to the template | 0% | 0% |
+
+Tool calls per recap: mean 2.0 (it nearly always calls `get_score` and `get_stats`). Latency without TTS: p50 6.06 s / p95
+13.08 s, so the button says "Preparing…". Most Turkish rejections are a suffix attached to a number, which the voice would misread.
+Reading the recaps by hand found what the Verifier cannot: once the model put invented statistics into a tool call's *arguments*
+(harmless: the tool ignores them and only tool output counts as fact), and an unmeasured claim ("more of the play") passed because it
+has no number or name. Both are listed in the file.
 
 ## Evidence
 
@@ -159,6 +201,7 @@ Every message carries match time `t` (seconds); schemas for the payloads are in 
 | `event_cue` | pass, shot, save, goal, whistle, with team, player and event `seq` |
 | `insight` | a detected tactical story: `claim_facts` (every number in it) and `evidence` (event `seq`s) ([`insight.schema.json`](schemas/insight.schema.json)) |
 | `speech` | the Insight told now: EN + TR text, `source` (`llm` verified or `template`), persona, MP3 per language |
+| `recap` | "What did I miss?" (`kind: missed`) or full time (`kind: full_time`): 2-3 sentences per language, `source` (`agent` or `template`), MP3 per language |
 
 Real messages from seed 7, the first goal (audio trimmed):
 
@@ -173,14 +216,16 @@ Real messages from seed 7, the first goal (audio trimmed):
  "audio": {"en": "//NkxAAAAANI…", "tr": "//NkxAAaC1IE…"}, "duration_s": {"en": 4.2, "tr": 5.3}}
 ```
 
-The listener sends two messages back: `{"type": "set_mode", "mode": "analyst"}` and `{"type": "set_favourite", "team": "HOME"}`.
+The listener sends three messages back: `{"type": "set_mode", "mode": "analyst"}`, `{"type": "set_favourite", "team": "HOME"}` and
+`{"type": "recap_request"}`.
 
 ## Microsoft stack
 
 | Service | What it does here | Where |
 |---|---|---|
 | **Microsoft Foundry** (model deployment, gpt-5-mini) | Writes the EN + TR sentence from `claim_facts` | [`htg/narration/foundry.py`](htg/narration/foundry.py) |
-| **Foundry tracing** via Application Insights | One `htg.narrate_insight` span per Insight with Verifier attempts and reasons; the model call as a child span (prompt and output content configured on the span) | [`htg/telemetry.py`](htg/telemetry.py), [`htg/narration/service.py`](htg/narration/service.py) |
+| **Foundry Agent Service** (prompt agent, function tools, Responses API) | The Recap agent: chooses which match tools to call, writes the EN + TR recap | [`htg/recap/agent.py`](htg/recap/agent.py) |
+| **Foundry tracing** via Application Insights | One `htg.narrate_insight` span per Insight with Verifier attempts and reasons; the model call as a child span (prompt and output content configured on the span). One `htg.recap` span per recap with tools used, Verifier reasons and source (added after the last trace check; not yet seen in Application Insights) | [`htg/telemetry.py`](htg/telemetry.py), [`htg/narration/service.py`](htg/narration/service.py) |
 | **Foundry evaluations** | Groundedness and fluency of the shipped sentences | [`eval/foundry_eval.py`](eval/foundry_eval.py) |
 | **Azure AI Speech** | Neural voices (en-GB, tr-TR), SSML: faster and higher for goals, Turkish numbers spoken from words | [`htg/speech/azure.py`](htg/speech/azure.py) |
 | **Azure Container Apps** | One app: static client, health check, one replay session per listener over WebSocket | [`services/engine/serve.py`](services/engine/serve.py), [`Dockerfile`](Dockerfile) |
@@ -190,6 +235,7 @@ The listener sends two messages back: `{"type": "set_mode", "mode": "analyst"}` 
 | **GitHub Actions** | Lint, tests and a generator smoke test on every push | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 
 The detectors, the Director and the sound are deliberately plain code, not agents: they must be fast, deterministic and testable.
+The one agent is the recap writer, where choosing what to look up is the actual job; its tools are that same plain code.
 
 ## Built vs. not built
 
@@ -207,6 +253,8 @@ through **Web PubSub**, an Insight log in **Cosmos DB**, a shared clip cache in 
   middle of a session can make the Director pick an Insight outside that set. A live cache miss calls Foundry and Speech within a 4 s
   deadline; at the measured p95 of 3.60 s for the text plus TTS, the slowest misses fall back to the template sentence.
 - **The flank detector** has 11% precision (see above).
+- **Live recaps take seconds** (p50 6 s without TTS) and Turkish recap sentences pass the Verifier less often than English ones
+  (88% vs 98% after the revision); a dropped sentence makes the recap shorter, not wrong.
 - **Detection delay** is minutes, not seconds (median 264-589 s): tactical trends need a window of play before they are real.
 - **iOS background audio** is untested. The layout was checked in headless Chrome at phone and desktop widths, not on many real phones.
 - **Accessibility** was checked by the author with VoiceOver. It has **not been validated with blind users**. A listening-test
@@ -228,6 +276,9 @@ the Foundry project endpoint, model and Speech endpoint, then run with `HTG_ENV=
 
 ```bash
 HTG_ENV=azure python -m htg.narration.pregen --seed 7                        # demo narration + clips: every chapter, mode, club
+HTG_ENV=azure python -m htg.recap.pregen --seed 7                            # full-time recaps + clips: every club, persona
+HTG_ENV=azure python -m htg.speech.tour                                      # sound-tour voice lines from web/tour.json
+HTG_ENV=azure python -m eval.recap --seeds 11-30 --n 20                      # Recap agent: Verifier, fallback, tools, latency
 HTG_ENV=azure python -m eval.narration --limit 50 --persona fan --out /tmp/fan.md # one narration persona
 HTG_ENV=azure python -m eval.narration --seeds 11-30 --limit 100 --samples eval/results/narration_samples.jsonl
 python -m eval.foundry_eval                                                    # Foundry evaluation of those samples
@@ -243,12 +294,12 @@ resource: *Cognitive Services User*, *Azure AI Developer* and *Cognitive Service
 
 ```
 schemas/     JSON schemas: event, state, insight, cue (the contracts between layers)
-htg/         calibration, generator, replay, state engine, detectors, Director, narration, Verifier, speech, telemetry
+htg/         calibration, generator, replay, state engine, detectors, Director, narration, Verifier, recap agent, speech, telemetry
 services/    the server (serve.py) and a local runner
 web/         the single-page client (vanilla JS, Web Audio)
 eval/        scoring scripts and results/ (every number in this README)
 infra/       Bicep for azd
-data/        calibration aggregates, synthetic matches, the demo narration cache
+data/        calibration aggregates, synthetic matches, the demo narration, recap and sound-tour caches
 docs/        data generation, listening-test protocol, status
 ```
 

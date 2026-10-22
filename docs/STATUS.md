@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 evening (features A: rules compliance, clubs, fan/analyst narration, chapters; task `docs/tasks/2026-10-22-features-a.md`). Next: owner listens, then recap agent / sound tour / timeline / analyst panel (next task), Day 7 video. Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 night (features B: sound tour + Recap agent; task `docs/tasks/done/2026-10-23-features-b.md`). Next: owner deploys (`azd deploy`) and listens, then Day 7 video. Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -131,7 +131,44 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   "Northport" and "Valemont" (add `ALIASES` in `htg/speech/azure.py` if needed, then regenerate); check the deployed
   demo. Listening test protocol now runs locally from minute 13 (`docs/listening-test.md`).
 
-## Day 7 needs (video)
+## Features B (2026-10-22 night; task: `docs/tasks/done/2026-10-23-features-b.md`)
+- **Recap agent built on Foundry Agent Service** (not the fallback loop): a prompt agent `htg-recap` with 4 function tools, created
+  once per `RECAP_VERSION` (found again by its metadata), run with the Responses API (`azure-ai-projects` 2.x, added to the
+  `[azure]` extra). API checked with the microsoft-learn MCP first; a spike worked in ~2 s per turn. Agent versions 1-6 exist in the
+  Foundry project (6 is current; older ones are harmless).
+- `htg/recap/tools.py`: `get_score`, `get_stats`, `get_insights`, `get_player` over a `MatchRecord` (events, physical rows, in-play
+  ball frames, Insights detected once; detectors are causal so filtering by `t` equals running up to `t`). A `to_min` at the current
+  minute means "now" (found by reading: the agent asked "60 to 70" at 70:38 and missed a shot).
+- `htg/recap/agent.py`: tool loop (max 4 calls, max 6 turns), Verifier per sentence with the tool results as facts, **one revision
+  turn** with the Verifier's reasons, template recap per language if no sentence survives, `htg.recap` span. Fake-model tests
+  (`tests/test_recap.py`, 7): no leak after `t`, determinism, template passes the Verifier, loop stops at 4, wrong number dropped,
+  template on failure, `recap_request` over the WebSocket.
+- Verifier (shared with narration): Turkish suffixes also without an apostrophe ("87de") or written apart ("dakika 87 de", "3 ü").
+  The 34 cached narration sentences still pass.
+- Server: `recap_request` -> `recap` message (default the last 10 minutes, 25 s deadline, then template); at `period_end` of period 2
+  the server sends a full-time `recap`. Only full-time recaps are cached: `data/cache/recap/*.json` + clips in `data/cache/recap/audio/`
+  (kept apart from `data/cache/audio`, which the narration pregen prunes). `HTG_ENV=azure python -m htg.recap.pregen --seed 7`:
+  6 recaps (club none/HOME/AWAY x fan/analyst), all `agent`, 1.2 MB. Text: `eval/results/recap_fulltime.md`.
+- Client: "Catch me up" button shows "Preparing…", plays the recap like a narration (ducking, `Recap · verified` tag) and shows it
+  above the narration list; no server answer in 30 s or not connected -> old behaviour (score + last 3 narrations).
+- **Sound tour:** "New here? 60-second sound tour" under Start listening, 10 steps from `web/tour.json` (one table for captions and
+  clips), real sound functions, caption in the existing `aria-live` caption box, `localStorage` `htg.tour` after done or skip,
+  Skip (or Start listening) stops at once and starts nothing. Clips: `python -m htg.speech.tour` -> `data/cache/tour/` (20 clips,
+  443 KB; voice ~35 s EN / ~40 s TR, plus ~20 s of demo sound). Served by `serve` at `/tour/...`; opened as a file there is no tour.
+- Checked in headless Chrome via CDP (no console errors): tour steps advance (~5.5 s each), Skip ends it and marks it done; "Catch me
+  up" locally gives a template recap; `late` chapter at 30x gets the full-time recap. Azure end to end at 30x: live recap 12.2 s
+  including TTS (`agent` EN + TR, audio), full-time recap from the cache with audio.
+- `eval/recap.py` -> `eval/results/recap.md` (seeds 11-30, n 20, prompt v6): Verifier first draft EN 95% / TR 83%, after revision
+  98% / 88%, template fallback 0%, tool calls mean 2.0 (max 2), latency p50 6.06 s / p95 13.08 s (no TTS). History table and reading
+  notes in the file (invented stats in tool *arguments* once, an unmeasured "more of the play", Turkish wording nits).
+  Prompt tuned on seeds 1-10 (v6: 100% / 100% there). README: "Recap agent" section, stack row, Mermaid node, `recap` in the feed.
+- **Not done / owner:** `azd deploy` (not run by Claude), then check the container log has no "Recap agent unavailable" (the app
+  identity must be allowed to list agent versions and call the agent; if not, recaps fall back to the template and nothing breaks)
+  and that an `htg.recap` span shows in App Insights (README says not yet seen). Listen to the tour in TR and EN; click "Catch me
+  up" three times per chapter; listen to the full-time recap (Turkish once said "Tam zaman": regenerate after deleting
+  `data/cache/recap/*.json` if a sentence sounds wrong). Decide on a `half_time` chapter (default no, not built).
+
+
 - Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
   the Foundry evaluation run, the App Insights metrics chart (htg.speech.resolved by source).
 - Demo start: chapters (0', 19', 76'). First goal (Baptiste, Valemont) at 22:38, 3.6 minutes into the default chapter; Late drama

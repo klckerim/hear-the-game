@@ -1,0 +1,65 @@
+{
+  "note": "The sound tour: one row per step. The client shows `en`/`tr` as the caption and plays data/cache/tour/<id>_<lang>.mp3 (python -m htg.speech.tour), then the `demo` sound.",
+  "steps": [
+    {
+      "id": "ball",
+      "demo": "ball",
+      "en": "The ball ticks: the higher the note, the closer the danger.",
+      "tr": "Top tıkırdar: nota yükseldikçe tehlike yaklaşır."
+    },
+    {
+      "id": "wing",
+      "demo": "wing",
+      "en": "Left or right ear: the wing the ball is on.",
+      "tr": "Sol ya da sağ kulak: topun olduğu kanat."
+    },
+    {
+      "id": "teams",
+      "demo": "teams",
+      "en": "Each team has its own tone: Northport, then Valemont.",
+      "tr": "Her takımın kendi tınısı var: önce Northport, sonra Valemont."
+    },
+    {
+      "id": "pressure",
+      "demo": "pressure",
+      "en": "A heartbeat means pressure on the ball. Faster is harder.",
+      "tr": "Kalp atışı baskı demek. Hızlandıkça baskı artar."
+    },
+    {
+      "id": "crowd",
+      "demo": "crowd",
+      "en": "The crowd follows the danger.",
+      "tr": "Tribün tehlikeyle birlikte yükselir."
+    },
+    {
+      "id": "events",
+      "demo": "events",
+      "en": "Pass, shot, save, whistle.",
+      "tr": "Pas, şut, kurtarış, düdük."
+    },
+    {
+      "id": "goal",
+      "demo": "goal",
+      "en": "A goal for your club is bright and long; a goal against is short and muted.",
+      "tr": "Takımının golü parlak ve uzun, rakibin golü kısa ve boğuk."
+    },
+    {
+      "id": "favourite",
+      "demo": "favourite",
+      "en": "This chime: your favourite player has the ball.",
+      "tr": "Bu çan sesi: favori oyuncun topta."
+    },
+    {
+      "id": "duck",
+      "demo": "duck",
+      "en": "When the narrator speaks, the match sound dips.",
+      "tr": "Anlatıcı konuşunca maç sesi kısılır."
+    },
+    {
+      "id": "end",
+      "demo": "",
+      "en": "That's the tour. Press Start listening when you are ready.",
+      "tr": "Tur bitti. Hazır olduğunda Dinlemeye başla düğmesine bas."
+    }
+  ]
+}
