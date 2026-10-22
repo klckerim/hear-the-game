@@ -71,5 +71,11 @@ Calibration is committed, so `htg.generate` works without downloading anything.
 
 ## Attribution
 
-Calibration uses data provided by **StatsBomb** (Hudl) under the [StatsBomb Open Data terms](https://github.com/hudl/open-data).
-SkillCorner data is used under the MIT licence. No raw rows from either source are redistributed.
+<img src="img/statsbomb-logo.png" alt="StatsBomb" height="40">
+
+Data provided by **StatsBomb** (Hudl). Calibration uses StatsBomb Open Data under the
+[StatsBomb Open Data terms](https://github.com/hudl/open-data), which ask users to credit StatsBomb as the source and show its logo
+(from the StatsBomb Media Pack). Only aggregates derived from it are committed; no raw rows are redistributed.
+
+Tracking and physical aggregates come from [SkillCorner Open Data](https://github.com/SkillCorner/opendata), used under the MIT
+licence. No raw rows are redistributed.

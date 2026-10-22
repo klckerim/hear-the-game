@@ -5,7 +5,7 @@ Microsoft × Premier League "Inside the Game" hackathon entry. Synthetic footbal
 Speech). Target users: blind and partially sighted fans, and anyone who can't look at a screen.
 
 Deadline: submission 2026-10-27 23:59 PT (2026-10-28 09:59 Istanbul). Plan to submit on 2026-10-27.
-Read first: `docs/STATUS.md` (where we are, decisions, next steps). Design: `docs/design.md`.
+Read first: `docs/STATUS.md` (where we are, decisions, next steps). Design: `README.md` (architecture) and the code.
 Current task: the newest file in `docs/tasks/` (finished ones are in docs/tasks/done/).
 
 ## Priority order (when in doubt, top wins)

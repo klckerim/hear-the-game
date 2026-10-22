@@ -203,7 +203,7 @@ web/         the single-page client (vanilla JS, Web Audio)
 eval/        scoring scripts and results/ (every number in this README)
 infra/       Bicep for azd
 data/        calibration aggregates, synthetic matches, the demo narration cache
-docs/        data generation, listening-test protocol, original design (Turkish), status
+docs/        data generation, listening-test protocol, status
 ```
 
 ## License and attribution

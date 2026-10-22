@@ -90,7 +90,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   `gen_ai.input.messages` / `gen_ai.output.messages` land on the chat span. **Not yet seen in App Insights** (needs `azd up`, then owner checks).
 - Step 6 `docs/listening-test.md`: protocol, questions TR/EN, answer key for minutes 13-23 from the match data. 10 minutes, not 5 (the goal is
   at 22:36). **Not run yet.**
-- Step 7: `docs/design.md` carries the "original design" note; this STATUS cleaned up.
+- Step 7: STATUS cleaned up. (The Turkish design document was deleted on 2026-10-22: rule 4.9 wants submission material in English.)
 - After listening (owner): Turkish voice spelled out number suffixes ("36'ydı") and read "yüzde 23." as an ordinal. Prompt 4 + Verifier
   rule (no suffix on numbers in Turkish); SSML says Turkish integers from words (`<sub alias>`; say-as cardinal is not supported for tr-TR),
   `SSML_VERSION` in the clip cache key. Cache regenerated. Narration re-measured with prompt 4: p50 1.58 s / p95 3.60 s, 100% first pass,
