@@ -157,3 +157,18 @@ def test_stats_come_every_10_s_from_the_recap_tool(monkeypatch):
     for m in stats:
         assert m["match"] == get_stats(rec, m["t"]) and m["last10"] == get_stats(rec, m["t"], from_min=m["t"] / 60 - 10)
         assert m["last10"]["length_min"] == 10 and m["match"]["from_minute"] == 0
+
+
+def test_next_moment_starts_30_s_before_the_next_goal_save_or_card():
+    from services.engine.serve import moments_of, start_minute_of
+
+    events = [{"t": 100.0, "type": "pass"}, {"t": 200.0, "type": "shot", "outcome": "saved"},
+              {"t": 210.0, "type": "shot", "outcome": "blocked"}, {"t": 400.0, "type": "foul", "card": "yellow"},
+              {"t": 1300.0, "type": "shot", "outcome": "goal"}, {"t": 1300.5, "type": "goal"}]
+    moments = moments_of(events)
+    assert moments == [200.0, 400.0, 1300.0]
+    assert start_minute_of("/ws?chapter=kickoff", moments) == 0.0  # no `next`: the chapter
+    assert start_minute_of("/ws?chapter=kickoff&next=1", moments) * 60 == 170.0  # from the chapter start
+    assert start_minute_of("/ws?chapter=kickoff&next=1&after=175", moments) * 60 == 370.0  # pressing again moves on
+    assert start_minute_of("/ws?chapter=kickoff&next=1&after=1290", moments) == 0.0  # none left: the chapter
+    assert start_minute_of("/ws?chapter=late&next=1&after=x", moments) == 76.0

@@ -162,6 +162,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-vi
 #installBtn { justify-self: stretch; }
 #installBtn[hidden] { display: none; }
 #recapBtn[aria-busy="true"] { opacity: 0.7; cursor: progress; }
+#nextBtn:disabled { opacity: 0.45; cursor: default; }
 .recap .out { display: grid; gap: 4px; padding: 8px 10px; border-left: 3px solid var(--amber); background: #101a16; border-radius: 0 4px 4px 0; }
 .recap .out b { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); }
 button[aria-pressed="true"] { background: var(--chalk); color: var(--night); border-color: var(--chalk); }
@@ -267,6 +268,10 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
           <span class="note" aria-hidden="true"><kbd data-i18n="spaceKey"></kbd></span>
           <button id="blindBtn" type="button" aria-pressed="false" data-i18n="blindBtn"></button>
         </div>
+        <div class="row play-row">
+          <button id="nextBtn" type="button" aria-keyshortcuts="N" data-i18n="nextBtn"></button>
+          <span class="note" aria-hidden="true"><kbd>N</kbd></span>
+        </div>
         <button id="tourBtn" type="button" hidden></button>
         <div class="field"><span data-i18n="modeLabel" id="modeLabel"></span>
           <div class="seg" role="group" aria-labelledby="modeLabel" id="modes">
@@ -361,7 +366,7 @@ const T = {
     left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
     layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lCallout: "Kısa anonslar (isim, şut, taç…)", lVoice: "Anlatım",
     chapterLabel: "Nereden başlasın?", ch_kickoff: "Başlangıç\u00a0·\u00a00'", ch_first_goal: "İlk gol\u00a0·\u00a019'", ch_late: "Son dakikalar\u00a0·\u00a076'",
-    spaceKey: "Boşluk", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
+    spaceKey: "Boşluk", nextBtn: "Sonraki an", jumpedTo: "sonraki an:", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
     off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Demo maçı · seed", lost: "Bağlantı koptu.",
     fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
     voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili", install: "Uygulamayı yükle",
@@ -389,7 +394,7 @@ const T = {
     left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
     layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lCallout: "Callouts (names, shots, throw-ins…)", lVoice: "Narration",
     chapterLabel: "Start from", ch_kickoff: "Kick-off\u00a0·\u00a00'", ch_first_goal: "First goal\u00a0·\u00a019'", ch_late: "Late drama\u00a0·\u00a076'",
-    spaceKey: "Space", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
+    spaceKey: "Space", nextBtn: "Next moment", jumpedTo: "next moment from", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
     off: "Not connected.", wait: "Connected, waiting for the match.", live: "Demo match · seed", lost: "Connection lost.",
     fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
     voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language", install: "Install the app",
@@ -534,14 +539,14 @@ const live = { ws: null, clock0: null, speed: 1, teams: null, frames: [], due: [
 const matchNow = () => (ctx.currentTime - live.clock0) * live.speed;
 const audioAt = t => Math.max(ctx.currentTime, live.clock0 + t / live.speed);
 
-function connect() {
+function connect(query = "") {
   initAudio(); ctx.resume();
   primeVoice(); preloadCallouts();
   resetLive();
   session = newSession(); applyLayers();
   $("playBtn").textContent = t("stop");
   $("status").textContent = t("wait");
-  const ws = live.ws = new WebSocket(WS_URL + (WS_URL.includes("?") ? "&" : "?") + "chapter=" + chapter);
+  const ws = live.ws = new WebSocket(WS_URL + (WS_URL.includes("?") ? "&" : "?") + "chapter=" + chapter + query);
   ws.onmessage = e => onMessage(JSON.parse(e.data));
   ws.onclose = () => { if (live.ws === ws) { stopListening(t("lost")); } };
   ws.onerror = () => { if (live.ws === ws) { stopListening(t("fail")); } };
@@ -551,11 +556,23 @@ function stopListening(msg) {
   const ws = live.ws; live.ws = null;
   if (ws) { ws.onclose = ws.onerror = null; ws.close(); }
   clearInterval(live.timer); endSession(session); session = null; stopSpeech();
-  $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off");
+  $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off"); renderNextBtn();
+}
+// "Next moment": a new session 30 s before the next goal, saved shot or card more than 30 s after the play clock (when stopped: the
+// chosen chapter's start); the server picks it, and the client resets exactly as for a chapter jump. Disabled when `moments` run out.
+const playT = () => !live.ws ? null : live.cur ? live.cur.t : live.win ? live.win[0] : null;
+const hasNextMoment = () => !live.moments || playT() === null || live.moments.some(tm => tm > playT() + 30);
+function renderNextBtn() { $("nextBtn").disabled = !hasNextMoment(); }
+function nextMoment() {
+  if (!hasNextMoment()) return;
+  const after = playT();
+  endTour();
+  if (live.ws) stopListening();
+  connect("&next=1" + (after === null ? "" : "&after=" + after.toFixed(1))); live.jumped = true;
 }
 function resetLive() {
   Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false,
-    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, win: null, stats: null });
+    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, win: null, stats: null, jumped: false });
   $("tlInner").querySelectorAll(".mk").forEach(e => e.remove()); renderAxis(); renderWhy(); renderStats();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
@@ -565,12 +582,14 @@ function resetLive() {
 function onMessage(m) {
   if (m.type === "hello") {
     live.speed = m.speed || 1; live.teams = m.teams; live.win = m.window || null; live.dur = m.duration_s || Infinity; renderAxis();
+    live.moments = m.moments || null; renderNextBtn();
     live.players = Object.fromEntries(["HOME", "AWAY"].flatMap(s => m.teams[s].players.map(p => [p.id, p.name])));
     for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) {
       $("dot" + id).style.background = COLOR[m.teams[side].color] || "#ccc";
     }
     if (m.score) { live.score = [m.score.HOME || 0, m.score.AWAY || 0]; $("score").textContent = live.score.join(" – "); }
     live.seed = m.seed; $("status").textContent = `${t("live")} ${m.seed ?? m.match_id}`;
+    if (live.jumped && live.win) $("status").textContent += ` · ${t("jumpedTo")} ${Math.floor(live.win[0] / 60)}'`;  // the status is read aloud
     fillFav(m.teams); setTeamNames(); fillClub(); sendMode(); sendClub();
   } else if (m.type === "state") {
     if (live.clock0 === null) live.clock0 = ctx.currentTime + JITTER_S - m.packets[0].t / live.speed;
@@ -579,7 +598,7 @@ function onMessage(m) {
   } else if (m.type === "event_cue") {
     live.due.push({ t: m.t, kind: "cue", m });
   } else if (m.type === "stats") {
-    live.stats = m; renderStats();
+    live.stats = m; renderStats(); renderNextBtn();
   } else if (m.type === "insight") {
     live.due.push({ t: m.insight.t, kind: "insight", m });
   } else if (m.type === "speech") {
@@ -1217,6 +1236,7 @@ document.querySelectorAll("#chapters button").forEach(b => b.addEventListener("c
   chapter = b.dataset.chapter; applyChapter();
   if (live.ws) { stopListening(); connect(); }  // jump: a new session from the chosen chapter
 }));
+$("nextBtn").addEventListener("click", nextMoment);
 $("recapBtn").addEventListener("click", askRecap);
 document.querySelectorAll("#statsWin button").forEach(b => b.addEventListener("click", () => { live.statsWin = b.dataset.win; renderStats(); }));
 // Space starts and stops listening, except while typing or choosing in a field. Handled on keydown; the keyup is swallowed so a
@@ -1227,6 +1247,10 @@ document.addEventListener("keydown", e => {
   if (e.code !== "Space" || typing(e.target)) return;
   e.preventDefault(); spaceHandled = true;
   if (!e.repeat) $("playBtn").click();
+});
+document.addEventListener("keydown", e => {
+  if (e.code !== "KeyN" || e.repeat || e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
+  e.preventDefault(); nextMoment();
 });
 document.addEventListener("keyup", e => { if (e.code === "Space" && spaceHandled) { e.preventDefault(); spaceHandled = false; } });
 if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = pickVoices;

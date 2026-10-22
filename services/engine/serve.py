@@ -3,7 +3,9 @@
     python -m services.engine.serve --seed 7 --port 8000
 
 GET /         -> web/live.html     GET /healthz -> ok     WS /ws?chapter=first_goal -> messages as in `run_local`;
-`hello` adds `window` [start, end] (match seconds the session plays, never past the end of the match).
+`hello` adds `window` [start, end] (match seconds the session plays, never past the end of the match) and `moments` (match seconds
+of every goal, saved shot and card). WS /ws?chapter=first_goal&next=1&after=1234.5 -> "Next moment": the session starts 30 s before
+the first moment more than 30 s after `after` (missing: the chapter start), so pressing again always moves on; none left -> the chapter.
 GET /tour/tour.json, /tour/<step>_<lang>.mp3 -> the sound tour's text table and pre-generated voice lines.
 GET /callouts/callouts.json, /callouts/<lang>_<tone>_<id>.mp3 -> the callout clip table and clips (`htg/speech/callouts.py`).
 Each listener gets its own pipeline and replay clock, starting at the chosen chapter (unknown or missing -> the default);
@@ -59,6 +61,7 @@ STATS_EVERY_S = 10.0
 # Demo start points in match minutes, for seed 7 (goals at 22:38, 79:11 and 87:14): nobody should wait 9 minutes for a goal.
 CHAPTERS = {"kickoff": 0.0, "first_goal": 19.0, "late": 76.0}
 DEFAULT_CHAPTER = "first_goal"
+JUMP_LEAD_S = 30.0  # "Next moment" starts this long before the moment
 _warm: dict[tuple, LivePipeline] = {}
 _warm_lock = threading.Lock()  # a thread lock: callers wait in their worker thread, never on the event loop
 _records: dict[str, MatchRecord] = {}
@@ -97,6 +100,25 @@ def chapter_of(path: str) -> str:
     return chapter if chapter in CHAPTERS else DEFAULT_CHAPTER
 
 
+def moments_of(events: list[dict]) -> list[float]:
+    """Match seconds of the moments "Next moment" jumps to: goals (the scoring shot), saved shots and cards."""
+    return sorted(e["t"] for e in events if (e["type"] == "shot" and e.get("outcome") in ("goal", "saved")) or e.get("card"))
+
+
+def start_minute_of(path: str, moments: list[float]) -> float:
+    """The session's first match minute: the chapter's, or for `next=1` the jump point of the next moment (see the module doc)."""
+    q, start = parse_qs(urlsplit(path).query), CHAPTERS[chapter_of(path)]
+    if q.get("next") != ["1"]:
+        return start
+    try:
+        after = float(q.get("after", [start * 60.0])[0])
+    except ValueError:
+        after = start * 60.0
+    ahead = [t for t in moments if t > after + JUMP_LEAD_S]
+    # Jump points are a fixed set per match, so the warm-up cache stays bounded (one entry per moment).
+    return round(max(0.0, ahead[0] - JUMP_LEAD_S), 1) / 60.0 if ahead else start
+
+
 def warmed(meta: dict, match_dir: Path, start_minute: float, speed: float) -> LivePipeline:
     """Every listener of a chapter replays the same match from the same minute, so the warm-up is computed once and each session
     gets a copy.
@@ -126,7 +148,7 @@ def record_for(match_dir: Path) -> MatchRecord:
         return _records[str(match_dir)]
 
 
-async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: float, sessions: set) -> None:
+async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: float, sessions: set, moments: list[float] = ()) -> None:
     if len(sessions) >= MAX_SESSIONS:
         await ws.close(1013, "busy")
         return
@@ -183,7 +205,7 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
             apply_listener_message(warm, msg)
         pipe = warm
         end = min(start_minute * 60.0 + END_AFTER_S, meta.get("duration_s", float("inf")))  # Late drama ends at 90', not 91'
-        await send({**pipe.hello(), "window": [start_minute * 60.0, end]})  # the session's match time
+        await send({**pipe.hello(), "window": [start_minute * 60.0, end], "moments": list(moments)})  # the session's match time
         rec, next_stats = await asyncio.to_thread(record_for, match_dir), 0.0
         async for item in FileEventSource(match_dir, speed, start_minute):
             now = item.t
@@ -224,10 +246,10 @@ async def main(seed: int, speed: float, host: str, port: int) -> None:
         match_dir = generate(seed)
     meta = json.loads((match_dir / "meta.json").read_text())
     sessions: set = set()
+    moments = moments_of((await asyncio.to_thread(record_for, match_dir)).events)
     for minute in CHAPTERS.values():  # before the first listener arrives
         await asyncio.to_thread(warmed, meta, match_dir, minute, speed)
     global _recap_model, _recap_speech
-    await asyncio.to_thread(record_for, match_dir)
     _recap_model = await asyncio.to_thread(get_recap_model)
     if _recap_model is not None:
         try:
@@ -238,10 +260,11 @@ async def main(seed: int, speed: float, host: str, port: int) -> None:
             print(f"Recap voice unavailable ({type(e).__name__}); recaps use the session voice.")
 
     async def handler(ws) -> None:  # noqa: ANN001
-        await session(ws, match_dir, meta, CHAPTERS[chapter_of(ws.request.path)], speed, sessions)
+        await session(ws, match_dir, meta, start_minute_of(ws.request.path, moments), speed, sessions, moments)
 
     async with websockets.serve(handler, host, port, process_request=process_request, ping_interval=20):
-        print(f"serving seed {seed}, chapters {CHAPTERS}, on {host}:{port} (HTG_ENV={os.environ.get('HTG_ENV', 'local')})")
+        print(f"serving seed {seed}, chapters {CHAPTERS}, {len(moments)} moments,"
+              f" on {host}:{port} (HTG_ENV={os.environ.get('HTG_ENV', 'local')})")
         await asyncio.Future()
 
 

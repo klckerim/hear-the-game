@@ -241,6 +241,13 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   against hashes taken before the change (identical); `eval.scenarios` rerun, `scenarios.md` unchanged; the seed-1 file pin was
   re-pinned. `event_cue` carries `card`; the client plays a booking whistle (short + long, louder), the log says "Foul · Yellow card
   · Name", the callout says "Foul... yellow card, Name". Seed 7: four yellows in the opening chapter, one at 83'.
+- **Part 3, "Next moment" (done, 2026-10-23):** button (and key N) under Start. `WS /ws?chapter=..&next=1&after=<play clock>`: the
+  server starts 30 s before the first goal / saved shot / card more than 30 s after `after` (stopped: the chapter start), so each
+  press moves on; `hello.moments` lets the client disable the button when none are left. Jump points are a fixed set (16 for
+  seed 7), each warmed once in a thread and cached like the chapters (warm-up 0.2-0.4 s). The client resets exactly as on a chapter
+  jump (timeline, score from the warm-up, Why card, log, recap history); the status line (read aloud) says "next moment from 83'".
+  Checked in headless Chrome: 19' -> 22' -> 23' -> 36' -> 45' -> 53' and 76' -> ... -> 86' (button disabled), scores right, no
+  console errors. **Deploy point 1 reached (parts 1-3): owner runs `azd deploy` and listens.**
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
