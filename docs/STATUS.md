@@ -167,9 +167,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Deployed and checked by the owner (2026-10-22):** `azd deploy` done; "Catch me up" tried many times on the deployed app and
   works; current `htg.recap` spans seen in App Insights (README updated). Nested model-call spans under it were not reported: do
   not claim them.
-- **Owner, still open:** listen to the tour in TR and EN; click "Catch me
-  up" three times per chapter; listen to the full-time recap (Turkish once said "Tam zaman": regenerate after deleting
-  `data/cache/recap/*.json` if a sentence sounds wrong). Decide on a `half_time` chapter (default no, not built).
+- Owner listened to the tour in TR and EN (2026-10-22). `half_time` chapter: **no** (owner decided).
+- **Owner, still open:** listen to the full-time recap (locally: `HTG_ENV=azure python -m services.engine.serve --speed 10`, pick
+  club and mode first, chapter Late drama; it plays at 90:00, about 1.5 min in). If a sentence sounds wrong, delete
+  `data/cache/recap/*.json` and rerun `htg.recap.pregen`.
 
 
 - Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
