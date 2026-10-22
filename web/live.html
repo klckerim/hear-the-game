@@ -108,6 +108,8 @@ button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-vi
 #tourBtn { justify-self: start; border-style: dashed; border-color: var(--amber); color: var(--amber); background: transparent; }
 #tourBtn[aria-pressed="true"] { border-style: solid; background: transparent; color: var(--chalk); border-color: var(--chalk); }
 #tourBtn[hidden] { display: none; }
+#installBtn { justify-self: stretch; }
+#installBtn[hidden] { display: none; }
 #recapBtn[aria-busy="true"] { opacity: 0.7; cursor: progress; }
 .recap .out { display: grid; gap: 4px; padding: 8px 10px; border-left: 3px solid var(--amber); background: #101a16; border-radius: 0 4px 4px 0; }
 .recap .out b { font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--amber); }
@@ -250,6 +252,7 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
           <label for="L_voice"><input type="checkbox" id="L_voice" checked> <span data-i18n="lVoice"></span></label>
         </div>
       </div>
+      <button id="installBtn" type="button" data-i18n="install" hidden></button>
     </aside>
   </div>
 </div>
@@ -282,7 +285,7 @@ const T = {
     spaceKey: "Boşluk", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
     off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Demo maçı · seed", lost: "Bağlantı koptu.",
     fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
-    voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili" },
+    voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili", install: "Uygulamayı yükle" },
   en: { sub: "The server sends the match as data; your device makes the sound. Best with headphones.", matchView: "Match view",
     pitchAria: "Ball position on the pitch", home: "Home", away: "Away", blindTitle: "Pitch hidden",
     blindSub: "You follow the match by sound alone.", tagIdle: "Narration",
@@ -300,7 +303,7 @@ const T = {
     spaceKey: "Space", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
     off: "Not connected.", wait: "Connected, waiting for the match.", live: "Demo match · seed", lost: "Connection lost.",
     fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
-    voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language" } };
+    voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language", install: "Install the app" } };
 const MODES = ["eyes_free", "casual", "analyst"];
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 const LANGS = ["en", "tr"];
@@ -867,6 +870,19 @@ document.addEventListener("keydown", e => {
 });
 document.addEventListener("keyup", e => { if (e.code === "Space" && spaceHandled) { e.preventDefault(); spaceHandled = false; } });
 if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = pickVoices;
+// Install button (Chrome, Edge, Samsung Internet). The manifest is added only where the browser can offer the install prompt, so
+// Safari keeps its own home-screen behaviour (apple-touch-icon, opens in Safari). The button sits last in the side column: no shift.
+if ("onbeforeinstallprompt" in window) {
+  const link = document.createElement("link"); link.rel = "manifest"; link.href = "manifest.webmanifest"; document.head.append(link);
+  let installEvt = null;
+  window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; $("installBtn").hidden = false; });
+  window.addEventListener("appinstalled", () => { installEvt = null; $("installBtn").hidden = true; });
+  $("installBtn").addEventListener("click", async () => {
+    if (!installEvt) return;
+    const e = installEvt; installEvt = null; $("installBtn").hidden = true;
+    e.prompt(); await e.userChoice.catch(() => null);
+  });
+}
 applyMode(); applyChapter(); applyI18n(); syncLiveRegions();
 requestAnimationFrame(loop);
 </script>

@@ -18,6 +18,8 @@ def test_http_routes():
     icon = process_request(None, Req("/apple-touch-icon.png"))
     assert icon.status_code == 200 and icon.body.startswith(b"\x89PNG")
     assert process_request(None, Req("/icon.svg")).headers["Content-Type"] == "image/svg+xml"
+    manifest = json.loads(process_request(None, Req("/manifest.webmanifest")).body)
+    assert all(process_request(None, Req("/" + i["src"])).status_code == 200 for i in manifest["icons"])
     assert process_request(None, Req("/nope")).status_code == 404
     assert process_request(None, Req("/ws")) is None
 
