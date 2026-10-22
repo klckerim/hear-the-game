@@ -10,6 +10,8 @@ the Director mode and favourite club are set per listener with `set_mode` and `s
 {"type": "recap_request", "since_min": optional} -> a `recap` message ("What did I miss?"; default the last 10 minutes), and at the
 end of period 2 the server sends a full-time `recap` by itself. Both come from the Recap agent (`htg/recap/agent.py`) with the
 template recap as fallback, and never block the replay.
+Every STATS_EVERY_S of match time a `stats` message carries `get_stats` (the recap agent's own tool) for the match so far
+(`match`) and the last 10 minutes (`last10`): the Analyst table.
 """
 from __future__ import annotations
 
@@ -35,7 +37,7 @@ from htg.env import load_env
 from htg.generate import OUT_DIR, generate
 from htg.narration.service import known_names, persona_for
 from htg.recap.agent import AUDIO_DIR, RecapModel, get_recap_model
-from htg.recap.tools import MatchRecord
+from htg.recap.tools import MatchRecord, get_stats
 from services.engine.recap import recap_message, since_for
 from services.engine.resolve import is_stale
 from services.engine.run_local import LivePipeline, apply_listener_message, make_resolver, warm_up
@@ -50,6 +52,7 @@ ICONS = {"/apple-touch-icon.png": "image/png", "/icon.svg": "image/svg+xml", "/i
          "/manifest.webmanifest": "application/manifest+json"}
 MAX_SESSIONS = 20
 END_AFTER_S = 15 * 60.0  # a demo session lasts at most this much match time
+STATS_EVERY_S = 10.0
 # Demo start points in match minutes, for seed 7 (goals at 22:38, 79:11 and 87:14): nobody should wait 9 minutes for a goal.
 CHAPTERS = {"kickoff": 0.0, "first_goal": 19.0, "late": 76.0}
 DEFAULT_CHAPTER = "first_goal"
@@ -102,6 +105,11 @@ def warmed(meta: dict, match_dir: Path, start_minute: float, speed: float) -> Li
             warm_up(pipe, match_dir, start_minute)
             _warm[key] = pipe
         return copy.deepcopy(_warm[key])
+
+
+def stats_message(rec: MatchRecord, t: float) -> dict:
+    """Team stats up to `t`: the same deterministic numbers the recap agent sees, for the match and for the last 10 minutes."""
+    return {"type": "stats", "t": t, "match": get_stats(rec, t), "last10": get_stats(rec, t, from_min=max(0.0, t / 60.0 - 10))}
 
 
 def record_for(match_dir: Path) -> MatchRecord:
@@ -169,10 +177,14 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
             apply_listener_message(warm, msg)
         pipe = warm
         await send({**pipe.hello(), "window": [start_minute * 60.0, start_minute * 60.0 + END_AFTER_S]})  # the session's match time
+        rec, next_stats = await asyncio.to_thread(record_for, match_dir), 0.0
         async for item in FileEventSource(match_dir, speed, start_minute):
             now = item.t
             if now - start_minute * 60.0 > END_AFTER_S:
                 break
+            if now >= next_stats:
+                next_stats = now + STATS_EVERY_S
+                await send(stats_message(rec, now))
             if item.kind == "event" and item.data["type"] == "period_end" and item.data["period"] == 2:
                 spawn(recap("full_time", item.t))
             for msg in pipe.feed(item):

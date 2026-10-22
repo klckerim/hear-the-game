@@ -122,3 +122,35 @@ def test_late_chapter_starts_with_the_score_of_minute_76(monkeypatch):
 
     hello = asyncio.run(run())
     assert hello["type"] == "hello" and hello["score"] == expected
+
+
+def test_stats_come_every_10_s_from_the_recap_tool(monkeypatch):
+    from htg.generate import OUT_DIR, generate
+    from htg.recap.tools import get_stats
+    from services.engine import serve
+
+    monkeypatch.setattr(serve, "_warm", {})
+    match_dir = OUT_DIR / "match_0001"
+    match_dir = match_dir if match_dir.exists() else generate(1)
+    meta = json.loads((match_dir / "meta.json").read_text())
+
+    async def run() -> tuple[dict, list[dict]]:
+        async def handler(ws) -> None:
+            await serve.session(ws, match_dir, meta, 30.0, 100.0, set())
+
+        async with websockets.serve(handler, "localhost", 0, process_request=process_request) as srv:
+            async with websockets.connect(f"ws://localhost:{srv.sockets[0].getsockname()[1]}/ws") as c:
+                hello, stats = json.loads(await asyncio.wait_for(c.recv(), 30)), []
+                while len(stats) < 3:
+                    m = json.loads(await asyncio.wait_for(c.recv(), 30))
+                    if m["type"] == "stats":
+                        stats.append(m)
+                return hello, stats
+
+    hello, stats = asyncio.run(run())
+    assert hello["window"] == [1800.0, 1800.0 + serve.END_AFTER_S]
+    rec = serve.record_for(match_dir)
+    assert [round(b["t"] - a["t"]) for a, b in zip(stats, stats[1:], strict=False)] == [10, 10]
+    for m in stats:
+        assert m["match"] == get_stats(rec, m["t"]) and m["last10"] == get_stats(rec, m["t"], from_min=m["t"] / 60 - 10)
+        assert m["last10"]["length_min"] == 10 and m["match"]["from_minute"] == 0

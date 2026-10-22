@@ -137,6 +137,17 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
 .why dt { color: var(--muted); }
 .why dd { margin: 0; }
 body[data-mode="eyes_free"] .tl-only { display: none; }
+.stats-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.stats-head .seg button { padding: 4px 10px; font-size: 12px; }
+table.stats { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+table.stats th { font-weight: 400; color: var(--muted); text-align: left; padding: 4px 0; }
+table.stats thead th { font-family: var(--display); font-size: 14px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--chalk); }
+table.stats thead th:first-child { width: 42%; }
+table.stats td { padding: 4px 0 4px 8px; }
+table.stats .v { display: block; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+table.stats .b { display: block; height: 4px; margin-top: 3px; background: #0f1916; border-radius: 2px; overflow: hidden; }
+table.stats .b i { display: block; height: 100%; border-radius: 2px; }
+#statsNote { font-size: 11px; }
 aside { display: grid; gap: 14px; min-width: 0; }
 .panel { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 12px; }
 .panel h2 { font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
@@ -295,6 +306,20 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <ol class="log" id="log"></ol>
       </div>
 
+      <div class="panel analyst-only">
+        <div class="stats-head"><h2 data-i18n="statsTitle" id="statsTitle"></h2>
+          <div class="seg" role="group" aria-labelledby="statsTitle" id="statsWin">
+            <button type="button" data-win="match" aria-pressed="true" data-i18n="statsMatch"></button>
+            <button type="button" data-win="last10" aria-pressed="false" data-i18n="statsLast10"></button>
+          </div>
+        </div>
+        <table class="stats">
+          <thead><tr><th scope="col"><span class="sr-only" data-i18n="statsStat"></span></th><th scope="col" id="stHome"></th><th scope="col" id="stAway"></th></tr></thead>
+          <tbody id="statsBody"></tbody>
+        </table>
+        <p class="note" id="statsNote" data-i18n="statsNote"></p>
+      </div>
+
       <div class="panel">
         <h2 data-i18n="layersTitle"></h2>
         <div class="toggles">
@@ -341,10 +366,14 @@ const T = {
     voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili", install: "Uygulamayı yükle",
     tlTitle: "Zaman çizelgesi · bir işarete dokun, kanıtını gör", tlLegendIns: "Tespit (dolu = anlatıldı)", tlInsight: "Tespit", tlShot: "Şut", tlGoal: "Gol",
     whyTitle: "Neden?", whyIdle: "Zaman çizelgesinde bir işaret seç: dayandığı olaylar sahada parlar, sayıları burada görünür.",
-    evidence: "Kanıt", events: "olay", spoken: "anlatıldı", notSpoken: "anlatılmadı", kmh: "km/s",
+    evidence: "Kanıt", events: "olay", event: "olay", speed: "hız", spoken: "anlatıldı", notSpoken: "anlatılmadı", kmh: "km/s",
     ins_pressure_shift: "{team} baskıyı artırdı", ins_tempo_change: "{team} oyunu yavaşlattı", ins_flank_overload: "{team} {side} kanada yüklendi",
     ins_physical_drop: "{player} yoruldu", ins_chance: "{team} için pozisyon",
-    outcome: { saved: "kurtarıldı", off_target: "isabetsiz", blocked: "engellendi", goal: "gol" } },
+    outcome: { saved: "kurtarıldı", off_target: "isabetsiz", blocked: "engellendi", goal: "gol" },
+    statsTitle: "Takım istatistikleri", statsMatch: "Maç", statsLast10: "Son 10 dk", statsStat: "İstatistik", longPass: "Uzun pas",
+    st_possession_pct: "Topla oynama", st_shots: "Şut (isabetli)", st_pass_completion_pct: "Pas isabeti", st_pressing_pct: "Pres",
+    st_corners: "Korner", st_fouls: "Faul", statsWait: "İlk sayılar maç başlayınca gelir.",
+    statsNote: "Pres: rakibin topla yaptığı hareketlerin bu takımın baskısı altında yapılan payı. Her 10 saniyede güncellenir." },
   en: { sub: "The server sends the match as data; your device makes the sound. Best with headphones.", matchView: "Match view",
     pitchAria: "Ball position on the pitch", home: "Home", away: "Away", blindTitle: "Pitch hidden",
     blindSub: "You follow the match by sound alone.", tagIdle: "Narration",
@@ -365,10 +394,14 @@ const T = {
     voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language", install: "Install the app",
     tlTitle: "Timeline · select a marker to see its evidence", tlLegendIns: "Insight (filled = spoken)", tlInsight: "Insight", tlShot: "Shot", tlGoal: "Goal",
     whyTitle: "Why?", whyIdle: "Select a marker on the timeline: the events behind it light up on the pitch and its numbers show here.",
-    evidence: "Evidence", events: "events", spoken: "spoken", notSpoken: "not spoken", kmh: "km/h",
+    evidence: "Evidence", events: "events", event: "event", speed: "speed", spoken: "spoken", notSpoken: "not spoken", kmh: "km/h",
     ins_pressure_shift: "{team} pressing", ins_tempo_change: "{team} slowing the tempo", ins_flank_overload: "{team} overloading the {side} flank",
     ins_physical_drop: "{player} tiring", ins_chance: "{team} chance",
-    outcome: { saved: "saved", off_target: "off target", blocked: "blocked", goal: "goal" } } };
+    outcome: { saved: "saved", off_target: "off target", blocked: "blocked", goal: "goal" },
+    statsTitle: "Team stats", statsMatch: "Match", statsLast10: "Last 10 min", statsStat: "Statistic", longPass: "Long pass",
+    st_possession_pct: "Possession", st_shots: "Shots (on target)", st_pass_completion_pct: "Pass completion", st_pressing_pct: "Pressing",
+    st_corners: "Corners", st_fouls: "Fouls", statsWait: "The first numbers arrive when the match starts.",
+    statsNote: "Pressing: share of the opponent's on-ball actions made under this team's pressure. Updates every 10 s." } };
 const MODES = ["eyes_free", "casual", "analyst"];
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 const LANGS = ["en", "tr"];
@@ -496,7 +529,7 @@ function applyLayers() {
 /* ---------------- live stream ---------------- */
 // Match clock -> audio clock: audioTime = clock0 + matchT / speed. Everything the server sends carries a match time.
 const live = { ws: null, clock0: null, speed: 1, teams: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], favT: -99,
-  gen: 0, marks: [], insBySeq: {}, players: {}, sel: null, hl: null, win: null };
+  gen: 0, marks: [], insBySeq: {}, players: {}, sel: null, hl: null, win: null, stats: null, statsWin: "match" };
 const matchNow = () => (ctx.currentTime - live.clock0) * live.speed;
 const audioAt = t => Math.max(ctx.currentTime, live.clock0 + t / live.speed);
 
@@ -521,8 +554,8 @@ function stopListening(msg) {
 }
 function resetLive() {
   Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false,
-    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, win: null });
-  $("tlInner").querySelectorAll(".mk").forEach(e => e.remove()); renderAxis(); renderWhy();
+    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, win: null, stats: null });
+  $("tlInner").querySelectorAll(".mk").forEach(e => e.remove()); renderAxis(); renderWhy(); renderStats();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
 }
@@ -543,6 +576,8 @@ function onMessage(m) {
     live.frames.push(...m.packets);
   } else if (m.type === "event_cue") {
     live.due.push({ t: m.t, kind: "cue", m });
+  } else if (m.type === "stats") {
+    live.stats = m; renderStats();
   } else if (m.type === "insight") {
     live.due.push({ t: m.insight.t, kind: "insight", m });
   } else if (m.type === "speech") {
@@ -596,7 +631,16 @@ function cue(m, a) {
   if (fav) {  // the favourite player touched the ball: a two-note chime on the side the ball is on, at most every 3 s of match time
     if (m.t - live.favT > 3) { sndEarcon(L, a + 0.02, m.pan); live.favT = m.t; flashFav(); }
   }
-  if (LABEL[uiLang][k]) addLog(m.t, m.team, LABEL[uiLang][k] + (fav ? " ★" : ""), a);
+  const label = logLabel(m);
+  if (label) addLog(m.t, m.team, label + (fav ? " ★" : ""), a);
+}
+// Analyst log line: shots with speed and outcome, goals with the scorer, passes only when long (> 30 m) with their length.
+function logLabel(m) {
+  const k = m.kind, who = live.players[m.player_id];
+  if (k === "pass") return m.length_m > 30 ? [t("longPass"), who, `${Math.round(m.length_m)} m`].filter(Boolean).join(" · ") : null;
+  if (k === "shot") return [LABEL[uiLang].shot, who, m.speed_mps ? `${Math.round(m.speed_mps * 3.6)} ${t("kmh")}` : "", m.outcome && t("outcome")[m.outcome]].filter(Boolean).join(" · ");
+  if (k === "goal") return [LABEL[uiLang].goal, who].filter(Boolean).join(" · ");
+  return LABEL[uiLang][k] || null;
 }
 function speech(m, a) {
   const text = m.text[lang()];
@@ -666,6 +710,28 @@ function readRecap() {
   if ("speechSynthesis" in window && v) { speechSynthesis.cancel(); lines.forEach(l => { const u = new SpeechSynthesisUtterance(l); u.voice = v; u.lang = v.lang; u.rate = 1.05; speechSynthesis.speak(u); }); }
 }
 const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+
+/* ---------------- analyst stats ---------------- */
+// The table shows what the server's `stats` message says (recap tool `get_stats`); nothing is counted in the browser.
+const STAT_ROWS = ["possession_pct", "shots", "pass_completion_pct", "pressing_pct", "corners", "fouls"];
+function renderStats() {
+  const body = $("statsBody"), st = live.stats && live.stats[live.statsWin];
+  $("stHome").textContent = uiTeam("HOME"); $("stAway").textContent = uiTeam("AWAY");
+  document.querySelectorAll("#statsWin button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.win === live.statsWin)));
+  body.replaceChildren();
+  if (!st) { const tr = body.insertRow(), td = tr.insertCell(); td.colSpan = 3; td.className = "note"; td.textContent = t("statsWait"); return; }
+  for (const key of STAT_ROWS) {
+    const tr = body.insertRow(), th = document.createElement("th"), h = st.home[key], a = st.away[key], pctRow = key.endsWith("_pct");
+    th.scope = "row"; th.textContent = t("st_" + key); tr.append(th);
+    for (const [side, v] of [["HOME", h], ["AWAY", a]]) {
+      const td = tr.insertCell(), val = document.createElement("span"), bar = document.createElement("span"), fill = document.createElement("i");
+      val.className = "v"; bar.className = "b"; bar.setAttribute("aria-hidden", "true");
+      val.textContent = v === null ? "–" : pctRow ? v + "%" : key === "shots" ? `${v} (${st[side.toLowerCase()].shots_on_target})` : String(v);
+      fill.style.width = (v === null ? 0 : pctRow ? v : 100 * v / Math.max(h, a, 1)) + "%"; fill.style.background = teamColor(side);
+      bar.append(fill); td.append(val, bar);
+    }
+  }
+}
 
 /* ---------------- evidence timeline ---------------- */
 // Markers appear when their match time is played. A shot or goal marker carries the chance/goal Insight that rests on its event seq;
@@ -759,14 +825,14 @@ function renderWhy() {
   $("whyTag").textContent = mk.speech ? TAG[uiLang][src || "template"] : `${TAG[uiLang].template} · ${t("notSpoken")}`;
   $("whyTag").classList.toggle("dim", !mk.speech || src === "template");
   const pairs = ins ? factPairs(ins.claim_facts) : [];
-  if (mk.speed) pairs.push([t("tlShot").toLowerCase(), `${Math.round(mk.speed * 3.6)} ${t("kmh")}`]);
+  if (mk.speed) pairs.push([t("speed"), `${Math.round(mk.speed * 3.6)} ${t("kmh")}`]);
   for (const [k, v] of pairs) {
     const d = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
     dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d);
   }
   dl.hidden = !pairs.length;
   $("whyEvidence").hidden = !ins;
-  if (ins) $("whyEvidence").textContent = `${t("evidence")}: ${ins.evidence.length} ${t("events")}`;
+  if (ins) $("whyEvidence").textContent = `${t("evidence")}: ${ins.evidence.length} ${t(ins.evidence.length === 1 ? "event" : "events")}`;
 }
 function drawEvidence(g, sx, sy, dpr) {
   const hl = live.hl; if (!hl) return;
@@ -1045,7 +1111,7 @@ function applyI18n() {
   setTeamNames(); fillClub();
   if (live.ws && live.seed !== undefined) $("status").textContent = `${t("live")} ${live.seed}`;
   if (live.teams) fillFav(live.teams); else $("fav").replaceChildren(new Option(t("favNone"), ""));
-  renderLog(); renderRecap(); pickVoices(); live.marks.forEach(renderMark); renderWhy(); renderTourBtn(); setRecapBusy(!!recapWait);
+  renderLog(); renderRecap(); pickVoices(); live.marks.forEach(renderMark); renderWhy(); renderStats(); renderTourBtn(); setRecapBusy(!!recapWait);
 }
 // Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
 $("uiLangSel").addEventListener("change", e => { uiLang = e.target.value; store.set("htg.lang", uiLang); applyI18n(); });
@@ -1061,6 +1127,7 @@ document.querySelectorAll("#chapters button").forEach(b => b.addEventListener("c
   if (live.ws) { stopListening(); connect(); }  // jump: a new session from the chosen chapter
 }));
 $("recapBtn").addEventListener("click", askRecap);
+document.querySelectorAll("#statsWin button").forEach(b => b.addEventListener("click", () => { live.statsWin = b.dataset.win; renderStats(); }));
 // Space starts and stops listening, except while typing or choosing in a field. Handled on keydown; the keyup is swallowed so a
 // focused button does not also get clicked.
 const typing = el => el && (el.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName));
