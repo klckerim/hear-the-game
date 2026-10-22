@@ -562,7 +562,7 @@ function resetLive() {
 
 function onMessage(m) {
   if (m.type === "hello") {
-    live.speed = m.speed || 1; live.teams = m.teams; live.win = m.window || null; renderAxis();
+    live.speed = m.speed || 1; live.teams = m.teams; live.win = m.window || null; live.dur = m.duration_s || Infinity; renderAxis();
     live.players = Object.fromEntries(["HOME", "AWAY"].flatMap(s => m.teams[s].players.map(p => [p.id, p.name])));
     for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) {
       $("dot" + id).style.background = COLOR[m.teams[side].color] || "#ccc";
@@ -572,7 +572,7 @@ function onMessage(m) {
     fillFav(m.teams); setTeamNames(); fillClub(); sendMode(); sendClub();
   } else if (m.type === "state") {
     if (live.clock0 === null) live.clock0 = ctx.currentTime + JITTER_S - m.packets[0].t / live.speed;
-    if (!live.win) { live.win = [m.packets[0].t, m.packets[0].t + SESSION_S]; renderAxis(); }  // run_local sends no window
+    if (!live.win) { live.win = [m.packets[0].t, Math.min(m.packets[0].t + SESSION_S, live.dur || Infinity)]; renderAxis(); }  // run_local sends no window
     live.frames.push(...m.packets);
   } else if (m.type === "event_cue") {
     live.due.push({ t: m.t, kind: "cue", m });

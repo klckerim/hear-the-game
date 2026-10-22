@@ -7,7 +7,7 @@ Listener -> server: {"type": "set_mode", "mode": "eyes_free" | "casual" | "analy
 narration persona (analyst for Analyst, fan otherwise); {"type": "set_favourite", "team": "HOME" | "AWAY" | null} gives that club's
 Insights +1 priority in the Director.
 Messages (JSON, one per WebSocket frame):
-    hello      match info (teams with outfield players), score at the start, replay speed, mode (first message)
+    hello      match info (teams with outfield players), score at the start, match length duration_s, replay speed, mode (first message)
     state      batch of 10 Hz state packets, every ~200 ms of match time
     event_cue  one sound cue (pass, shot, save, goal, whistle ..., period_end = half-time / full-time whistle), with the period;
                shots and goals add x, y (where the shot was taken; global frame, as the client draws it), events that have them add
@@ -75,7 +75,7 @@ class LivePipeline:
         for k, v in self.meta["teams"].items():
             teams[k]["players"] = [{"id": p["player_id"], "name": p["name"]} for p in v["players"] if p["role"] != "GK"]
         return {"type": "hello", "match_id": self.meta["match_id"], "seed": self.meta.get("seed"), "teams": teams, "mode": self.mode,
-                "score": self.detectors.score,
+                "score": self.detectors.score, "duration_s": self.meta.get("duration_s"),
                 "speed": self.speed if self.speed != float("inf") else 1.0}
 
     def feed(self, item: Item) -> list[dict[str, Any]]:

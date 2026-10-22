@@ -214,7 +214,7 @@ Every message carries match time `t` (seconds); schemas for the payloads are in 
 
 | message | content |
 |---|---|
-| `hello` | match id, seed, teams (names EN/TR, colour, outfield players), score at the chapter start, mode, session `window` (match seconds) |
+| `hello` | match id, seed, teams (names EN/TR, colour, outfield players), score at the chapter start, mode, match length `duration_s`, session `window` (match seconds, ends at full time at the latest) |
 | `state` | 10 Hz state packets: ball position, team, danger (xT), pressure, pan, tempo ([`state.schema.json`](schemas/state.schema.json)) |
 | `event_cue` | pass, shot, save, goal, whistle, half-time and full time (`period_end`), with team, player, period and event `seq`; shots and goals add `x`, `y` (where the shot was taken), events that have them `speed_mps` and `outcome`, passes `length_m` |
 | `insight` | a detected tactical story: `claim_facts` (every number in it) and `evidence` (event `seq`s) ([`insight.schema.json`](schemas/insight.schema.json)), plus the template `text`, `evidence_points` (`{seq, t, type, team, x, y}` per evidence event, max 30, pitch frame x 0-105, y 0-68) and `zone` (the flank band for a flank overload, else null) |

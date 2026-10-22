@@ -122,6 +122,7 @@ def test_late_chapter_starts_with_the_score_of_minute_76(monkeypatch):
 
     hello = asyncio.run(run())
     assert hello["type"] == "hello" and hello["score"] == expected
+    assert hello["window"] == [76 * 60.0, meta["duration_s"]]  # the timeline ends at 90', not at 76' + 15
 
 
 def test_stats_come_every_10_s_from_the_recap_tool(monkeypatch):
