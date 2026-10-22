@@ -1170,7 +1170,14 @@ $("blindBtn").addEventListener("click", e => {
   e.currentTarget.setAttribute("aria-pressed", String(on)); $("blind").hidden = !on;
 });
 ["L_ball", "L_press", "L_crowd", "L_cue"].forEach(id => $(id).addEventListener("change", applyLayers));
-$("L_callout").addEventListener("change", () => { if (!$("L_callout").checked) stopCallout(); });
+// Callouts default on in the fan modes and off in Analyst (it reads the log); the listener's own choice is kept per group, so a
+// trip to Analyst and back does not undo it.
+const calloutKey = () => "htg.callouts." + (mode === "analyst" ? "analyst" : "fan");
+const calloutsWanted = () => { const v = store.get(calloutKey()); return v === null ? mode !== "analyst" : v === "1"; };
+$("L_callout").addEventListener("change", () => {
+  store.set(calloutKey(), $("L_callout").checked ? "1" : "0");
+  if (!$("L_callout").checked) stopCallout();
+});
 $("L_voice").addEventListener("change", () => { if (!$("L_voice").checked) stopSpeech(); syncLiveRegions(); });
 // While the app speaks (Narration layer on, or the tour), the caption and recap must not also be announced by the screen reader:
 // both voices talked at once. With the Narration layer off, the screen reader reads them instead.
@@ -1206,7 +1213,7 @@ function applyMode() {
   document.querySelectorAll("#modes button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
   const eyes = mode === "eyes_free";  // eyes-free hides the pitch; the other modes leave the choice to the "close my eyes" button
   $("blindBtn").setAttribute("aria-pressed", String(eyes)); $("blind").hidden = !eyes;
-  $("L_callout").checked = mode !== "analyst";  // the Analyst reads the log; the fan modes hear names and restarts
+  $("L_callout").checked = calloutsWanted();
 }
 function applyI18n() {
   document.documentElement.lang = uiLang;
