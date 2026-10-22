@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 night (features B: sound tour + Recap agent; task `docs/tasks/done/2026-10-23-features-b.md`). Next: owner deploys (`azd deploy`) and listens, then Day 7 video. Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 night (features B: sound tour + Recap agent; task `docs/tasks/done/2026-10-23-features-b.md`). Deployed; recap checked live. Next: owner listening pass, then Day 7 video. Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -162,9 +162,12 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   98% / 88%, template fallback 0%, tool calls mean 2.0 (max 2), latency p50 6.06 s / p95 13.08 s (no TTS). History table and reading
   notes in the file (invented stats in tool *arguments* once, an unmeasured "more of the play", Turkish wording nits).
   Prompt tuned on seeds 1-10 (v6: 100% / 100% there). README: "Recap agent" section, stack row, Mermaid node, `recap` in the feed.
-- **Not done / owner:** `azd deploy` (not run by Claude), then check the container log has no "Recap agent unavailable" (the app
-  identity must be allowed to list agent versions and call the agent; if not, recaps fall back to the template and nothing breaks)
-  and that an `htg.recap` span shows in App Insights (README says not yet seen). Listen to the tour in TR and EN; click "Catch me
+- Tour wording fixed after the owner listened: club-neutral ("home team / away team", "ev sahibi / deplasman") and the goal step
+  describes the crowd and fanfare instead of "bright/short"; only `teams_*` and `goal_*` clips regenerated (`--only`).
+- **Deployed and checked by the owner (2026-10-22):** `azd deploy` done; "Catch me up" tried many times on the deployed app and
+  works; current `htg.recap` spans seen in App Insights (README updated). Nested model-call spans under it were not reported: do
+  not claim them.
+- **Owner, still open:** listen to the tour in TR and EN; click "Catch me
   up" three times per chapter; listen to the full-time recap (Turkish once said "Tam zaman": regenerate after deleting
   `data/cache/recap/*.json` if a sentence sounds wrong). Decide on a `half_time` chapter (default no, not built).
 
