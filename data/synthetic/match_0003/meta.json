@@ -8,8 +8,8 @@
  "teams": {
   "HOME": {
    "name": {
-    "tr": "Kırmızılar",
-    "en": "the Reds"
+    "tr": "Northport",
+    "en": "Northport"
    },
    "color": "red",
    "attacks_towards_x": 105,
@@ -117,8 +117,8 @@
   },
   "AWAY": {
    "name": {
-    "tr": "Maviler",
-    "en": "the Blues"
+    "tr": "Valemont",
+    "en": "Valemont"
    },
    "color": "blue",
    "attacks_towards_x": 0,

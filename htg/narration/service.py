@@ -14,6 +14,7 @@ from htg.narration.verifier import verify
 from htg.telemetry import tracer
 
 LANGS = ("en", "tr")
+PERSONAS = ("fan", "analyst")
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "cache" / "narration"
 
 
@@ -25,8 +26,14 @@ def known_names(meta: dict) -> list[str]:
     return names
 
 
-def fingerprint(insight: dict, model: str) -> str:
-    key = [insight["type"], insight["team"], insight.get("player_id"), sorted(insight["claim_facts"].items()), PROMPT_VERSION, model]
+def persona_for(mode: str) -> str:
+    """Analyst mode gets the analyst narrator; Casual and Audio only get the fan."""
+    return "analyst" if mode == "analyst" else "fan"
+
+
+def fingerprint(insight: dict, model: str, persona: str = "fan") -> str:
+    key = [insight["type"], insight["team"], insight.get("player_id"), sorted(insight["claim_facts"].items()), PROMPT_VERSION, model,
+           persona]
     return hashlib.sha256(json.dumps(key, ensure_ascii=False, default=str).encode()).hexdigest()[:32]
 
 
@@ -40,14 +47,15 @@ def get_narrator() -> Narrator:
     return TemplateNarrator()
 
 
-def narrate_insight(insight: dict, narrator: Narrator, names: list[str], cache_dir: Path = CACHE_DIR) -> dict:
+def narrate_insight(insight: dict, narrator: Narrator, names: list[str], cache_dir: Path = CACHE_DIR, persona: str = "fan") -> dict:
     """Returns {"en", "tr", "source": {lang: "llm"|"template"}, "attempts", "reasons", "latency_s", "cached"}. Never raises.
 
     One span per call, so the Verifier's attempts and rejection reasons show up in the trace next to the model call.
     """
     with tracer.start_as_current_span("htg.narrate_insight") as span:
         span.set_attribute("insight.type", insight["type"])
-        result = _narrate(insight, narrator, names, cache_dir)
+        span.set_attribute("persona", persona)
+        result = _narrate(insight, narrator, names, cache_dir, persona)
         span.set_attribute("cached", result["cached"])
         span.set_attribute("verifier.attempts", result["attempts"])
         span.set_attribute("verifier.reasons", "; ".join(f"{k}: {', '.join(v)}" for k, v in result["reasons"].items()))
@@ -56,8 +64,8 @@ def narrate_insight(insight: dict, narrator: Narrator, names: list[str], cache_d
         return result
 
 
-def _narrate(insight: dict, narrator: Narrator, names: list[str], cache_dir: Path) -> dict:
-    path = cache_dir / f"{fingerprint(insight, narrator.name)}.json"
+def _narrate(insight: dict, narrator: Narrator, names: list[str], cache_dir: Path, persona: str) -> dict:
+    path = cache_dir / f"{fingerprint(insight, narrator.name, persona)}.json"
     if path.exists():
         return {**json.loads(path.read_text()), "cached": True}
     t0 = time.perf_counter()
@@ -67,7 +75,7 @@ def _narrate(insight: dict, narrator: Narrator, names: list[str], cache_dir: Pat
     for _ in range(2):
         attempts += 1
         try:
-            draft = narrator.write(insight, feedback)
+            draft = narrator.write(insight, feedback, persona)
         except Exception as e:  # model or network failure: sound and templates carry on
             errored, reasons["error"] = True, [f"{type(e).__name__}: {e}"[:200]]
             break

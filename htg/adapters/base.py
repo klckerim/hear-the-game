@@ -24,8 +24,10 @@ class Narrator(Protocol):
 
     name: str
 
-    def write(self, insight: dict, feedback: dict[str, list[str]] | None = None) -> dict[str, Any]:
-        """Returns {"en": str, "tr": str, "used_facts": [str]}. `feedback` maps a language to Verifier reasons for a retry."""
+    def write(self, insight: dict, feedback: dict[str, list[str]] | None = None, persona: str = "fan") -> dict[str, Any]:
+        """Returns {"en": str, "tr": str, "used_facts": [str]}. `feedback` maps a language to Verifier reasons for a retry.
+
+        `persona` is "fan" (short, excited, few numbers) or "analyst" (the key numbers and the comparison)."""
         ...
 
 

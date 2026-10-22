@@ -74,6 +74,10 @@ class Detectors:
         self._last_shot_chance = -1e9
         self._last_danger_chance = -1e9
 
+    @property
+    def score(self) -> dict[str, int]:
+        return dict(self._score)
+
     def step(self, item: Item, packets: list[dict] | tuple = ()) -> list[dict]:
         out: list[dict] = []
         if item.kind == "event":

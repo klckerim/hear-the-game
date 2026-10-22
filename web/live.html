@@ -28,8 +28,9 @@
 html { scrollbar-gutter: stable; overflow-anchor: none; }  /* TR and EN texts differ in length: no scrollbar jump, no scroll-anchoring jump */
 #status { min-height: 1.5em; }
 #voiceNote { min-height: 4.5em; }
-#modes { display: flex; width: 100%; }
-#modes button { flex: 1 1 0; white-space: nowrap; }
+#modes, #chapters { display: flex; width: 100%; }
+#modes button, #chapters button { flex: 1 1 0; white-space: nowrap; }
+#chapters button { padding-inline: 6px; min-width: 0; white-space: normal; line-height: 1.25; }  /* long labels wrap on phones */
 body {
   background: var(--night); color: var(--chalk); font-family: var(--body); font-size: 15px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -60,6 +61,12 @@ h1 span { color: var(--amber); }
 .caption { min-width: 0; height: calc(3 * 1.5em + 22px); overflow-y: auto;  /* fixed height: TR and EN sentences differ in length, and the layout must not jump */ background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: flex; gap: 12px; align-items: flex-start; }
 .caption .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 2px 6px; border-radius: 3px; flex: none; margin-top: 2px; }
 .caption .tag.idle { background: var(--line); color: var(--muted); }
+.caption .tag.mine { background: var(--chalk); }
+.caption .tags { display: grid; gap: 4px; flex: none; justify-items: start; }
+.yours { flex: none; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--night); background: var(--chalk); padding: 1px 5px; border-radius: 3px; }
+.yours[hidden] { display: none; }
+kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; color: var(--muted); }
+.play-row { align-items: center; }
 #captionText { margin: 0; min-width: 0; }
 @media (max-width: 600px) {
   header { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title lang" "sub sub"; }
@@ -140,9 +147,9 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
   <div class="grid">
     <section class="stage" data-i18n-aria="matchView">
       <div class="scorebar">
-        <span class="team"><span class="dot" id="dotHome" style="background: var(--red)"></span><span id="nameHome" data-i18n="home"></span></span>
+        <span class="team"><span class="dot" id="dotHome" style="background: var(--red)"></span><span id="nameHome" data-i18n="home"></span><span class="yours" id="yoursHome" data-i18n="yourTeam" hidden></span></span>
         <span class="score" id="score">0 – 0</span>
-        <span class="team"><span id="nameAway" data-i18n="away"></span><span class="dot" id="dotAway" style="background: var(--blue)"></span></span>
+        <span class="team"><span class="yours" id="yoursAway" data-i18n="yourTeam" hidden></span><span id="nameAway" data-i18n="away"></span><span class="dot" id="dotAway" style="background: var(--blue)"></span></span>
         <span class="clock" id="clock">0:00</span>
       </div>
       <div class="pitch-box">
@@ -150,15 +157,23 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <div class="blind" id="blind" hidden><p><span data-i18n="blindTitle"></span><small data-i18n="blindSub"></small></p></div>
       </div>
       <div class="caption" aria-live="polite">
-        <span class="tag idle" id="captionTag" data-i18n="tagIdle"></span>
+        <span class="tags"><span class="tag idle" id="captionTag" data-i18n="tagIdle"></span><span class="tag mine" id="captionMine" data-i18n="yourTeam" hidden></span></span>
         <p id="captionText" data-i18n="captionIdle"></p>
       </div>
     </section>
 
     <aside>
       <div class="panel">
-        <div class="row">
-          <button id="playBtn" type="button"></button>
+        <div class="field"><span data-i18n="chapterLabel" id="chapterLabel"></span>
+          <div class="seg" role="group" aria-labelledby="chapterLabel" id="chapters">
+            <button type="button" data-chapter="kickoff" aria-pressed="false" data-i18n="ch_kickoff"></button>
+            <button type="button" data-chapter="first_goal" aria-pressed="true" data-i18n="ch_first_goal"></button>
+            <button type="button" data-chapter="late" aria-pressed="false" data-i18n="ch_late"></button>
+          </div>
+        </div>
+        <div class="row play-row">
+          <button id="playBtn" type="button" aria-keyshortcuts="Space"></button>
+          <span class="note" aria-hidden="true"><kbd data-i18n="spaceKey"></kbd></span>
           <button id="blindBtn" type="button" aria-pressed="false" data-i18n="blindBtn"></button>
         </div>
         <div class="field"><span data-i18n="modeLabel" id="modeLabel"></span>
@@ -168,6 +183,9 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
             <button type="button" data-mode="analyst" aria-pressed="false" data-i18n="mode_analyst"></button>
           </div>
         </div>
+        <label class="field" for="club"><span data-i18n="clubLabel"></span>
+          <select id="club"><option value="" data-i18n="clubNone"></option><option value="HOME"></option><option value="AWAY"></option></select>
+        </label>
         <label class="field" for="fav"><span data-i18n="favLabel"></span>
           <select id="fav"></select>
         </label>
@@ -225,7 +243,9 @@ const T = {
     nowTitle: "Şu an", danger: "Tehlike", pressure: "Baskı", wing: "Kanat", earL: "sol kulak", earR: "sağ kulak",
     left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
     layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lVoice: "Anlatım",
-    off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Canlı", lost: "Bağlantı koptu.",
+    chapterLabel: "Nereden başlasın?", ch_kickoff: "Başlangıç\u00a0·\u00a00'", ch_first_goal: "İlk gol\u00a0·\u00a019'", ch_late: "Son dakikalar\u00a0·\u00a076'",
+    spaceKey: "Boşluk", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
+    off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Demo maçı · seed", lost: "Bağlantı koptu.",
     fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
     voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)" },
   en: { sub: "The server sends the match as data; your device makes the sound. Best with headphones.", matchView: "Match view",
@@ -238,13 +258,18 @@ const T = {
     nowTitle: "Right now", danger: "Danger", pressure: "Pressure", wing: "Wing", earL: "left ear", earR: "right ear",
     left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
     layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lVoice: "Narration",
-    off: "Not connected.", wait: "Connected, waiting for the match.", live: "Live", lost: "Connection lost.",
+    chapterLabel: "Start from", ch_kickoff: "Kick-off\u00a0·\u00a00'", ch_first_goal: "First goal\u00a0·\u00a019'", ch_late: "Late drama\u00a0·\u00a076'",
+    spaceKey: "Space", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
+    off: "Not connected.", wait: "Connected, waiting for the match.", live: "Demo match · seed", lost: "Connection lost.",
     fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
     voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)" } };
 const MODES = ["eyes_free", "casual", "analyst"];
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 let appLang = ["tr", "en"].includes(store.get("htg.lang")) ? store.get("htg.lang") : (navigator.language || "en").toLowerCase().startsWith("tr") ? "tr" : "en";
 let mode = MODES.includes(store.get("htg.mode")) ? store.get("htg.mode") : "casual";
+let club = ["HOME", "AWAY"].includes(store.get("htg.club")) ? store.get("htg.club") : "";  // favourite club: "", "HOME" or "AWAY"
+let chapter = "first_goal";  // demo start point; the server only accepts its own chapters
+const PLACEHOLDER_TEAMS = { HOME: "Northport", AWAY: "Valemont" };  // shown in the club picker until the server's hello names the teams
 const t = k => T[appLang][k];
 const lang = () => appLang;
 
@@ -325,13 +350,16 @@ function sndEarcon(d, at, pan) {
     o.connect(envGain(out(d, pan), at + off, 0.18, 0.003, len)); o.start(at + off); o.stop(at + off + len + 0.01);
   });
 }
-function sndGoal(d, at, team) {
+// feel: "for" = your club scored (brighter, longer crowd swell), "against" = short muted crowd and no fanfare, "neutral" = no favourite
+const GOAL_CROWD = { neutral: [1800, 0.32, 3.5], for: [3200, 0.45, 6.0], against: [600, 0.12, 1.2] };
+function sndGoal(d, at, team, feel = "neutral") {
+  const [cutoff, peak, len] = GOAL_CROWD[feel];
   const s = ctx.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
-  const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 1800;
+  const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = cutoff;
   const g = ctx.createGain(); g.gain.setValueAtTime(0, at);
-  g.gain.linearRampToValueAtTime(0.32, at + 0.6); g.gain.linearRampToValueAtTime(0.0001, at + 3.5);
-  s.connect(f); f.connect(g); g.connect(d); s.start(at); s.stop(at + 3.6);
-  [0, 4, 7, 12].forEach((st, k) => sndTick(d, at + k * 0.13, team, 0.5, 0, 0.3 * (1 + st / 24)));
+  g.gain.linearRampToValueAtTime(peak, at + 0.6); g.gain.linearRampToValueAtTime(0.0001, at + len);
+  s.connect(f); f.connect(g); g.connect(d); s.start(at); s.stop(at + len + 0.1);
+  if (feel !== "against") [0, 4, 7, 12].forEach((st, k) => sndTick(d, at + k * 0.13, team, 0.5, 0, 0.3 * (1 + st / 24)));
   sndWhistle(d, at + 0.6, 0.7, 0.05);
 }
 
@@ -368,7 +396,7 @@ function connect() {
   session = newSession(); applyLayers();
   $("playBtn").textContent = t("stop");
   $("status").textContent = t("wait");
-  const ws = live.ws = new WebSocket(WS_URL);
+  const ws = live.ws = new WebSocket(WS_URL + (WS_URL.includes("?") ? "&" : "?") + "chapter=" + chapter);
   ws.onmessage = e => onMessage(JSON.parse(e.data));
   ws.onclose = () => { if (live.ws === ws) { stopListening(t("lost")); } };
   ws.onerror = () => { if (live.ws === ws) { stopListening(t("fail")); } };
@@ -391,8 +419,9 @@ function onMessage(m) {
     for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) {
       $("dot" + id).style.background = COLOR[m.teams[side].color] || "#ccc";
     }
-    $("status").textContent = t("live") + " · " + m.match_id;
-    fillFav(m.teams); setTeamNames(); sendMode();
+    if (m.score) { live.score = [m.score.HOME || 0, m.score.AWAY || 0]; $("score").textContent = live.score.join(" – "); }
+    live.seed = m.seed; $("status").textContent = `${t("live")} ${m.seed ?? m.match_id}`;
+    fillFav(m.teams); setTeamNames(); fillClub(); sendMode(); sendClub();
   } else if (m.type === "state") {
     if (live.clock0 === null) live.clock0 = ctx.currentTime + JITTER_S - m.packets[0].t / live.speed;
     live.frames.push(...m.packets);
@@ -429,7 +458,7 @@ function cue(m, a) {
   else if (k === "save") sndThud(L, a, m.pan);
   else if (["out", "foul"].includes(k)) sndWhistle(L, a + 0.1, 0.4, 0.04);
   else if (k === "kickoff") sndWhistle(L, a, 0.7, 0.05);
-  else if (k === "goal") { sndGoal(L, a, m.team); live.score[m.team === "HOME" ? 0 : 1]++; $("score").textContent = live.score.join(" – "); }
+  else if (k === "goal") { sndGoal(L, a, m.team, !club ? "neutral" : m.team === club ? "for" : "against"); live.score[m.team === "HOME" ? 0 : 1]++; $("score").textContent = live.score.join(" – "); }
   const fav = $("fav").value && m.player_id === $("fav").value;
   if (fav) {  // the favourite player touched the ball: a two-note chime on the side the ball is on, at most every 3 s of match time
     if (m.t - live.favT > 3) { sndEarcon(L, a + 0.02, m.pan); live.favT = m.t; flashFav(); }
@@ -494,7 +523,8 @@ async function say(m) {
   const l = lang(), text = m.text[l];
   setCaption(text, true);
   $("captionTag").textContent = TAG[l][(m.source && m.source[l]) || "template"];
-  const finish = () => { duckTo(1); setTimeout(() => $("captionTag").classList.add("idle"), 400); };
+  $("captionMine").hidden = !(club && m.team === club);
+  const finish = () => { duckTo(1); setTimeout(() => { $("captionTag").classList.add("idle"); $("captionMine").hidden = true; }, 400); };
   if (!$("L_voice").checked) return;
   duckTo(0.3);
   const buf = await (m.buf || decodeClip(m, l));
@@ -571,6 +601,15 @@ function setTeamNames() {
   if (!live.teams) return;
   for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) $("name" + id).textContent = live.teams[side]["name_" + lang()];
 }
+function teamName(side) { return live.teams ? live.teams[side]["name_" + lang()] : PLACEHOLDER_TEAMS[side]; }
+function fillClub() {
+  const sel = $("club");
+  sel.options[0].textContent = t("clubNone"); sel.options[1].textContent = teamName("HOME"); sel.options[2].textContent = teamName("AWAY");
+  sel.value = club;
+  $("yoursHome").hidden = club !== "HOME"; $("yoursAway").hidden = club !== "AWAY";
+}
+function sendClub() { if (live.ws && live.ws.readyState === 1) live.ws.send(JSON.stringify({ type: "set_favourite", team: club || null })); }
+function applyChapter() { document.querySelectorAll("#chapters button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.chapter === chapter))); }
 function fillFav(teams) {
   const sel = $("fav"), keep = sel.value; sel.replaceChildren(new Option(t("favNone"), ""));
   for (const side of ["HOME", "AWAY"]) {
@@ -594,7 +633,8 @@ function applyI18n() {
   document.querySelectorAll("#appLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === appLang)));
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
   if (!live.ws) $("status").textContent = t("off");
-  setTeamNames();
+  setTeamNames(); fillClub();
+  if (live.ws && live.seed !== undefined) $("status").textContent = `${t("live")} ${live.seed}`;
   if (live.teams) fillFav(live.teams); else $("fav").replaceChildren(new Option(t("favNone"), ""));
   renderLog(); renderRecap(); pickVoices();
 }
@@ -604,10 +644,24 @@ document.querySelectorAll("#appLang button").forEach(b => b.addEventListener("cl
 document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
   mode = b.dataset.mode; store.set("htg.mode", mode); applyMode(); sendMode();
 }));
+$("club").addEventListener("change", e => { club = e.target.value; store.set("htg.club", club); fillClub(); sendClub(); });
+document.querySelectorAll("#chapters button").forEach(b => b.addEventListener("click", () => {
+  chapter = b.dataset.chapter; applyChapter();
+  if (live.ws) { stopListening(); connect(); }  // jump: a new session from the chosen chapter
+}));
 $("recapBtn").addEventListener("click", readRecap);
-document.addEventListener("keydown", e => { if (e.code === "Space" && e.target === document.body) { e.preventDefault(); $("playBtn").click(); } });
+// Space starts and stops listening, except while typing or choosing in a field. Handled on keydown; the keyup is swallowed so a
+// focused button does not also get clicked.
+const typing = el => el && (el.isContentEditable || ["INPUT", "SELECT", "TEXTAREA"].includes(el.tagName));
+let spaceHandled = false;
+document.addEventListener("keydown", e => {
+  if (e.code !== "Space" || typing(e.target)) return;
+  e.preventDefault(); spaceHandled = true;
+  if (!e.repeat) $("playBtn").click();
+});
+document.addEventListener("keyup", e => { if (e.code === "Space" && spaceHandled) { e.preventDefault(); spaceHandled = false; } });
 if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = pickVoices;
-applyMode(); applyI18n();
+applyMode(); applyChapter(); applyI18n();
 requestAnimationFrame(loop);
 </script>
 </body>

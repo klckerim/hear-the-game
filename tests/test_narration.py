@@ -1,4 +1,5 @@
 import json
+import re
 
 import pytest
 
@@ -55,7 +56,7 @@ def test_rejects_turkish_percent_sign_and_jargon(ctx):
         assert "suffix on a number in Turkish (the voice misreads it; write 'yüzde 36' and rephrase)" in verify(bad, "tr", i, names), bad
     assert verify(f"It is {n}'s day.", "en", i, names) == []  # English is not affected
     assert verify(f"It is {n}% now.", "en", i, names) == []  # the percent sign is fine in English
-    assert verify("Over the last window the Reds attack.", "en", i, names)
+    assert verify("Over the last window Northport attack.", "en", i, names)
     assert verify("Tehlike seviyesi yüksek.", "tr", i, names)
     assert "code value 'off_target' (say it in words)" in verify("The shot goes off_target.", "en", i, names)
     assert verify("Şut off_target oluyor.", "tr", i, names)
@@ -66,11 +67,15 @@ def test_every_example_passes_the_verifier_and_covers_every_kind(ctx):
 
     for key, ex in EXAMPLES.items():
         ins = {"type": key.split(":")[0], "claim_facts": ex["facts"]}
-        for lang in ("en", "tr"):
-            assert verify(ex[lang], lang, ins, NAMES) == [], (key, lang)
-            assert len(ex[lang].split()) <= 20, (key, lang)
+        for persona, max_words in (("fan", 16), ("analyst", 25)):
+            for lang in ("en", "tr"):
+                text = ex[persona][lang]
+                assert verify(text, lang, ins, NAMES) == [], (key, persona, lang)
+                assert len(text.split()) <= max_words, (key, persona, lang)
+        # the fan persona says at most one number (a goal's score counts as one)
+        assert len(re.findall(r"\d+(?:-\d+)?", ex["fan"]["en"])) <= 1, key
     insights, names = ctx
-    assert all(example_for(i) for i in insights)
+    assert all(example_for(i, p) for i in insights for p in ("fan", "analyst"))
     assert not set(NAMES) & set(names)  # fixture names never collide with a match
 
 
@@ -80,7 +85,7 @@ class Fake:
     def __init__(self, drafts):
         self.drafts, self.calls = list(drafts), []
 
-    def write(self, insight, feedback=None):
+    def write(self, insight, feedback=None, persona="fan"):
         self.calls.append(feedback)
         return self.drafts.pop(0)
 
@@ -110,6 +115,7 @@ def test_service_survives_model_error_without_caching(ctx, tmp_path):
     out = narrate_insight(g, Boom(), names, tmp_path)
     assert out["source"] == {"en": "template", "tr": "template"} and not list(tmp_path.iterdir())
     assert fingerprint(g, "a") != fingerprint(g, "b")
+    assert fingerprint(g, "a", "fan") != fingerprint(g, "a", "analyst")
     assert narrate_insight(g, TemplateNarrator(), names, tmp_path)["source"] == {"en": "template", "tr": "template"}
 
 
@@ -132,15 +138,26 @@ def test_turkish_integers_are_spoken_from_words():
     assert "<sub" not in ssml("Up from 23.", "en", "v")
 
 
-def test_demo_cache_fingerprints_unchanged():
-    """The committed seed-7 demo cache must keep hitting: prompt version, model name and fingerprint inputs stay as generated."""
-    from htg.narration.pregen import spoken_insights
-    from htg.narration.service import CACHE_DIR
+def test_cache_hits_per_persona(ctx, tmp_path):
+    insights, names = ctx
+    g = by_type(insights, "goal")
+    n = Fake([{"en": narrate(g, "en"), "tr": narrate(g, "tr")}] * 2)
+    for persona in ("fan", "analyst", "fan", "analyst"):
+        assert narrate_insight(g, n, names, tmp_path, persona)["source"]["en"] == "llm"
+    assert len(n.calls) == 2  # one model call per persona, then cache hits
 
-    _, spoken = spoken_insights(7, "casual")
-    window = [ins for t, ins in spoken if 13 * 60 <= t < 23 * 60]
-    assert window
-    assert all((CACHE_DIR / f"{fingerprint(ins, 'foundry:gpt-5-mini')}.json").exists() for ins in window)
+
+def test_demo_cache_covers_every_chapter_mode_and_favourite():
+    """The committed seed-7 demo cache must hit for everything a demo session can speak: prompt version, model, persona."""
+    from htg.narration.pregen import demo_speech
+    from htg.narration.service import CACHE_DIR
+    from services.engine.serve import CHAPTERS
+
+    _, rows = demo_speech(7)
+    assert {c for c, _, _ in rows} == set(CHAPTERS) and {m["persona"] for _, m, _ in rows} == {"fan", "analyst"}
+    missing = [(c, m["persona"], i["type"]) for c, m, i in rows
+               if not (CACHE_DIR / f"{fingerprint(i, 'foundry:gpt-5-mini', m['persona'])}.json").exists()]
+    assert not missing
 
 
 def test_cached_flag_and_telemetry_is_off_without_connection_string(ctx, tmp_path, monkeypatch):

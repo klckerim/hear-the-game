@@ -58,6 +58,14 @@ def test_one_at_a_time_highest_priority_first():
     assert [(d.insight["insight_id"], d.action) for d in decide(q, DEAD, 110)] == [("low", "hold"), ("high", "speak")]
 
 
+def test_favourite_club_gets_one_extra_priority():
+    q = [ins("home", "tempo_change", "HOME", t=100, priority=3), ins("away", "flank_overload", "AWAY", t=105, priority=3)]
+    assert [d.action for d in decide(q, DEAD, 110)] == ["speak", "hold"]  # same priority: the older one
+    assert [d.action for d in decide(q, DEAD, 110, favourite="AWAY")] == ["hold", "speak"]
+    q[0]["priority"] = 4  # +1 only ties a higher one; the older still wins
+    assert [d.action for d in decide(q, DEAD, 110, favourite="AWAY")] == ["speak", "hold"]
+
+
 def test_unknown_mode_is_rejected():
     import pytest
     with pytest.raises(ValueError):

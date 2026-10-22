@@ -40,6 +40,13 @@ def test_same_seed_gives_identical_match(tmp_path, cal):
     pd.testing.assert_frame_equal(pd.read_parquet(a / "ball.parquet"), pd.read_parquet(b / "ball.parquet"))
 
 
+def test_seed_1_events_are_pinned(tmp_path, cal):
+    """README detector numbers rest on these exact matches: renaming clubs or players must not change a single event."""
+    d = generate(1, cal, tmp_path)
+    digest = hashlib.sha256((d / "events.jsonl").read_bytes()).hexdigest()
+    assert digest == "a8a47768dc4985966a6f615e81240ed4e2468500ca1cf282307e3f93402f0838"
+
+
 def test_different_seeds_differ(cal):
     a, b = Match(1, cal).run(), Match(2, cal).run()
     assert [e["t"] for e in a.events[:50]] != [e["t"] for e in b.events[:50]]

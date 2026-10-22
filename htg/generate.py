@@ -51,12 +51,13 @@ FOUL_SHARE = 0.45
 FINISH_SCALE = 0.85
 
 # Fictional squads. Anchors are attacking-frame positions (left flank = high y).
+# Club names are fictional (no professional club uses them) and never feed the RNG: renaming does not change the match.
 ROLES = [("GK", 5, 34), ("FB", 30, 58), ("CB", 25, 44), ("CB", 25, 24), ("FB", 30, 10),
          ("CM", 48, 46), ("CM", 44, 34), ("CM", 48, 22), ("W", 74, 58), ("ST", 82, 34), ("W", 74, 10)]
 SQUADS = {
-    "HOME": {"name": {"tr": "Kırmızılar", "en": "the Reds"}, "color": "red",
+    "HOME": {"name": {"tr": "Northport", "en": "Northport"}, "color": "red",
              "players": ["Usta", "Aksoy", "Demir", "Toprak", "Kurt", "Kaya", "Polat", "Erdem", "Şahin", "Arda", "Yıldız"]},
-    "AWAY": {"name": {"tr": "Maviler", "en": "the Blues"}, "color": "blue",
+    "AWAY": {"name": {"tr": "Valemont", "en": "Valemont"}, "color": "blue",
              "players": ["Novak", "Moreau", "Haddad", "Lindqvist", "Costa", "Silva", "Mensah", "Ito", "Baptiste", "Okafor", "Rossi"]},
 }
 OTHER = {"HOME": "AWAY", "AWAY": "HOME"}

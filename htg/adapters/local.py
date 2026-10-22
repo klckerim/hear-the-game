@@ -65,11 +65,11 @@ class WebSocketBroadcaster:
 
 
 class TemplateNarrator:
-    """Local narrator: the deterministic template sentence, no model."""
+    """Local narrator: the deterministic template sentence, no model. One template set serves both personas."""
 
     name = "template"
 
-    def write(self, insight: dict, feedback: dict[str, list[str]] | None = None) -> dict[str, Any]:
+    def write(self, insight: dict, feedback: dict[str, list[str]] | None = None, persona: str = "fan") -> dict[str, Any]:
         return {"en": narrate(insight, "en"), "tr": narrate(insight, "tr"), "used_facts": sorted(insight["claim_facts"])}
 
 

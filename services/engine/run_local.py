@@ -3,13 +3,15 @@
     python -m services.engine.run_local --seed 1 --speed 1 --start-minute 10
 
 then open `web/live.html` (it connects to ws://localhost:8765). Replay starts when the first listener connects.
-Listener -> server: {"type": "set_mode", "mode": "eyes_free" | "casual" | "analyst"} changes the Director's silence budget.
+Listener -> server: {"type": "set_mode", "mode": "eyes_free" | "casual" | "analyst"} changes the Director's silence budget and the
+narration persona (analyst for Analyst, fan otherwise); {"type": "set_favourite", "team": "HOME" | "AWAY" | null} gives that club's
+Insights +1 priority in the Director.
 Messages (JSON, one per WebSocket frame):
-    hello      match info (teams with outfield players), replay speed, mode (first message)
+    hello      match info (teams with outfield players), score at the start, replay speed, mode (first message)
     state      batch of 10 Hz state packets, every ~200 ms of match time
     event_cue  one sound cue (pass, shot, save, goal, whistle ...)
     insight    a detected Insight (for the log)
-    speech     the Insight the Director decided to tell now: text, source ("llm" verified / "template") and base64 MP3 audio
+    speech     the Insight the Director decided to tell now: team, persona, text, source ("llm" verified / "template") and base64 MP3 audio
                per language, duration_s per language. Resolved in the background (cache first, 4 s deadline), never blocks the replay.
 """
 from __future__ import annotations
@@ -27,7 +29,7 @@ from htg.engine.director import SILENCE_S, decide
 from htg.engine.state import StateEngine
 from htg.env import load_env
 from htg.generate import OUT_DIR, generate
-from htg.narration.service import get_narrator, known_names
+from htg.narration.service import get_narrator, known_names, persona_for
 from htg.narration.templates import narrate
 from htg.replay import Item, iter_items
 from services.engine.resolve import SpeechResolver, is_stale
@@ -41,6 +43,7 @@ class LivePipeline:
 
     def __init__(self, meta: dict, mode: str = "casual", speed: float = 1.0):
         self.meta, self.mode, self.speed = meta, mode, speed
+        self.favourite: str | None = None  # "HOME" | "AWAY" | None
         self.engine, self.detectors = StateEngine.from_calibration(), Detectors(meta)
         self.queue: list[dict] = []
         self.spoken: list[tuple[float, str, str | None]] = []
@@ -51,7 +54,8 @@ class LivePipeline:
         teams = {k: {"name_en": v["name"]["en"], "name_tr": v["name"]["tr"], "color": v["color"]} for k, v in self.meta["teams"].items()}
         for k, v in self.meta["teams"].items():
             teams[k]["players"] = [{"id": p["player_id"], "name": p["name"]} for p in v["players"] if p["role"] != "GK"]
-        return {"type": "hello", "match_id": self.meta["match_id"], "teams": teams, "mode": self.mode,
+        return {"type": "hello", "match_id": self.meta["match_id"], "seed": self.meta.get("seed"), "teams": teams, "mode": self.mode,
+                "score": self.detectors.score,
                 "speed": self.speed if self.speed != float("inf") else 1.0}
 
     def feed(self, item: Item) -> list[dict[str, Any]]:
@@ -78,16 +82,25 @@ class LivePipeline:
         if not self.queue:
             return []
         out, keep = [], []
-        for d in decide(self.queue, state, now, self.mode, self.spoken):
+        for d in decide(self.queue, state, now, self.mode, self.spoken, self.favourite):
             if d.action == "hold":
                 keep.append(d.insight)
             elif d.action == "speak":
                 ins = d.insight
                 self.spoken.append((now, ins["type"], ins["team"]))
-                out.append({"type": "speech", "t": now, "insight_id": ins["insight_id"], "priority": ins["priority"],
-                            "evidence": ins["evidence"], "text": {"en": narrate(ins, "en"), "tr": narrate(ins, "tr")}})
+                out.append({"type": "speech", "t": now, "insight_id": ins["insight_id"], "priority": ins["priority"], "team": ins["team"],
+                            "persona": persona_for(self.mode), "evidence": ins["evidence"],
+                            "text": {"en": narrate(ins, "en"), "tr": narrate(ins, "tr")}})
         self.queue = keep
         return out
+
+
+def apply_listener_message(pipe: LivePipeline, msg: dict) -> None:
+    """`set_mode` and `set_favourite` from a listener; anything else is ignored."""
+    if msg.get("type") == "set_mode" and msg.get("mode") in SILENCE_S:
+        pipe.mode = msg["mode"]
+    elif msg.get("type") == "set_favourite" and msg.get("team") in ("HOME", "AWAY", None):
+        pipe.favourite = msg["team"]
 
 
 def warm_up(pipe: LivePipeline, match_dir: Path, start_minute: float) -> None:
@@ -120,9 +133,8 @@ async def main(seed: int, speed: float, start_minute: float, mode: str, port: in
     meta = json.loads((Path(match_dir) / "meta.json").read_text())
     pipe, resolver = LivePipeline(meta, mode, speed), make_resolver(meta)
 
-    def on_message(msg: dict) -> None:  # the only thing a listener may send: the listening mode
-        if msg.get("type") == "set_mode" and msg.get("mode") in SILENCE_S:
-            pipe.mode = msg["mode"]
+    def on_message(msg: dict) -> None:  # the only things a listener may send: the listening mode and the favourite club
+        apply_listener_message(pipe, msg)
 
     bus = WebSocketBroadcaster(port=port, on_message=on_message)
     await bus.start()

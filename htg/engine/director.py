@@ -8,6 +8,7 @@ Rules, in order, for each Insight in the queue:
 4. ball live and danger >= 0.15             -> hold (never talk over an attack)
 5. silence budget of the mode not yet over  -> hold
 Only one Insight is spoken per call: highest priority first, then oldest. The rest are held for the next call.
+The listener's favourite club (if any) gets +1 priority for its Insights.
 """
 from __future__ import annotations
 
@@ -31,8 +32,8 @@ class Decision:
 
 
 def decide(queue: Sequence[dict], state: dict, now: float, mode: str = "casual",
-           spoken: Sequence[tuple[float, str, str | None]] = ()) -> list[Decision]:
-    """One Decision per queued Insight. `spoken` is the history of what was told: (t, type, team)."""
+           spoken: Sequence[tuple[float, str, str | None]] = (), favourite: str | None = None) -> list[Decision]:
+    """One Decision per queued Insight. `spoken` is the history of what was told: (t, type, team). `favourite` is "HOME", "AWAY" or None."""
     if mode not in SILENCE_S:
         raise ValueError(f"unknown mode: {mode}")
     last_spoken = max((t for t, _, _ in spoken), default=-1e9)
@@ -55,7 +56,7 @@ def decide(queue: Sequence[dict], state: dict, now: float, mode: str = "casual",
             out[key] = Decision("hold", ins, "silence budget")
         else:
             ready.append(ins)
-    ready.sort(key=lambda i: (-i["priority"], i["t"]))
+    ready.sort(key=lambda i: (-i["priority"] - (favourite is not None and i["team"] == favourite), i["t"]))
     for k, ins in enumerate(ready):
         if k == 0:
             out[ins["insight_id"]] = Decision("speak", ins, "goal" if ins["type"] == "goal" else "ok")

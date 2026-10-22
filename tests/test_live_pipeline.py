@@ -7,7 +7,7 @@ from jsonschema import Draft202012Validator
 
 from htg.adapters.local import WebSocketBroadcaster
 from htg.replay import iter_items
-from services.engine.run_local import LivePipeline, warm_up
+from services.engine.run_local import LivePipeline, apply_listener_message, warm_up
 
 SCHEMAS = Path(__file__).resolve().parents[1] / "schemas"
 
@@ -32,7 +32,7 @@ def test_messages_are_valid_and_deterministic(synth_dir):
         elif m["type"] == "insight":
             insight_v.validate(m["insight"])
         elif m["type"] == "speech":
-            assert m["text"]["en"] and m["text"]["tr"] and m["evidence"]
+            assert m["text"]["en"] and m["text"]["tr"] and m["evidence"] and m["team"] in ("HOME", "AWAY") and m["persona"] == "fan"
 
 
 def test_every_speech_follows_its_insight_and_is_told_once(synth_dir):
@@ -84,6 +84,21 @@ def test_hello_lists_outfield_players_and_cues_carry_player(synth_dir):
     assert cues and all(c["player_id"] for c in cues if c["kind"] in ("pass", "shot", "goal"))
 
 
+def test_listener_messages_set_mode_persona_and_favourite(synth_dir):
+    meta = json.loads((synth_dir / "meta.json").read_text())
+    pipe = LivePipeline(meta)
+    for msg in ({"type": "set_mode", "mode": "analyst"}, {"type": "set_favourite", "team": "AWAY"}, {"type": "set_mode", "mode": "loud"},
+                {"type": "set_favourite", "team": "the Reds"}):
+        apply_listener_message(pipe, msg)
+    assert (pipe.mode, pipe.favourite) == ("analyst", "AWAY")
+    speech = [m for item in iter_items(synth_dir) for m in pipe.feed(item) if m["type"] == "speech"]
+    assert speech and all(m["persona"] == "analyst" for m in speech)
+    apply_listener_message(pipe, {"type": "set_favourite", "team": None})
+    assert pipe.favourite is None
+    goals = sum(json.loads(line)["type"] == "goal" for line in (synth_dir / "events.jsonl").open())
+    assert sum(pipe.hello()["score"].values()) == goals  # hello carries the score reached so far
+
+
 def test_warm_up_matches_full_run(synth_dir):
     meta = json.loads((synth_dir / "meta.json").read_text())
     full = LivePipeline(meta)
@@ -102,7 +117,8 @@ def test_resolver_uses_service_and_falls_back_on_timeout(synth_dir, tmp_path, mo
     from htg.narration import service
     from services.engine.resolve import SpeechResolver, is_stale
 
-    monkeypatch.setattr("services.engine.resolve.narrate_insight", lambda i, n, names: service.narrate_insight(i, n, names, tmp_path))
+    monkeypatch.setattr("services.engine.resolve.narrate_insight",
+                        lambda i, n, names, persona: service.narrate_insight(i, n, names, tmp_path, persona))
     meta = json.loads((synth_dir / "meta.json").read_text())
     pipe = LivePipeline(meta)
     msgs = [m for item in iter_items(synth_dir) for m in pipe.feed(item)]

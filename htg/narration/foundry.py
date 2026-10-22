@@ -7,7 +7,7 @@ from typing import Any
 
 from htg.narration.examples import example_for
 
-PROMPT_VERSION = 4
+PROMPT_VERSION = 5
 
 SCHEMA = {
     "name": "narration",
@@ -24,7 +24,7 @@ SYSTEM = (
     "You are a live radio football commentator for listeners who cannot see the pitch. Write one sentence in English (en) and one "
     "in Turkish (tr) about the Insight you are given.\n"
     "Rules:\n"
-    "- Exactly one sentence per language, at most 20 words, present tense, lively but plain radio tone.\n"
+    "- Exactly one sentence per language, present tense. Length, tone and numbers follow the persona below.\n"
     "- Use only the facts you are given. Copy numbers as digits exactly from the facts. Never introduce a number, a team or a player "
     "that is not in the facts.\n"
     "- Never start with or mention a match minute or a time stamp.\n"
@@ -43,8 +43,23 @@ SYSTEM = (
     "hsr_now_pct = the player's recent high-speed running as a percentage of their earlier amount. home_score-away_score is the "
     "score after the goal. outcome: saved = the keeper saves it, off_target = the shot misses the target, blocked = the shot is blocked. "
     "source danger = the team has the ball close to the opponent's goal; say only that, in your own words.\n"
-    "The example shows the tone and length for this kind of Insight; its teams, players and numbers are not this match's."
+    "The example shows the tone and length for this persona and kind of Insight; its teams, players and numbers are not this match's."
 )
+
+# One block per narration persona; the rules above hold for both. The Verifier is the same for both.
+PERSONA = {
+    "fan": (
+        "Persona: fan. Radio excitement for a casual fan. At most 16 words per sentence. Use at most one number (the score of a goal "
+        "counts as one), and prefer none: say the trend in words, e.g. 'they are pressing much harder now'. Goals and chances are "
+        "emotional but factual. Even without numbers, every statement must follow from the facts: no vague claims they do not support. "
+        "Stay proportionate (no 'massively', 'hammering', 'battering'). Say only what the fact measures: a flank overload is where the "
+        "team's passes go, not pressure on the opponent. In Turkish prefer no number at all."
+    ),
+    "analyst": (
+        "Persona: analyst. Precise, for a listener who wants the tactics. At most 25 words per sentence. Give the key numbers and the "
+        "comparison: now versus earlier in the match."
+    ),
+}
 
 
 class FoundryNarrator:
@@ -60,16 +75,17 @@ class FoundryNarrator:
         self.effort = os.environ.get("FOUNDRY_REASONING_EFFORT", "").strip()  # reasoning models only; others reject the parameter
         self.tokens = 0
 
-    def write(self, insight: dict, feedback: dict[str, list[str]] | None = None) -> dict[str, Any]:
+    def write(self, insight: dict, feedback: dict[str, list[str]] | None = None, persona: str = "fan") -> dict[str, Any]:
         user: dict[str, Any] = {"type": insight["type"], "claim_facts": insight["claim_facts"]}
-        if ex := example_for(insight):
+        if ex := example_for(insight, persona):
             user["example"] = ex
         if feedback:
             user["fix_these_problems"] = feedback
         extra = {"reasoning_effort": self.effort} if self.effort else {}
         resp = self.client.chat.completions.create(
             model=self.model,
-            messages=[{"role": "system", "content": SYSTEM}, {"role": "user", "content": json.dumps(user, ensure_ascii=False)}],
+            messages=[{"role": "system", "content": SYSTEM + "\n" + PERSONA[persona]},
+                      {"role": "user", "content": json.dumps(user, ensure_ascii=False)}],
             response_format={"type": "json_schema", "json_schema": SCHEMA},
             **extra,
         )

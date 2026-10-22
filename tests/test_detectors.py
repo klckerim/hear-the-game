@@ -13,8 +13,8 @@ from htg.replay import Item
 ROOT = Path(__file__).resolve().parents[1]
 INSIGHT_SCHEMA = json.loads((ROOT / "schemas" / "insight.schema.json").read_text())
 META = {"match_id": "t", "teams": {
-    "HOME": {"name": {"en": "the Reds", "tr": "Kırmızılar"}, "players": [{"player_id": "H02", "name": "Aksoy"}]},
-    "AWAY": {"name": {"en": "the Blues", "tr": "Maviler"}, "players": [{"player_id": "A02", "name": "Moreau"}]}}}
+    "HOME": {"name": {"en": "Northport", "tr": "Northport"}, "players": [{"player_id": "H02", "name": "Aksoy"}]},
+    "AWAY": {"name": {"en": "Valemont", "tr": "Valemont"}, "players": [{"player_id": "A02", "name": "Moreau"}]}}}
 
 
 @pytest.fixture(scope="module")

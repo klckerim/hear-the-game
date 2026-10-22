@@ -82,3 +82,38 @@ def test_warm_up_does_not_block_the_event_loop(monkeypatch):
         return ticks
 
     assert asyncio.run(run()) >= 8  # a blocked loop would tick ~0 times during the 0.3 s warm-up
+
+
+def test_unknown_chapter_falls_back_to_the_default():
+    from services.engine.serve import CHAPTERS, DEFAULT_CHAPTER, chapter_of
+
+    assert chapter_of("/ws?chapter=late") == "late" and CHAPTERS["late"] == 76.0
+    assert chapter_of("/ws") == chapter_of("/ws?chapter=../etc") == chapter_of("/ws?chapter=") == DEFAULT_CHAPTER
+
+
+def test_late_chapter_starts_with_the_score_of_minute_76(monkeypatch):
+    from htg.generate import OUT_DIR, generate
+    from services.engine import serve
+
+    monkeypatch.setattr(serve, "_warm", {})
+    match_dir = OUT_DIR / "match_0007"
+    match_dir = match_dir if match_dir.exists() else generate(7)
+    meta = json.loads((match_dir / "meta.json").read_text())
+    goals = [json.loads(line) for line in (match_dir / "events.jsonl").open() if '"type": "goal"' in line]
+    expected = {"HOME": 0, "AWAY": 0}
+    for g in goals:
+        if g["t"] < 76 * 60:
+            expected[g["team"]] += 1
+    assert sum(expected.values()) >= 1  # seed 7: the first goal comes before the late chapter
+
+    async def run() -> dict:
+        async def handler(ws) -> None:
+            await serve.session(ws, match_dir, meta, serve.CHAPTERS[serve.chapter_of(ws.request.path)], 50.0, set())
+
+        async with websockets.serve(handler, "localhost", 0, process_request=process_request) as srv:
+            uri = f"ws://localhost:{srv.sockets[0].getsockname()[1]}/ws?chapter=late"
+            async with websockets.connect(uri) as c:
+                return json.loads(await asyncio.wait_for(c.recv(), 30))
+
+    hello = asyncio.run(run())
+    assert hello["type"] == "hello" and hello["score"] == expected

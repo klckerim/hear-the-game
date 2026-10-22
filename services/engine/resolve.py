@@ -27,8 +27,8 @@ class SpeechResolver:
     def __init__(self, narrator: Narrator, speech: Speech, names: list[str], use_service: bool, timeout: float = TIMEOUT_S):
         self.narrator, self.speech, self.names, self.use_service, self.timeout = narrator, speech, names, use_service, timeout
 
-    def _work(self, insight: dict) -> tuple[dict, dict[str, bytes | None]]:
-        n = narrate_insight(insight, self.narrator, self.names)
+    def _work(self, insight: dict, persona: str) -> tuple[dict, dict[str, bytes | None]]:
+        n = narrate_insight(insight, self.narrator, self.names, persona=persona)
         return n, {lang: self.speech.synthesize(n[lang], lang, insight["type"] == "goal") for lang in LANGS}
 
     async def resolve(self, msg: dict, insight: dict) -> dict[str, Any]:
@@ -36,7 +36,7 @@ class SpeechResolver:
         n, audio = None, {lang: None for lang in LANGS}
         if self.use_service:
             try:
-                n, audio = await asyncio.wait_for(asyncio.to_thread(self._work, insight), self.timeout)
+                n, audio = await asyncio.wait_for(asyncio.to_thread(self._work, insight, msg.get("persona", "fan")), self.timeout)
             except Exception:  # timeout, model or network error: template text, no audio
                 n = None
         text = {lang: n[lang] for lang in LANGS} if n else msg["text"]

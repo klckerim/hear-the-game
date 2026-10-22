@@ -13,6 +13,10 @@ def _cap(s: str) -> str:
     return s[:1].upper() + s[1:]
 
 
+def _poss(name: str) -> str:
+    return name + ("'" if name.endswith("s") else "'s")  # "Valemont's", "the Whites'"
+
+
 def _tr_num(x: float) -> str:
     return str(x).replace(".", ",")  # Turkish decimal comma, so the voice reads "2,3" as a number
 
@@ -22,7 +26,7 @@ def _en(i: dict) -> str:
     team, opp = _cap(f["team_en"]), f.get("opponent_en")
     last = f"in the last {f.get('recent_min')} minutes"
     if ty == "pressure_shift":
-        return (f"{team} are pressing harder: {f['share_now_pct']}% of {opp}' actions are under pressure {last}, "
+        return (f"{team} are pressing harder: {f['share_now_pct']}% of {_poss(opp)} actions are under pressure {last}, "
                 f"{f['share_before_pct']}% earlier in the match.")
     if ty == "tempo_change":
         return (f"{team} are slowing the game down: about {f['gap_now_s']} seconds per touch {last}, "

@@ -1,6 +1,7 @@
 """Measure the narration layer.
 
     HTG_ENV=azure python -m eval.narration --seeds 11-30 --limit 100 --samples eval/results/narration_samples.jsonl
+    HTG_ENV=azure python -m eval.narration --limit 50 --persona fan --out /tmp/fan.md   # one narration persona (default analyst)
     python -m eval.narration --seeds 11-30 --limit 100                  # mutations only (no Azure)
 
 Live part: Foundry narrator + Verifier + Azure voice on a sample of spoken Insights (no cache): first-pass Verifier rate,
@@ -24,7 +25,7 @@ from pathlib import Path
 from htg.env import load_env
 from htg.narration.foundry import PROMPT_VERSION
 from htg.narration.pregen import spoken_insights
-from htg.narration.service import LANGS, get_narrator, known_names, narrate_insight
+from htg.narration.service import LANGS, PERSONAS, get_narrator, known_names, narrate_insight
 from htg.narration.templates import narrate
 from htg.narration.verifier import verify
 
@@ -84,8 +85,8 @@ class Recording:
     def tokens(self) -> int:
         return getattr(self.inner, "tokens", 0)
 
-    def write(self, insight: dict, feedback: dict | None = None) -> dict:
-        draft = self.inner.write(insight, feedback)
+    def write(self, insight: dict, feedback: dict | None = None, persona: str = "fan") -> dict:
+        draft = self.inner.write(insight, feedback, persona)
         self.drafts.append(draft)
         return draft
 
@@ -137,7 +138,11 @@ def real_catches(rows: list[dict]) -> list[str]:
     return out
 
 
-def live_part(items: list[tuple[dict, list[str]]], samples: Path | None) -> list[str]:
+def mean_numbers(texts: list[str]) -> str:
+    return f"{sum(len(NUM.findall(x)) for x in texts) / len(texts):.2f}" if texts else "n/a"
+
+
+def live_part(items: list[tuple[dict, list[str]]], samples: Path | None, persona: str) -> list[str]:
     from htg.speech.azure import AzureSpeech
 
     narrator, tmp = Recording(get_narrator()), tempfile.mkdtemp()
@@ -145,7 +150,7 @@ def live_part(items: list[tuple[dict, list[str]]], samples: Path | None) -> list
     res, tts, lat, rows = [], [], [], []
     for ins, names in items:
         narrator.drafts = []
-        n = narrate_insight(ins, narrator, names, Path(tmp) / "narr")
+        n = narrate_insight(ins, narrator, names, Path(tmp) / "narr", persona)
         res.append(n)
         rows.append(sample_row(ins, n, narrator.drafts, names))
         lat.append(n["latency_s"])
@@ -154,20 +159,24 @@ def live_part(items: list[tuple[dict, list[str]]], samples: Path | None) -> list
             if speech.synthesize(n[lang], lang, ins["type"] == "goal"):
                 tts.append(time.perf_counter() - t0)
     rows_md = []
-    first = [pct(sum(r["first_pass"][lg] for r in res) / len(res)) for lg in ("en", "tr")]
+    first = [pct(sum(r["first_pass"].get(lg, False) for r in res) / len(res)) for lg in ("en", "tr")]  # a model error is a fail
     fall = [pct(sum(r["source"][lg] == "template" for r in res) / len(res)) for lg in ("en", "tr")]
     rows_md.append(f"| first-pass Verifier rate | {first[0]} | {first[1]} |")
     rows_md.append(f"| template fallback rate (after one retry) | {fall[0]} | {fall[1]} |")
+    rows_md.append(f"| mean numbers per sentence | {mean_numbers([r['en'] for r in res])} | {mean_numbers([r['tr'] for r in res])} |")
+    rows_md.append(f"| mean words per sentence | {statistics.mean(len(r['en'].split()) for r in res):.1f} | "
+                   f"{statistics.mean(len(r['tr'].split()) for r in res):.1f} |")
     if samples:
         samples.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows))
     effort = os.environ.get("FOUNDRY_REASONING_EFFORT", "").strip() or "default"
     today = datetime.date.today().isoformat()
     table = ["| | EN | TR |", "|---|---|---|", *rows_md]
     return [f"## Live model and voice ({len(res)} Insights, model `{narrator.name}`, reasoning effort `{effort}`, "
-            f"prompt v{PROMPT_VERSION}, {today})", "", *table, "",
+            f"prompt v{PROMPT_VERSION}, persona `{persona}`, {today})", "", *table, "",
             f"- Narration latency per Insight, EN+TR in one call incl. retries (p50 / p95): {quantiles(lat)}",
             f"- TTS latency per clip (p50 / p95): {quantiles(tts)} over {len(tts)} clips",
-            f"- Model tokens: {narrator.tokens}; characters sent to TTS: {speech.characters}", "",
+            f"- Model tokens: {narrator.tokens}; characters sent to TTS: {speech.characters}; "
+            f"model call errors: {sum('error' in r['reasons'] for r in res)}", "",
             "### Latency before and after (all measured, same seeds and model)", "",
             "| date | prompt | reasoning effort | Insights | narration p50 / p95 | first-pass EN / TR |", "|---|---|---|---|---|---|",
             *HISTORY, f"| {today} | {PROMPT_VERSION} | {effort} | {len(res)} | {quantiles(lat)} | {first[0]} / {first[1]} |", "",
@@ -206,13 +215,13 @@ def mutation_part(items: list[tuple[dict, list[str]]]) -> list[str]:
             *rows, "", f"Unmutated template sentences accepted: {clean} of {2 * len(items)} (must be all).", ""]
 
 
-def main(seeds: list[int], limit: int, mode: str, out: Path = RESULTS, samples: Path | None = None) -> None:
+def main(seeds: list[int], limit: int, mode: str, out: Path = RESULTS, samples: Path | None = None, persona: str = "analyst") -> None:
     load_env()
     items = sample(seeds, limit, mode)
     azure = os.environ.get("HTG_ENV") == "azure"
     lines = ["# Narration evaluation", "",
              f"Seeds {seeds[0]}-{seeds[-1]} (reporting seeds), mode `{mode}`, {len(items)} spoken Insights sampled evenly.", ""]
-    lines += live_part(items, samples) if azure else ["## Live model and voice", "", "Not run (needs `HTG_ENV=azure`).", ""]
+    lines += live_part(items, samples, persona) if azure else ["## Live model and voice", "", "Not run (needs `HTG_ENV=azure`).", ""]
     lines += mutation_part(items)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("\n".join(lines))
@@ -226,5 +235,6 @@ if __name__ == "__main__":
     ap.add_argument("--mode", default="casual")
     ap.add_argument("--out", type=Path, default=RESULTS)
     ap.add_argument("--samples", type=Path, help="write one JSON row per Insight, with every rejected draft (needs HTG_ENV=azure)")
+    ap.add_argument("--persona", choices=PERSONAS, default="analyst", help="narration persona (the precise analyst is the default)")
     a = ap.parse_args()
-    main(parse_seeds(a.seeds), a.limit, a.mode, a.out, a.samples)
+    main(parse_seeds(a.seeds), a.limit, a.mode, a.out, a.samples, a.persona)
