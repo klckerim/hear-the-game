@@ -128,7 +128,14 @@ ol.log .empty { color: var(--muted); display: block; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; padding: 6px 12px; background: transparent; font-size: 13px; }
 .seg button[aria-pressed="true"] { background: var(--amber); color: var(--night); }
-#appLang { grid-area: lang; }
+/* Interface language: a globe + dropdown pill, so it does not look like the EN/TR commentary buttons in the panel */
+#appLang { grid-area: lang; display: inline-flex; align-items: center; gap: 6px; padding: 0 4px 0 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); cursor: pointer; }
+#appLang:hover { border-color: var(--muted); }
+#appLang:focus-within { outline: 2px solid var(--amber); outline-offset: 2px; }
+#appLang svg { flex: none; }
+#appLang select { border: 0; background: transparent; padding: 6px 4px; font-size: 13px; }
+#appLang select:focus-visible { outline: none; }
+#appLang option { background: var(--desk); }
 .field { display: grid; gap: 4px; font-size: 13px; color: var(--muted); }
 .field select { width: 100%; color: var(--chalk); }
 .recap { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 13px; }
@@ -146,10 +153,10 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
     <h1>Hear the <span>Game</span></h1>
     <div class="hdr-right">
       <p class="sub" data-i18n="sub"></p>
-      <div class="seg" role="group" data-i18n-aria="uiLangLabel" id="appLang">
-        <button type="button" data-lang="en" aria-pressed="false">EN</button>
-        <button type="button" data-lang="tr" aria-pressed="false">TR</button>
-      </div>
+      <label id="appLang">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z"/></svg>
+        <select id="uiLangSel" data-i18n-aria="uiLangLabel"><option value="en" lang="en">English</option><option value="tr" lang="tr">Türkçe</option></select>
+      </label>
     </div>
   </header>
 
@@ -809,7 +816,7 @@ function applyI18n() {
   document.querySelectorAll("[data-i18n]").forEach(e => { if (!(e.id === "captionMain" && busy)) e.textContent = t(e.dataset.i18n); });
   if (!busy) { $("captionMain").lang = uiLang; $("captionSub").hidden = true; }
   document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
-  document.querySelectorAll("#appLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === uiLang)));
+  $("uiLangSel").value = uiLang;
   document.querySelectorAll("#commLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang())));
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
   if (!live.ws) $("status").textContent = t("off");
@@ -819,9 +826,7 @@ function applyI18n() {
   renderLog(); renderRecap(); pickVoices(); renderTourBtn(); setRecapBusy(!!recapWait);
 }
 // Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
-document.querySelectorAll("#appLang button").forEach(b => b.addEventListener("click", () => {
-  uiLang = b.dataset.lang; store.set("htg.lang", uiLang); applyI18n();
-}));
+$("uiLangSel").addEventListener("change", e => { uiLang = e.target.value; store.set("htg.lang", uiLang); applyI18n(); });
 document.querySelectorAll("#commLang button").forEach(b => b.addEventListener("click", () => {
   commLang = b.dataset.lang; store.set("htg.commentary", commLang); applyI18n();
 }));
