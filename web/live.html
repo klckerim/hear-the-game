@@ -124,10 +124,7 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
 .tl .mk.new::before { animation: ping 0.9s ease-out 3; }
 @keyframes ping { from { box-shadow: 0 0 0 0 var(--amber); } to { box-shadow: 0 0 0 9px rgba(242, 179, 61, 0); } }
 @media (prefers-reduced-motion: reduce) { .tl .mk.new::before { animation: none; outline: 2px solid var(--amber); } }
-/* The Why card sits right under the timeline; its minimum height keeps the caption below it from jumping when a marker is chosen. */
-.why { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; align-content: start; font-size: 13px; min-width: 0; min-height: 132px; }
-/* Desktop: the pitch is capped by the window height, so pitch, timeline and Why card fit on one screen together. */
-@media (min-width: 861px) { .pitch-box { width: min(100%, max(480px, calc((100vh - 340px) * 105 / 68))); margin-inline: auto; } }
+.why { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; font-size: 13px; min-width: 0; }
 .why-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
 .why-head b { font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; }
 .why .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 1px 6px; border-radius: 3px; }
@@ -244,15 +241,15 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <div class="tl-track"><div class="tl-inner" id="tlInner"><div class="tl-past" id="tlPast"></div><div class="tl-now" id="tlNow" hidden></div></div></div>
         <div class="tl-axis" id="tlAxis" aria-hidden="true"></div>
       </div>
+      <div class="caption" id="caption" aria-live="polite">
+        <span class="tags"><span class="tag idle" id="captionTag" data-i18n="tagIdle"></span><span class="tag mine" id="captionMine" data-i18n="yourTeam" hidden></span></span>
+        <p id="captionText"><span id="captionMain" data-i18n="captionIdle"></span><small id="captionSub" hidden></small></p>
+      </div>
       <div class="why tl-only" id="why" aria-live="polite">
         <div class="why-head"><b id="whyTitle"></b><span class="tag" id="whyTag" hidden></span></div>
         <p><span id="whyMain"></span><small id="whySub" hidden></small></p>
         <dl id="whyFacts" hidden></dl>
         <small id="whyEvidence" hidden></small>
-      </div>
-      <div class="caption" id="caption" aria-live="polite">
-        <span class="tags"><span class="tag idle" id="captionTag" data-i18n="tagIdle"></span><span class="tag mine" id="captionMine" data-i18n="yourTeam" hidden></span></span>
-        <p id="captionText"><span id="captionMain" data-i18n="captionIdle"></span><small id="captionSub" hidden></small></p>
       </div>
     </section>
 
@@ -798,14 +795,7 @@ function renderMark(mk) {
 function selectMark(mk) {
   live.sel = mk; live.hl = { mk, at: performance.now() };
   live.marks.forEach(k => k.el.setAttribute("aria-pressed", String(k === mk)));
-  renderWhy(); showEvidence();
-}
-// Scroll so the pitch (where the evidence lights up) and the Why card are both on screen; if they cannot fit, the pitch wins.
-function showEvidence() {
-  const top = $("pitch").getBoundingClientRect().top - 8, bottom = $("why").getBoundingClientRect().bottom + 8;
-  if (top >= 0 && bottom <= innerHeight) return;
-  const dy = top < 0 || bottom - top > innerHeight ? top : bottom - innerHeight;
-  window.scrollBy({ top: dy, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  renderWhy();
 }
 // claim_facts as key/value pairs in the interface language: "team_en" shows as "team" in English, "side_tr" as "side" in Turkish.
 function factPairs(f) {
