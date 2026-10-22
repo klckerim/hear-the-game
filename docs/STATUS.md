@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 night (language split: interface vs commentary language; code done, owner to deploy and listen). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 night (language split deployed and checked; Features C in progress: `docs/tasks/2026-10-24-features-c.md`). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -184,7 +184,8 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   readers); also under the agent recap in the "What did I miss?" panel. Caption box is one line taller (4 desktop / 6 phone) so the
   layout stays fixed. Changing either mid-match takes effect from the next sentence (clips decoded per language on demand).
 - Checked in headless Chrome via CDP (local serve, 30x): EN page + TR commentary and the reverse, both stored and restored after reload,
-  no console errors; screenshots at 1280 and 375 px. **Owner, open:** `azd deploy`, then listen to EN page + TR commentary and the reverse.
+  no console errors; screenshots at 1280 and 375 px. Deployed by the owner, who listened to EN page + TR commentary and the reverse
+  (2026-10-22): closed.
 
 - Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
   the Foundry evaluation run, the App Insights metrics chart (htg.speech.resolved by source).
