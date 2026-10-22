@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 night (features B: sound tour + Recap agent; task `docs/tasks/done/2026-10-23-features-b.md`). Deployed; recap checked live. Next: owner listening pass, then Day 7 video. Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 night (features B: sound tour + Recap agent; task `docs/tasks/done/2026-10-23-features-b.md`). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -169,13 +169,12 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   not claim them.
 - Owner listened to the tour in TR and EN (2026-10-22). `half_time` chapter: **no** (owner decided).
 - Full time was invisible (last ball frame 89:59.9, `period_end` never sent): `period_end` is now an `event_cue` with `period`;
-  half-time two short whistles, full time two short + one long, clock "90:00 · MS/FT". **Needs `azd deploy`.** No added time in the
+  half-time two short whistles, full time two short + one long, clock "90:00 · MS/FT". Deployed by the owner. No added time in the
   synthetic data; adding it would change the generator and every measured number, so not done.
 - A session stops after 15 match-minutes (`END_AFTER_S`; "First goal" ends at 33:59) with no notice to the listener. Owner: keep it
   for now. Possible small fix later: a `session_end` message and a caption "demo chapter ended, pick another".
-- **Owner, still open:** listen to the full-time recap (locally: `HTG_ENV=azure python -m services.engine.serve --speed 10`, pick
-  club and mode first, chapter Late drama; it plays at 90:00, about 1.5 min in). If a sentence sounds wrong, delete
-  `data/cache/recap/*.json` and rerun `htg.recap.pregen`.
+- Owner listened to the full-time recap (2026-10-22). Features B is closed. (To hear it again locally:
+  `HTG_ENV=azure python -m services.engine.serve --speed 10`, pick club and mode, chapter Late drama; it plays at 90:00.)
 
 
 - Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
