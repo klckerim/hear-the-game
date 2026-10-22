@@ -23,7 +23,7 @@ The browser synthesises all match sound itself (Web Audio) from small state pack
 | **Ball tick** (about 8 per second, only while the ball is in play) | **Pitch** = danger: higher notes as the ball gets more dangerous (two-octave pentatonic scale driven by an Expected Threat model). **Left/right** = the flank as the attacking team sees it. **Timbre** = which team has the ball (two different waveforms). **Loudness** = tempo. |
 | **Heartbeat** (low thump) | Pressure on the ball carrier: starts above a threshold, beats faster and louder as pressure rises. |
 | **Crowd** | Filtered noise whose level follows danger. |
-| **Event sounds** | Pass: soft click on the ball's side. Shot: rising whoosh. Save: thud. Out or foul: short whistle. Kick-off: long whistle. Goal: crowd swell, a rising four-note figure in the scoring team's timbre, whistle. |
+| **Event sounds** | Pass: soft click on the ball's side. Shot: rising whoosh. Save: thud. Out or foul: short whistle. Kick-off: long whistle. Half-time: two short whistles; full time: two short and a long one (the clock then shows 90:00 FT). Goal: crowd swell, a rising four-note figure in the scoring team's timbre, whistle. |
 | **Favourite club** | Pick Northport or Valemont. Your club's goal gets a brighter, longer crowd swell; a goal against you is short and muted, with no fanfare. The score bar marks "your team" in text, the caption tags narration about your club, and the Director moves your club's Insights one step up the queue. |
 | **Favourite player** | Pick a player; a two-note chime plays on the ball's side when they touch it (at most every 3 s). |
 | **Narration** | One short sentence (Azure neural voice, EN or TR) when something tactical is detected. Other sound dips to 30% under the voice. The caption shows **verified** (model text that passed the Verifier) or **template** (fallback). |
@@ -198,7 +198,7 @@ Every message carries match time `t` (seconds); schemas for the payloads are in 
 |---|---|
 | `hello` | match id, seed, teams (names EN/TR, colour, outfield players), score at the chapter start, mode |
 | `state` | 10 Hz state packets: ball position, team, danger (xT), pressure, pan, tempo ([`state.schema.json`](schemas/state.schema.json)) |
-| `event_cue` | pass, shot, save, goal, whistle, with team, player and event `seq` |
+| `event_cue` | pass, shot, save, goal, whistle, half-time and full time (`period_end`), with team, player, period and event `seq` |
 | `insight` | a detected tactical story: `claim_facts` (every number in it) and `evidence` (event `seq`s) ([`insight.schema.json`](schemas/insight.schema.json)) |
 | `speech` | the Insight told now: EN + TR text, `source` (`llm` verified or `template`), persona, MP3 per language |
 | `recap` | "What did I miss?" (`kind: missed`) or full time (`kind: full_time`): 2-3 sentences per language, `source` (`agent` or `template`), MP3 per language |

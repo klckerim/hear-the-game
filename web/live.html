@@ -248,6 +248,7 @@ const T = {
     mode_eyes_free: "Sadece ses", mode_casual: "Rahat", mode_analyst: "Analist", favLabel: "Favori oyuncu (kulaklık sesi)", favNone: "Yok",
     recapTitle: "Ne kaçırdım?", recapBtn: "Beni özetle", recapEmpty: "Henüz anlatım yok.", recapScore: "Skor",
     preparing: "Hazırlanıyor…", recapTag: "Özet", fullTime: "Maç sonu özeti", missedSince: "Dakika", recapSince: "sonrası",
+    fullTimeLog: "Maç sonu", halfTimeLog: "Devre arası", ftShort: "MS",
     tourOffer: "Yeni misin? 60 saniyelik ses turu", tourSkip: "Turu geç", tourTag: "Ses turu",
     nowTitle: "Şu an", danger: "Tehlike", pressure: "Baskı", wing: "Kanat", earL: "sol kulak", earR: "sağ kulak",
     left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
@@ -265,6 +266,7 @@ const T = {
     mode_eyes_free: "Audio only", mode_casual: "Casual", mode_analyst: "Analyst", favLabel: "Favourite player (headphone cue)", favNone: "None",
     recapTitle: "What did I miss?", recapBtn: "Catch me up", recapEmpty: "No narration yet.", recapScore: "Score",
     preparing: "Preparing…", recapTag: "Recap", fullTime: "Full-time recap", missedSince: "Since minute", recapSince: "",
+    fullTimeLog: "Full time", halfTimeLog: "Half-time", ftShort: "FT",
     tourOffer: "New here? 60-second sound tour", tourSkip: "Skip tour", tourTag: "Sound tour",
     nowTitle: "Right now", danger: "Danger", pressure: "Pressure", wing: "Wing", earL: "left ear", earR: "right ear",
     left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
@@ -420,7 +422,7 @@ function stopListening(msg) {
   $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off");
 }
 function resetLive() {
-  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null });
+  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false });
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
 }
@@ -475,6 +477,14 @@ function cue(m, a) {
   else if (k === "save") sndThud(L, a, m.pan);
   else if (["out", "foul"].includes(k)) sndWhistle(L, a + 0.1, 0.4, 0.04);
   else if (k === "kickoff") sndWhistle(L, a, 0.7, 0.05);
+  else if (k === "period_end") {  // two short whistles at half-time; two short and a long one at full time
+    sndWhistle(L, a, 0.3, 0.05); sndWhistle(L, a + 0.45, 0.3, 0.05);
+    if (m.period === 2) {
+      sndWhistle(L, a + 0.9, 1.1, 0.05);
+      setTimeout(() => { live.ended = true; }, Math.max(0, (a - ctx.currentTime) * 1000));
+    }
+    addLog(Math.ceil(m.t), null, m.period === 2 ? t("fullTimeLog") : t("halfTimeLog"), a);
+  }
   else if (k === "goal") { sndGoal(L, a, m.team, !club ? "neutral" : m.team === club ? "for" : "against"); live.score[m.team === "HOME" ? 0 : 1]++; $("score").textContent = live.score.join(" – "); }
   const fav = $("fav").value && m.player_id === $("fav").value;
   if (fav) {  // the favourite player touched the ball: a two-note chime on the side the ball is on, at most every 3 s of match time
@@ -729,7 +739,7 @@ function drawPanel() {
   $("mPress").style.width = (r.pressure * 100) + "%"; $("vPress").textContent = r.pressure.toFixed(2);
   $("mPan").style.left = `calc(${(r.pan + 1) * 50}% - 7px)`;
   $("vPan").textContent = !r.in_play ? "—" : r.pan < -0.33 ? t("left") : r.pan > 0.33 ? t("right") : t("mid");
-  $("clock").textContent = clock(r.t);
+  $("clock").textContent = live.ended ? `90:00 · ${t("ftShort")}` : clock(r.t);  // the last ball frame is 89:59.9
 }
 function loop() { drawPitch(); drawPanel(); requestAnimationFrame(loop); }
 

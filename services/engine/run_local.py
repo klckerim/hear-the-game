@@ -9,7 +9,7 @@ Insights +1 priority in the Director.
 Messages (JSON, one per WebSocket frame):
     hello      match info (teams with outfield players), score at the start, replay speed, mode (first message)
     state      batch of 10 Hz state packets, every ~200 ms of match time
-    event_cue  one sound cue (pass, shot, save, goal, whistle ...)
+    event_cue  one sound cue (pass, shot, save, goal, whistle ..., period_end = half-time / full-time whistle), with the period
     insight    a detected Insight (for the log)
     speech     the Insight the Director decided to tell now: team, persona, text, source ("llm" verified / "template") and base64 MP3 audio
                per language, duration_s per language. Resolved in the background (cache first, 4 s deadline), never blocks the replay.
@@ -35,7 +35,7 @@ from htg.replay import Item, iter_items
 from services.engine.resolve import SpeechResolver, is_stale
 
 BATCH_FRAMES = 2  # 10 Hz frames per `state` message = 200 ms
-CUES = {"pass", "shot", "save", "goal", "out", "foul", "kickoff", "restart"}
+CUES = {"pass", "shot", "save", "goal", "out", "foul", "kickoff", "restart", "period_end"}
 
 
 class LivePipeline:
@@ -67,7 +67,7 @@ class LivePipeline:
         if item.kind == "event" and item.data["type"] in CUES:
             ev = item.data
             out.append({"type": "event_cue", "t": ev["t"], "kind": ev["type"], "team": ev["team"], "seq": ev["seq"],
-                        "player_id": ev.get("player_id"), "pan": self._last_pan})
+                        "period": ev["period"], "player_id": ev.get("player_id"), "pan": self._last_pan})
         for ins in self.detectors.step(item, packets):
             self.queue.append(ins)
             out.append({"type": "insight", "insight": ins})

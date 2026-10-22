@@ -82,6 +82,7 @@ def test_hello_lists_outfield_players_and_cues_carry_player(synth_dir):
     assert len(hello["teams"]["HOME"]["players"]) == 10 and all({"id", "name"} == set(p) for p in hello["teams"]["AWAY"]["players"])
     cues = [m for item in iter_items(synth_dir) for m in pipe.feed(item) if m["type"] == "event_cue"]
     assert cues and all(c["player_id"] for c in cues if c["kind"] in ("pass", "shot", "goal"))
+    assert [c["period"] for c in cues if c["kind"] == "period_end"] == [1, 2]  # half-time and full-time whistles reach the client
 
 
 def test_listener_messages_set_mode_persona_and_favourite(synth_dir):
