@@ -203,7 +203,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   > 30 m with length. Warmed-pipeline copy is now ~8 ms (was ~1 ms) because of the evidence position map.
 - Tests: evidence points match events by seq and stay on the pitch, cap 30, flank zone frame, shot/goal cue positions, stats cadence
   and equality with `get_stats`. 80 tests pass. Checked in headless Chrome at 1280 and 375 px (casual, analyst, TR UI), no console errors.
-- **MCP (part 3): not done**, gated on parts 1-2 being deployed. Fact keys in the Why card are the raw `claim_facts` names in both
+- **MCP (part 3): dropped** by the owner after the deploy (2026-10-22); the live commentator matters more for the video. Fact keys in the Why card are the raw `claim_facts` names in both
   languages (e.g. "share now pct").
 - Timeline window ends at full time (`meta.duration_s`): Late drama shows 76'-90', not 91'. Two layout tries (Why card above the
   caption with a height-capped pitch; Analyst panels moved up) were reverted at the owner's request.
