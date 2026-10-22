@@ -217,6 +217,24 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Numbers to show: detector recall/precision (seeds 11-30, flank precision 11% stated), narration p50 1.58 s / p95 3.60 s (was 10.7 / 17.4),
   Verifier first pass 100% with 0 real rejections plus the samples finding, groundedness 4.99, deployed latency after the fix.
 
+## Extra: live commentary (2026-10-23; task: `docs/tasks/2026-10-24-extra-live-commentary.md`)
+- **Voices (step 0), owner, 2026-10-23:** `en-US-Ethan:MAI-Voice-2.1-Flash` and `tr-TR-Aydın:MAI-Voice-2-Flash` work on our Speech
+  resource (Foundry TTS playground). Every style in the task table sounded right: EN `excited`, `shouting`, `surprised`, `joyful`,
+  `neutral`; TR `excited`, `serious`, `curious`, `neutral`. No mispronounced names (the test lines and squad names, EN and TR), so
+  `ALIASES` in `htg/speech/azure.py` stays empty.
+- **Part 1, callouts (done, 2026-10-23):** `htg/speech/callouts.py` pre-generates 148 clips (13 words + 2 clubs + 22 surnames, EN/TR,
+  normal = `neutral` / excited = `excited`) with the commentary voice into `data/cache/callouts/` (1.25 MB, 1,048 TTS characters,
+  0 fallbacks) plus `callouts.json`; served at `/callouts/...`. `AzureSpeech.commentate()` uses `SPEECH_VOICE_COMMENTARY_*` with
+  `mstts:express-as`, retries once with `SPEECH_VOICE_COMMENTARY_FALLBACK_*` (style kept only where the voice has it), counts
+  `htg.speech.voice_fallback`; `.env.example` and Bicep params carry the four names. `event_cue` for restarts gains `restart`.
+  Client: shot -> "Name... shot... saved / blocked / wide", goal -> "Goal! Name", foul (+ card once part 2 lands), restart ->
+  "Throw-in, Northport" (corner, free kick, goal kick too), out, and the passer's name in the final third (max one every 3 s).
+  One at a time, >= 2 s apart, higher priority cuts a lower one off; skipped while narration/recap/tour speaks, cut off when it
+  starts; ducks the match bed to 0.5. Clip silence is trimmed in the client. Layer toggle "Callouts", on in Casual / Audio only,
+  off in Analyst. Checked in headless Chrome (first-goal chapter, ~4 min): 13 callouts incl. "Goal! Baptiste", no console errors.
+  **Deviations:** no "recovered" word (ball recoveries are not cues; nothing would say it); the shot callout says the outcome
+  itself, because a separate "saved!" 0.5 s later would be dropped by the one-at-a-time rule. **Owner, open:** listen (EN, then TR).
+
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
 |---|---|---|

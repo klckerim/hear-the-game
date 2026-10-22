@@ -21,6 +21,8 @@ def test_http_routes():
     manifest = json.loads(process_request(None, Req("/manifest.webmanifest")).body)
     assert all(process_request(None, Req("/" + i["src"])).status_code == 200 for i in manifest["icons"])
     assert process_request(None, Req("/nope")).status_code == 404
+    assert process_request(None, Req("/callouts/en_normal_nope.mp3")).status_code == 404
+    assert process_request(None, Req("/callouts/../../.env")).status_code == 404
     assert process_request(None, Req("/ws")) is None
 
 

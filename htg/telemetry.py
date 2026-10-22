@@ -14,6 +14,7 @@ _meter = metrics.get_meter("htg")
 sessions_active = _meter.create_up_down_counter("htg.sessions.active", description="Open listener sessions")
 speech_resolved = _meter.create_counter("htg.speech.resolved", description="Speech messages resolved, by source and language")
 resolve_ms = _meter.create_histogram("htg.speech.resolve_ms", unit="ms", description="Time to resolve one speech message")
+voice_fallback = _meter.create_counter("htg.speech.voice_fallback", description="Commentary clips retried with the fallback voice")
 dropped_stale = _meter.create_counter("htg.speech.dropped_stale", description="Non-goal speech dropped because it resolved too late")
 
 

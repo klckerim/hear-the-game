@@ -129,6 +129,27 @@ def test_ssml_escapes_and_aliases(monkeypatch):
     assert "<prosody" not in out and "<prosody" in azure.ssml("Gol!", "tr", "tr-TR-EmelNeural", goal=True)
 
 
+def test_commentary_styles_and_fallback_voice(monkeypatch):
+    from htg.speech import azure
+
+    assert azure.style_for("en-US-Ethan:MAI-Voice-2.1-Flash", "shouting") == "shouting"
+    assert azure.style_for("en-US-GuyNeural", "excited") == "excited" and azure.style_for("en-US-GuyNeural", "joyful") is None
+    assert azure.style_for("tr-TR-AhmetNeural", "excited") is None  # Ahmet has no styles: plain voice
+    out = azure.ssml("Gol!", "tr", "tr-TR-Aydın:MAI-Voice-2-Flash", style="excited")
+    assert '<mstts:express-as style="excited">Gol!</mstts:express-as>' in out and 'name="tr-TR-Aydın:MAI-Voice-2-Flash"' in out
+    assert 'xml:lang="en-US"' in azure.ssml("Shot!", "en", "en-US-Ethan:MAI-Voice-2.1-Flash")
+    monkeypatch.setenv("SPEECH_VOICE_COMMENTARY_TR", "tr-TR-Other:MAI-Voice-2-Flash")
+    assert azure.commentary_voices()[0] == {"en": azure.COMMENTARY_VOICES["en"], "tr": "tr-TR-Other:MAI-Voice-2-Flash"}
+
+    sp = object.__new__(azure.AzureSpeech)  # no SDK: only the retry logic
+    sp.commentary, sp.commentary_fallback, calls = {"en": "bad:MAI-Voice-2.1-Flash"}, {"en": "en-US-GuyNeural"}, []
+    sp.fallbacks = 0
+    sp.synthesize = lambda text, lang, voice=None, style=None: calls.append((voice, azure.style_for(voice, style))) or (
+        b"mp3" if voice == "en-US-GuyNeural" else None)
+    assert sp.commentate("Shot!", "en", "shouting") == b"mp3"
+    assert calls == [("bad:MAI-Voice-2.1-Flash", "shouting"), ("en-US-GuyNeural", "shouting")]
+
+
 def test_turkish_integers_are_spoken_from_words():
     from htg.speech.azure import ssml, tr_words
 

@@ -327,6 +327,7 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
           <label for="L_press"><input type="checkbox" id="L_press" checked> <span data-i18n="lPress"></span></label>
           <label for="L_crowd"><input type="checkbox" id="L_crowd" checked> <span data-i18n="lCrowd"></span></label>
           <label for="L_cue"><input type="checkbox" id="L_cue" checked> <span data-i18n="lCue"></span></label>
+          <label for="L_callout"><input type="checkbox" id="L_callout" checked> <span data-i18n="lCallout"></span></label>
           <label for="L_voice"><input type="checkbox" id="L_voice" checked> <span data-i18n="lVoice"></span></label>
         </div>
       </div>
@@ -358,7 +359,7 @@ const T = {
     tourOffer: "Yeni misin? 60 saniyelik ses turu", tourSkip: "Turu geç", tourTag: "Ses turu",
     nowTitle: "Şu an", danger: "Tehlike", pressure: "Baskı", wing: "Kanat", earL: "sol kulak", earR: "sağ kulak",
     left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
-    layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lVoice: "Anlatım",
+    layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lCallout: "Kısa anonslar (isim, şut, taç…)", lVoice: "Anlatım",
     chapterLabel: "Nereden başlasın?", ch_kickoff: "Başlangıç\u00a0·\u00a00'", ch_first_goal: "İlk gol\u00a0·\u00a019'", ch_late: "Son dakikalar\u00a0·\u00a076'",
     spaceKey: "Boşluk", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
     off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Demo maçı · seed", lost: "Bağlantı koptu.",
@@ -386,7 +387,7 @@ const T = {
     tourOffer: "New here? 60-second sound tour", tourSkip: "Skip tour", tourTag: "Sound tour",
     nowTitle: "Right now", danger: "Danger", pressure: "Pressure", wing: "Wing", earL: "left ear", earR: "right ear",
     left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
-    layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lVoice: "Narration",
+    layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lCallout: "Callouts (names, shots, throw-ins…)", lVoice: "Narration",
     chapterLabel: "Start from", ch_kickoff: "Kick-off\u00a0·\u00a00'", ch_first_goal: "First goal\u00a0·\u00a019'", ch_late: "Late drama\u00a0·\u00a076'",
     spaceKey: "Space", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
     off: "Not connected.", wait: "Connected, waiting for the match.", live: "Demo match · seed", lost: "Connection lost.",
@@ -535,7 +536,7 @@ const audioAt = t => Math.max(ctx.currentTime, live.clock0 + t / live.speed);
 
 function connect() {
   initAudio(); ctx.resume();
-  primeVoice();
+  primeVoice(); preloadCallouts();
   resetLive();
   session = newSession(); applyLayers();
   $("playBtn").textContent = t("stop");
@@ -558,6 +559,7 @@ function resetLive() {
   $("tlInner").querySelectorAll(".mk").forEach(e => e.remove()); renderAxis(); renderWhy(); renderStats();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
+  Object.assign(callouts, { cur: null, lastA: -99, nameT: -99 });
 }
 
 function onMessage(m) {
@@ -633,6 +635,7 @@ function cue(m, a) {
   }
   const label = logLabel(m);
   if (label) addLog(m.t, m.team, label + (fav ? " ★" : ""), a);
+  callout(m, a);
 }
 // Analyst log line: shots with speed and outcome, goals with the scorer, passes only when long (> 30 m) with their length.
 function logLabel(m) {
@@ -886,7 +889,7 @@ async function say(m, prefix) {
   $("captionMine").hidden = !(club && m.team === club);
   const finish = () => { duckTo(1); setTimeout(() => { $("captionTag").classList.add("idle"); $("captionMine").hidden = true; }, 400); };
   if (!$("L_voice").checked) return;
-  duckTo(0.3);
+  stopCallout(); duckTo(0.3);
   const buf = await ((m.buf && m.buf[l]) || decodeClip(m, l));
   if (buf && ctx) {  // Azure clip from the server
     stopClip();
@@ -903,7 +906,84 @@ async function say(m, prefix) {
   } else { clearTimeout(fallbackTimer); fallbackTimer = setTimeout(finish, text.length * 70); }
 }
 function stopClip() { const c = clip; clip = null; if (c) { c.onended = null; try { c.stop(); } catch (e) {} } }
-function stopSpeech() { stopClip(); if ("speechSynthesis" in window) speechSynthesis.cancel(); clearTimeout(fallbackTimer); duckTo(1); }
+function stopSpeech() { stopClip(); stopCallout(); if ("speechSynthesis" in window) speechSynthesis.cancel(); clearTimeout(fallbackTimer); duckTo(1); }
+
+/* ---------------- callouts ---------------- */
+// Short clips in the commentary voice (htg/speech/callouts.py), strung together per event: "Okafor... shot... saved!", "Throw-in,
+// Northport", "Foul... yellow card, Silva", and the passer's name in the final third (at most one name every 3 s of match time).
+// One at a time and at least 2 s apart; a higher priority cuts a lower one off. Narration, recaps and the tour come first: a callout
+// is skipped while a sentence plays and is cut off when one starts. Commentary language; on in Casual and Audio only.
+const CALL_PRI = { goal: 9, shot: 8, save: 7, card: 6, foul: 5, corner: 4, free_kick: 3, throw_in: 2, goal_kick: 1, out: 1, name: 0 };
+const CALL_GAP_S = 2, NAME_EVERY_S = 3, SHOT_END = { saved: "saved", blocked: "blocked", off_target: "wide" };
+const callouts = { clips: null, bufs: {}, cur: null, lastA: -99, nameT: -99 };
+if (location.protocol.startsWith("http")) {
+  fetch("callouts/callouts.json").then(r => r.ok ? r.json() : null).then(j => { callouts.clips = j && j.clips; preloadCallouts(); }).catch(() => {});
+}
+function calloutBuf(l, tone, key) {
+  const f = callouts.clips && callouts.clips[l] && callouts.clips[l][tone] && callouts.clips[l][tone][key];
+  if (!f || !ctx) return null;
+  if (!(f in callouts.bufs)) {
+    callouts.bufs[f] = fetch("callouts/" + f).then(r => r.ok ? r.arrayBuffer() : null).then(b => b ? ctx.decodeAudioData(b) : null)
+      .then(b => b && trimmed(b)).catch(() => null);
+  }
+  return callouts.bufs[f];
+}
+// The voice pads each clip with silence; strung together that drags ("Okafor ...... shot"). Keep only the sound: { buf, from, len }.
+function trimmed(buf) {
+  const d = buf.getChannelData(0), th = 0.01, pad = Math.round(0.03 * buf.sampleRate);
+  let i = 0, j = d.length - 1;
+  while (i < j && Math.abs(d[i]) < th) i++;
+  while (j > i && Math.abs(d[j]) < th) j--;
+  i = Math.max(0, i - pad); j = Math.min(d.length - 1, j + pad);
+  return { buf, from: i / buf.sampleRate, len: (j - i) / buf.sampleRate };
+}
+function preloadCallouts() {  // ~75 small clips per language, decoded once, so a callout starts on time
+  const c = callouts.clips && callouts.clips[lang()];
+  if (c && ctx) Object.keys(c).forEach(tone => Object.keys(c[tone]).forEach(key => calloutBuf(lang(), tone, key)));
+}
+const inFinalThird = (r, team) => r && r.in_play && r.team === team && (team === "HOME" ? r.x >= 70 : r.x <= 35);  // HOME attacks x = 105
+// The words for one event_cue: { pri, tone, keys, name } or null. Keys are clip keys: word ids, club names, player names.
+function calloutFor(m) {
+  const k = m.kind, who = live.players[m.player_id], side = live.teams[m.team], clubKey = side && side.name_en;
+  if (k === "goal") return { pri: CALL_PRI.goal, tone: "excited", keys: ["goal", who] };
+  if (k === "shot" && m.outcome !== "goal") return { pri: CALL_PRI.shot, tone: "excited", keys: [who, "shot", SHOT_END[m.outcome]], name: true };
+  if (k === "foul" && m.card) return { pri: CALL_PRI.card, tone: "excited", keys: ["foul", m.card + "_card", who] };
+  if (k === "foul") return { pri: CALL_PRI.foul, tone: "normal", keys: ["foul"] };
+  if (k === "restart" && m.restart in CALL_PRI) return { pri: CALL_PRI[m.restart], tone: "normal", keys: [m.restart, clubKey] };
+  if (k === "out") return { pri: CALL_PRI.out, tone: "normal", keys: ["out"] };
+  if (k === "pass" && who && m.t - callouts.nameT >= NAME_EVERY_S && inFinalThird(live.cur, m.team)) return { pri: CALL_PRI.name, tone: "normal", keys: [who], name: true };
+  return null;
+}
+function callout(m, a) {
+  if (!$("L_callout").checked || !callouts.clips || !live.teams || tour.on || clip || ("speechSynthesis" in window && speechSynthesis.speaking)) return;
+  const c = calloutFor(m), cur = callouts.cur;
+  if (!c) return;
+  const busy = (cur && a < cur.end) || a - callouts.lastA < CALL_GAP_S;
+  if (busy && !(cur && c.pri > cur.pri)) return;
+  const bufs = c.keys.filter(Boolean).map(key => calloutBuf(lang(), c.tone, key));
+  if (!bufs.length || bufs.some(b => !b)) return;  // a missing clip: say nothing rather than half a callout
+  stopCallout();
+  const entry = callouts.cur = { pri: c.pri, end: a + 1.5, srcs: [] }, gen = live.gen;  // end is a guess until the clips are decoded
+  callouts.lastA = a;
+  if (c.name) callouts.nameT = m.t;
+  Promise.all(bufs).then(bs => {
+    if (callouts.cur !== entry || live.gen !== gen || !live.ws || bs.some(b => !b)) return;
+    let x = Math.max(a, ctx.currentTime);
+    duck.gain.setTargetAtTime(0.5, x, 0.05);
+    bs.forEach((b, i) => {
+      const s = ctx.createBufferSource(); s.buffer = b.buf; s.connect(voiceBus); s.start(x, b.from, b.len); entry.srcs.push(s);
+      x += b.len + (i === 0 && c.name ? 0.25 : 0.08);  // "Okafor... shot!": a beat after the name
+    });
+    entry.end = x;
+    duck.gain.setTargetAtTime(1, x, 0.15);
+  });
+}
+function stopCallout() {
+  const c = callouts.cur; callouts.cur = null;
+  if (!c || !ctx) return;
+  c.srcs.forEach(s => { try { s.stop(); } catch (e) {} });
+  duck.gain.cancelScheduledValues(ctx.currentTime); duck.gain.setTargetAtTime(1, ctx.currentTime, 0.08);
+}
 
 /* ---------------- sound tour ---------------- */
 // Before the first start: each step shows a caption, plays its pre-generated voice line (device voice if the clip is missing), then
@@ -1062,6 +1142,7 @@ $("blindBtn").addEventListener("click", e => {
   e.currentTarget.setAttribute("aria-pressed", String(on)); $("blind").hidden = !on;
 });
 ["L_ball", "L_press", "L_crowd", "L_cue"].forEach(id => $(id).addEventListener("change", applyLayers));
+$("L_callout").addEventListener("change", () => { if (!$("L_callout").checked) stopCallout(); });
 $("L_voice").addEventListener("change", () => { if (!$("L_voice").checked) stopSpeech(); syncLiveRegions(); });
 // While the app speaks (Narration layer on, or the tour), the caption and recap must not also be announced by the screen reader:
 // both voices talked at once. With the Narration layer off, the screen reader reads them instead.
@@ -1097,6 +1178,7 @@ function applyMode() {
   document.querySelectorAll("#modes button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
   const eyes = mode === "eyes_free";  // eyes-free hides the pitch; the other modes leave the choice to the "close my eyes" button
   $("blindBtn").setAttribute("aria-pressed", String(eyes)); $("blind").hidden = !eyes;
+  $("L_callout").checked = mode !== "analyst";  // the Analyst reads the log; the fan modes hear names and restarts
 }
 function applyI18n() {
   document.documentElement.lang = uiLang;
@@ -1116,7 +1198,7 @@ function applyI18n() {
 // Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
 $("uiLangSel").addEventListener("change", e => { uiLang = e.target.value; store.set("htg.lang", uiLang); applyI18n(); });
 document.querySelectorAll("#commLang button").forEach(b => b.addEventListener("click", () => {
-  commLang = b.dataset.lang; store.set("htg.commentary", commLang); applyI18n();
+  commLang = b.dataset.lang; store.set("htg.commentary", commLang); applyI18n(); preloadCallouts();
 }));
 document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
   mode = b.dataset.mode; store.set("htg.mode", mode); applyMode(); sendMode();

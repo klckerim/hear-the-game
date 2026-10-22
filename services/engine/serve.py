@@ -5,6 +5,7 @@
 GET /         -> web/live.html     GET /healthz -> ok     WS /ws?chapter=first_goal -> messages as in `run_local`;
 `hello` adds `window` [start, end] (match seconds the session plays, never past the end of the match).
 GET /tour/tour.json, /tour/<step>_<lang>.mp3 -> the sound tour's text table and pre-generated voice lines.
+GET /callouts/callouts.json, /callouts/<lang>_<tone>_<id>.mp3 -> the callout clip table and clips (`htg/speech/callouts.py`).
 Each listener gets its own pipeline and replay clock, starting at the chosen chapter (unknown or missing -> the default);
 the Director mode and favourite club are set per listener with `set_mode` and `set_favourite`.
 {"type": "recap_request", "since_min": optional} -> a `recap` message ("What did I miss?"; default the last 10 minutes), and at the
@@ -47,6 +48,8 @@ CLIENT = ROOT / "web" / "live.html"
 TOUR_TEXT = ROOT / "web" / "tour.json"
 TOUR_AUDIO = ROOT / "data" / "cache" / "tour"
 TOUR_CLIP = re.compile(r"/tour/([a-z_]+_(?:en|tr)\.mp3)")
+CALLOUT_AUDIO = ROOT / "data" / "cache" / "callouts"
+CALLOUT_FILE = re.compile(r"/callouts/((?:en|tr)_[a-z0-9_]+\.mp3|callouts\.json)")
 # Home-screen icon (iOS asks for the PNG), favicon, and the manifest + icons Chrome needs for its install prompt
 ICONS = {"/apple-touch-icon.png": "image/png", "/icon.svg": "image/svg+xml", "/icon-192.png": "image/png", "/icon-512.png": "image/png",
          "/manifest.webmanifest": "application/manifest+json"}
@@ -82,6 +85,9 @@ def process_request(connection, request):  # noqa: ANN001 - websockets hook; ret
         return http_response(HTTPStatus.OK, (ROOT / "web" / path[1:]).read_bytes(), ICONS[path])
     if (m := TOUR_CLIP.fullmatch(path)) and (TOUR_AUDIO / m.group(1)).exists():
         return http_response(HTTPStatus.OK, (TOUR_AUDIO / m.group(1)).read_bytes(), "audio/mpeg")
+    if (m := CALLOUT_FILE.fullmatch(path)) and (CALLOUT_AUDIO / m.group(1)).exists():
+        kind = "application/json" if m.group(1).endswith(".json") else "audio/mpeg"
+        return http_response(HTTPStatus.OK, (CALLOUT_AUDIO / m.group(1)).read_bytes(), kind)
     return http_response(HTTPStatus.NOT_FOUND, b"not found", "text/plain")
 
 

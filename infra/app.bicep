@@ -6,6 +6,12 @@ param speechEndpoint string
 param speechRegion string
 param speechResourceId string
 param minReplicas int
+// Male commentary voices (callouts, live commentator). MAI-Voice is in public preview; the fallback is used once on a synthesis error.
+// Changing voices is a parameter change. Copy names exactly from the voice list (dotted "ı" in Aydın).
+param commentaryVoiceEn string = 'en-US-Ethan:MAI-Voice-2.1-Flash'
+param commentaryVoiceTr string = 'tr-TR-Aydın:MAI-Voice-2-Flash'
+param commentaryFallbackEn string = 'en-US-GuyNeural'
+param commentaryFallbackTr string = 'tr-TR-AhmetNeural'
 
 var token = uniqueString(resourceGroup().id)
 
@@ -85,6 +91,10 @@ resource engine 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'SPEECH_ENDPOINT', value: speechEndpoint }
           { name: 'SPEECH_REGION', value: speechRegion }
           { name: 'SPEECH_RESOURCE_ID', value: speechResourceId }
+          { name: 'SPEECH_VOICE_COMMENTARY_EN', value: commentaryVoiceEn }
+          { name: 'SPEECH_VOICE_COMMENTARY_TR', value: commentaryVoiceTr }
+          { name: 'SPEECH_VOICE_COMMENTARY_FALLBACK_EN', value: commentaryFallbackEn }
+          { name: 'SPEECH_VOICE_COMMENTARY_FALLBACK_TR', value: commentaryFallbackTr }
           { name: 'AZURE_CLIENT_ID', value: identity.properties.clientId }
           { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: insights.properties.ConnectionString }
         ]
