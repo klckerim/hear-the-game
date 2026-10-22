@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 night (Features C code done: evidence timeline + Analyst stats; owner to deploy and check). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 night (Features C deployed: evidence timeline + Analyst stats; owner check and screenshots open). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -205,8 +205,11 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   and equality with `get_stats`. 80 tests pass. Checked in headless Chrome at 1280 and 375 px (casual, analyst, TR UI), no console errors.
 - **MCP (part 3): not done**, gated on parts 1-2 being deployed. Fact keys in the Why card are the raw `claim_facts` names in both
   languages (e.g. "share now pct").
-- **Owner, open:** `azd deploy`; check timeline + Why card at 1280 px and phone width (three Insights, one goal), switch to Analyst
-  and back; screenshots `docs/img/timeline.png`, `docs/img/analyst.png` (README has a placeholder comment).
+- Timeline window ends at full time (`meta.duration_s`): Late drama shows 76'-90', not 91'. Two layout tries (Why card above the
+  caption with a height-capped pitch; Analyst panels moved up) were reverted at the owner's request.
+- **Deployed** by the owner (`azd deploy`, 2026-10-22). **Owner, open:** check timeline + Why card at 1280 px and phone width (three
+  Insights, one goal), switch to Analyst and back; screenshots `docs/img/timeline.png`, `docs/img/analyst.png` later (README has a
+  placeholder comment).
 
 - Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
   the Foundry evaluation run, the App Insights metrics chart (htg.speech.resolved by source).
