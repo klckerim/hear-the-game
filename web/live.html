@@ -185,6 +185,7 @@ ol.log li { display: grid; grid-template-columns: 46px 10px minmax(0, 1fr); gap:
 ol.log time { font-family: var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 ol.log .fav { color: var(--amber); font-size: 11px; margin-left: 4px; }
 ol.log .empty { color: var(--muted); display: block; }
+ol.log li > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* one line each: narration is in full in the caption */
 .note { font-size: 12px; color: var(--muted); margin: 0; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; padding: 6px 12px; background: transparent; font-size: 13px; }
@@ -294,12 +295,6 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <p class="note" id="voiceNote"></p>
       </div>
 
-      <div class="panel">
-        <h2 data-i18n="recapTitle"></h2>
-        <button id="recapBtn" type="button" data-i18n="recapBtn"></button>
-        <ol class="recap" id="recap" aria-live="polite"></ol>
-      </div>
-
       <div class="panel analyst-only" aria-live="off">
         <h2 data-i18n="nowTitle"></h2>
         <div class="meter"><span data-i18n="danger"></span><span class="bar"><span class="fill" id="mDanger" style="background: var(--amber)"></span></span><span class="val" id="vDanger">0.00</span></div>
@@ -321,6 +316,12 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
           <tbody id="statsBody"></tbody>
         </table>
         <p class="note" id="statsNote" data-i18n="statsNote"></p>
+      </div>
+
+      <div class="panel">
+        <h2 data-i18n="recapTitle"></h2>
+        <button id="recapBtn" type="button" data-i18n="recapBtn"></button>
+        <ol class="recap" id="recap" aria-live="polite"></ol>
       </div>
 
       <div class="panel">
@@ -669,7 +670,7 @@ function renderLog() {
   for (const e of live.log) {
     const li = document.createElement("li"), tm = document.createElement("time"), dot = document.createElement("span"), tx = document.createElement("span");
     tm.textContent = clock(e.t); dot.className = "dot"; dot.style.cssText = `background:${e.team ? COLOR[live.teams[e.team].color] : "var(--muted)"};width:8px;height:8px`;
-    tx.textContent = e.label; li.append(tm, dot, tx); ol.append(li);
+    tx.textContent = tx.title = e.label; li.append(tm, dot, tx); ol.append(li);
   }
 }
 function renderRecap() {
