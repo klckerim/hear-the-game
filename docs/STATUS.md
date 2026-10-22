@@ -233,7 +233,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   starts; ducks the match bed to 0.5. Clip silence is trimmed in the client. Layer toggle "Callouts", on in Casual / Audio only,
   off in Analyst. Checked in headless Chrome (first-goal chapter, ~4 min): 13 callouts incl. "Goal! Baptiste", no console errors.
   **Deviations:** no "recovered" word (ball recoveries are not cues; nothing would say it); the shot callout says the outcome
-  itself, because a separate "saved!" 0.5 s later would be dropped by the one-at-a-time rule. **Owner, open:** listen (EN, then TR).
+  itself, because a separate "saved!" 0.5 s later would be dropped by the one-at-a-time rule. Owner listened in Chrome (2026-10-23): part 1 closed.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
