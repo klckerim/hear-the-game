@@ -248,6 +248,11 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   jump (timeline, score from the warm-up, Why card, log, recap history); the status line (read aloud) says "next moment from 83'".
   Checked in headless Chrome: 19' -> 22' -> 23' -> 36' -> 45' -> 53' and 76' -> ... -> 86' (button disabled), scores right, no
   console errors. **Deploy point 1 reached (parts 1-3): owner runs `azd deploy` and listens.**
+  Follow-up: the Callouts toggle keeps the listener's choice per group (fan modes / Analyst) instead of resetting on a mode change.
+- **Part 4, next:** not started. Decisions with the owner (2026-10-23) are at the top of part 4 in the task file: live generation
+  with a 20-30 s delay (cache only as fallback, no pre-generation), a match-time timeline instead of a FIFO, one sequential
+  generator per stretch that skips to the newest segment on a backlog, server-side late drop, client priority goal > recap >
+  narration > commentator > callout. Estimate 3-5 h; riskiest piece is the client delay.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |

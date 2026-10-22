@@ -74,6 +74,25 @@ cache misses go to Foundry as usual. Keep chapters as they are. The jump starts 
 card and "Catch me up" history must reset or carry over consistently (no markers from the old window on the new axis).
 
 ## 4. Live commentator (LLM, ~1 day)
+**Decisions with the owner (2026-10-23), these win over the text below where they differ:**
+- **Live is the primary path; no pre-generation of the commentary.** The product claim is "live data -> natural commentary", and
+  the jury opens the app at any time, unattended. Every session generates its lines live; a 20-30 s broadcast delay is normal
+  and is still called "live" (as on TV). The cache is only a safety net: when a live line is late or Foundry / MAI-Voice fails,
+  play a verified line cached for that segment from an earlier session, else callouts only. Sound never waits, the demo never
+  crashes. The caption tag shows "live · 2.1 s" or "fallback" so liveness is visible; telemetry and `eval/results/commentary.md`
+  report latency p50/p95 vs the budget, late drops and fallback use. (This replaces "pre-generate the commentator lines for the
+  three chapter windows" in 4.1.)
+- **Ordering = a timeline by match time, not a FIFO by arrival.** Each line carries `t` = segment end + `offset_s`; the client
+  puts it in `live.due` with every other message and plays it when the delayed play clock reaches `t`.
+- **One generator per stretch, sequential:** facts + last 3 lines -> Foundry -> Verifier -> TTS -> send, then the next segment
+  (the "last 3 lines" context needs order; segments ~5-10 s, model + TTS ~2-4 s). If a backlog builds, skip to the newest
+  finished segment and count the skipped ones (the commentator never lags behind; callouts fill the gap). Shared by all
+  listeners of the same stretch (lock); later listeners get it from the cache.
+- **Deadline on the server:** a line ready later than `play time - 3 s` is dropped and counted, never sent.
+- **One voice at a time on the client, by priority:** goal line (cuts anything) > half-time / full-time recap > tactical
+  narration > commentator line > callout. A commentator line whose slot is taken waits a few seconds, then is dropped as stale;
+  callouts yield to it.
+
 1. **Broadcast delay.** In Casual and Audio-only the client plays everything (sound, callouts, narration, commentary) 20 s behind
    the server stream; Analyst keeps today's 300 ms. Chosen at start, shown as "Live commentary · 20 s delay". This is what lets the
    commentator be late without being out of sync. Everything drawn (ball, timeline playhead, markers, Why card, stats, clock)
