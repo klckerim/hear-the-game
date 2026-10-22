@@ -559,7 +559,7 @@ function resetLive() {
   $("tlInner").querySelectorAll(".mk").forEach(e => e.remove()); renderAxis(); renderWhy(); renderStats();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
-  Object.assign(callouts, { cur: null, lastA: -99, nameT: -99 });
+  Object.assign(callouts, { cur: null, lastA: -99, nameT: -99, held: 0 });
 }
 
 function onMessage(m) {
@@ -889,6 +889,13 @@ async function say(m, prefix) {
   $("captionMine").hidden = !(club && m.team === club);
   const finish = () => { duckTo(1); setTimeout(() => { $("captionTag").classList.add("idle"); $("captionMine").hidden = true; }, 400); };
   if (!$("L_voice").checked) return;
+  // A callout already under way finishes first (at most ~2 s; "Goal! Rossi!", then the sentence): cutting the commentator off
+  // mid-name sounded broken. New callouts wait while the sentence is pending.
+  const wait = callouts.cur ? Math.min(3, callouts.cur.end - ctx.currentTime) : 0, gen = live.gen;
+  if (wait > 0) {
+    callouts.held++; await new Promise(r => setTimeout(r, wait * 1000 + 150)); callouts.held = Math.max(0, callouts.held - 1);
+    if (live.gen !== gen && !prefix) return;  // the session ended or jumped meanwhile (recaps still play)
+  }
   stopCallout(); duckTo(0.3);
   const buf = await ((m.buf && m.buf[l]) || decodeClip(m, l));
   if (buf && ctx) {  // Azure clip from the server
@@ -912,10 +919,10 @@ function stopSpeech() { stopClip(); stopCallout(); if ("speechSynthesis" in wind
 // Short clips in the commentary voice (htg/speech/callouts.py), strung together per event: "Okafor... shot... saved!", "Throw-in,
 // Northport", "Foul... yellow card, Silva", and the passer's name in the final third (at most one name every 3 s of match time).
 // One at a time and at least 2 s apart; a higher priority cuts a lower one off. Narration, recaps and the tour come first: a callout
-// is skipped while a sentence plays and is cut off when one starts. Commentary language; on in Casual and Audio only.
+// is skipped while a sentence plays, and a sentence waits for the callout under way to finish. Commentary language; on in Casual and Audio only.
 const CALL_PRI = { goal: 9, shot: 8, save: 7, card: 6, foul: 5, corner: 4, free_kick: 3, throw_in: 2, goal_kick: 1, out: 1, name: 0 };
 const CALL_GAP_S = 2, NAME_EVERY_S = 3, SHOT_END = { saved: "saved", blocked: "blocked", off_target: "wide" };
-const callouts = { clips: null, bufs: {}, cur: null, lastA: -99, nameT: -99 };
+const callouts = { clips: null, bufs: {}, cur: null, lastA: -99, nameT: -99, held: 0 };  // held: sentences waiting for a callout
 if (location.protocol.startsWith("http")) {
   fetch("callouts/callouts.json").then(r => r.ok ? r.json() : null).then(j => { callouts.clips = j && j.clips; preloadCallouts(); }).catch(() => {});
 }
@@ -955,7 +962,7 @@ function calloutFor(m) {
   return null;
 }
 function callout(m, a) {
-  if (!$("L_callout").checked || !callouts.clips || !live.teams || tour.on || clip || ("speechSynthesis" in window && speechSynthesis.speaking)) return;
+  if (!$("L_callout").checked || !callouts.clips || !live.teams || tour.on || clip || callouts.held || ("speechSynthesis" in window && speechSynthesis.speaking)) return;
   const c = calloutFor(m), cur = callouts.cur;
   if (!c) return;
   const busy = (cur && a < cur.end) || a - callouts.lastA < CALL_GAP_S;
