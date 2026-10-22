@@ -168,6 +168,11 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   works; current `htg.recap` spans seen in App Insights (README updated). Nested model-call spans under it were not reported: do
   not claim them.
 - Owner listened to the tour in TR and EN (2026-10-22). `half_time` chapter: **no** (owner decided).
+- Full time was invisible (last ball frame 89:59.9, `period_end` never sent): `period_end` is now an `event_cue` with `period`;
+  half-time two short whistles, full time two short + one long, clock "90:00 · MS/FT". **Needs `azd deploy`.** No added time in the
+  synthetic data; adding it would change the generator and every measured number, so not done.
+- A session stops after 15 match-minutes (`END_AFTER_S`; "First goal" ends at 33:59) with no notice to the listener. Owner: keep it
+  for now. Possible small fix later: a `session_end` message and a caption "demo chapter ended, pick another".
 - **Owner, still open:** listen to the full-time recap (locally: `HTG_ENV=azure python -m services.engine.serve --speed 10`, pick
   club and mode first, chapter Late drama; it plays at 90:00, about 1.5 min in). If a sentence sounds wrong, delete
   `data/cache/recap/*.json` and rerun `htg.recap.pregen`.
