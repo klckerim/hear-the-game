@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 (Day 6 closed; prompt-4 clips listened to by the owner; left for later: trace check + screenshots, listening test). Next: Day 7 (video). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 evening (features A: rules compliance, clubs, fan/analyst narration, chapters; task `docs/tasks/2026-10-22-features-a.md`). Next: owner listens, then recap agent / sound tour / timeline / analyst panel (next task), Day 7 video. Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -102,11 +102,38 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   `metrics.png` (README does not embed them yet: add when the files exist); `htg.speech.dropped_stale` count (both deferred to a later session);
   listening test (README says not run). If the trace content shows, README may drop "configured" from the tracing row.
 
+## Features A (2026-10-22 evening; task: `docs/tasks/2026-10-22-features-a.md`)
+- Compliance: Turkish `docs/design.md` deleted (rule 4.9: English only); `docs/data.md` credits StatsBomb with the logo
+  (`docs/img/statsbomb-logo.png`, added by the owner from the Media Pack). README section
+  "Overlay feed (machine-readable)" with real seed-7 `insight` + `speech` messages; no integration claimed.
+- Clubs: **Northport** (HOME, red) and **Valemont** (AWAY, blue), same in EN and TR (web search: no professional club by either name).
+  Seeds 1-3 and 7 regenerated: `events.jsonl`, `ball.parquet`, `physical.jsonl`, `truth.json` byte-identical, only `meta.json`
+  changed; a test pins the seed-1 events hash. Local seeds 4-30 regenerated too (git-ignored). Template EN possessive fixed
+  ("Valemont's"). Historical results files keep the old names.
+- Favourite club (client, `localStorage`): goal for = brighter, longer crowd swell; against = short muted crowd, no fanfare;
+  "your team" text in the score bar and as a caption tag; `set_favourite` -> Director +1 priority (`decide(favourite=)`, tested).
+  Narration text stays neutral (no cache multiplication).
+- Personas: `persona_for(mode)` = analyst for Analyst, fan otherwise; in the `speech` message, the fingerprint and the prompt
+  (`PROMPT_VERSION = 5`, one persona block each, fan/analyst EN+TR example per Insight kind). Verifier unchanged.
+  `eval.narration --persona`: fan vs analyst numbers in `eval/results/narration.md` (fan 0.30 numbers per EN sentence vs 1.08).
+  **Found:** colour-named fixture teams ("the Whites are feeling it") tripped Azure's content filter on 3/50 fan prompts; fixture
+  is now Eastbrook/Westmere. Fan drafts exaggerated; fan block tightened. Invented colour without numbers/names remains possible.
+- Chapters (`serve.CHAPTERS`, checked against events: goals 22:38, 79:11, 87:14): kickoff 0', first_goal 19' (default), late 76'.
+  `/ws?chapter=`, unknown -> default; all three warmed at start; `hello` carries `score` and `seed` (test: late starts 0-1).
+  `--start-minute` / `HTG_START_MINUTE` removed from `serve` (run_local keeps it).
+- Small: Space starts/stops (not in select/input), "Space" hint by the button; status text "Demo match · seed 7".
+- Pregen (all chapters x modes x favourite clubs): 36 (chapter, persona, Insight) rows, 34 narrations, 68 clips, **2.3 MB**, all
+  first-pass `llm`; 26 stale narration files and 58 stale clips deleted. 3 sentences regenerated after reading (see narration.md).
+  All sentences: `eval/results/demo_sentences.md`.
+- **Owner, open:** read `demo_sentences.md`, listen to 5 clips per persona and language, check how the Turkish voice says
+  "Northport" and "Valemont" (add `ALIASES` in `htg/speech/azure.py` if needed, then regenerate); check the deployed
+  demo. Listening test protocol now runs locally from minute 13 (`docs/listening-test.md`).
+
 ## Day 7 needs (video)
 - Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
   the Foundry evaluation run, the App Insights metrics chart (htg.speech.resolved by source).
-- Demo minute: seed 7 from minute 13; the goal (Baptiste, Blues) comes at 22:36, about 9.5 minutes in. For a short video, either cut, or
-  start the server at a later minute (would need a new pregen window check).
+- Demo start: chapters (0', 19', 76'). First goal (Baptiste, Valemont) at 22:38, 3.6 minutes into the default chapter; Late drama
+  has two goals (79', 87').
 - Numbers to show: detector recall/precision (seeds 11-30, flank precision 11% stated), narration p50 1.58 s / p95 3.60 s (was 10.7 / 17.4),
   Verifier first pass 100% with 0 real rejections plus the samples finding, groundedness 4.99, deployed latency after the fix.
 

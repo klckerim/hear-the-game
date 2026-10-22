@@ -5,7 +5,7 @@ your own device, plus short, verified narration in English or Turkish, so blind 
 look at a screen) can follow the shape of a match as it happens.
 
 > Built for the Microsoft × Premier League **Inside the Game** hackathon (October 2026), category **Best Use of Microsoft Foundry**.
-> All teams, players and matches are fictional and synthetic.
+> All teams, players and matches are fictional and synthetic. The demo match is **Northport** (red) v **Valemont** (blue).
 
 ## The problem
 
@@ -24,6 +24,7 @@ The browser synthesises all match sound itself (Web Audio) from small state pack
 | **Heartbeat** (low thump) | Pressure on the ball carrier: starts above a threshold, beats faster and louder as pressure rises. |
 | **Crowd** | Filtered noise whose level follows danger. |
 | **Event sounds** | Pass: soft click on the ball's side. Shot: rising whoosh. Save: thud. Out or foul: short whistle. Kick-off: long whistle. Goal: crowd swell, a rising four-note figure in the scoring team's timbre, whistle. |
+| **Favourite club** | Pick Northport or Valemont. Your club's goal gets a brighter, longer crowd swell; a goal against you is short and muted, with no fanfare. The score bar marks "your team" in text, the caption tags narration about your club, and the Director moves your club's Insights one step up the queue. |
 | **Favourite player** | Pick a player; a two-note chime plays on the ball's side when they touch it (at most every 3 s). |
 | **Narration** | One short sentence (Azure neural voice, EN or TR) when something tactical is detected. Other sound dips to 30% under the voice. The caption shows **verified** (model text that passed the Verifier) or **template** (fallback). |
 
@@ -31,6 +32,15 @@ The browser synthesises all match sound itself (Web Audio) from small state pack
 (danger ≥ 0.15), never the same kind of Insight for the same team within 5 minutes, one sentence at a time, and only after a
 mode-dependent silence (Audio only 10 s, Analyst 15 s, Casual 25 s). Moments of danger are left to the sound: they are not
 narrated. **What did I miss?** reads the score and the last three sentences. Interface and narration are in **Turkish or English**.
+
+**Two narrators.** Casual and Audio only hear a **fan**: radio excitement, at most one number, at most 16 words ("Northport are
+pressing noticeably harder now, and Valemont are under more pressure."). Analyst hears an **analyst**: the key numbers and the
+comparison ("Northport press harder: 39% of Valemont's play is under pressure in the last 5 minutes, 22% earlier on."). Both
+come from the same facts and pass the same Verifier.
+
+**Chapters.** The demo match (seed 7) starts where you choose: **Kick-off** (0'), **First goal** (19', the goal comes at 22:38) or
+**Late drama** (76', goals at 79' and 87'). Each session plays 15 match-minutes; the detectors are warmed up on everything before
+the start, so the score and the tactical baselines are already right. **Space** starts and stops listening.
 
 ## Architecture
 
@@ -68,12 +78,14 @@ that would arrive more than 8 s of match time late is dropped (goals excepted).
   Turkish percent signs or suffixes on numbers (the voice misreads them), or more than 25 words. A rejected draft goes back to the
   model once with the reasons; if it fails again, the deterministic **template** sentence is used. No unverified model text is spoken.
 - **Sound never waits.** Narration can fail completely and the match still sounds the same.
-- **Reproducible demo.** The demo match's narration (text + audio) is pre-generated and committed, so the demo does not depend on
-  live model latency. Same seed, same match, same sentences.
+- **Reproducible demo.** The demo match's narration (text + audio, both personas, every chapter) is pre-generated and committed,
+  so the demo does not depend on live model latency. Same seed, same match, same sentences: all 36 are listed in
+  [`eval/results/demo_sentences.md`](eval/results/demo_sentences.md).
 
 **What the Verifier cannot do**, and how we found out: it checks numbers, names and wording, not meaning. Reading 100 model
 sentences by hand (prompt 2) found an `off_target` read out in 13 of 200 sentences, invented shot locations ("from the edge"), and
-one demo goal where the Turkish sentence credited the score to the wrong team ("skor 0-1 Kırmızılar lehine" for a Blues goal). Each
+one demo goal where the Turkish sentence credited the score to the wrong team ("skor 0-1 Kırmızılar lehine" for an away goal,
+under the team names used then). Each
 became a rule: code values are rejected, the prompt says to use only the facts, and goal facts no longer contain the opponent's
 name, so naming the wrong team fails the name check. Invented details without a number or a name are still not caught
 deterministically. Details: [`eval/results/narration.md`](eval/results/narration.md).
@@ -102,6 +114,9 @@ not the correctness of the numbers in it: each sentence still states shares that
 | Fell back to the template | 0% | 0% |
 
 - Real Verifier rejections in this run: **0 of 200** sentences. The rules above came from reading samples, not from rejections.
+- **Fan vs analyst** (prompt 5, 50 Insights each): first pass EN/TR fan 100%/96%, analyst 98%/100%, fallback 0%; numbers per
+  sentence fan 0.30 vs analyst 1.08 (EN); p50 1.71 s vs 1.84 s. The first fan run hit Azure's content filter on 3 of 50 prompts
+  because the few-shot example used colour-named teams; the fixture now uses club names (0 errors since).
 - Verifier mutation test (synthetic errors injected into template sentences): **436 of 436 caught**; this shows the checks fire,
   not how often a model errs.
 - Narration latency per Insight (EN + TR in one call): **p50 1.58 s / p95 3.60 s**, down from 10.73 s / 17.42 s before setting
@@ -131,6 +146,35 @@ The first 10-listener run showed a 13 s start and a 15.8 s stall: every listener
 server now warms up once and copies the result per listener; the table shows the run after that fix. Client audio output latency is
 not measured.
 
+## Overlay feed (machine-readable)
+
+Everything the browser receives is timed JSON over one WebSocket (`/ws?chapter=first_goal`), so the same feed could drive other
+outputs, for example a broadcast graphics engine rendering overlays. No such integration exists; this is the format it would read.
+Every message carries match time `t` (seconds); schemas for the payloads are in [`schemas/`](schemas/).
+
+| message | content |
+|---|---|
+| `hello` | match id, seed, teams (names EN/TR, colour, outfield players), score at the chapter start, mode |
+| `state` | 10 Hz state packets: ball position, team, danger (xT), pressure, pan, tempo ([`state.schema.json`](schemas/state.schema.json)) |
+| `event_cue` | pass, shot, save, goal, whistle, with team, player and event `seq` |
+| `insight` | a detected tactical story: `claim_facts` (every number in it) and `evidence` (event `seq`s) ([`insight.schema.json`](schemas/insight.schema.json)) |
+| `speech` | the Insight told now: EN + TR text, `source` (`llm` verified or `template`), persona, MP3 per language |
+
+Real messages from seed 7, the first goal (audio trimmed):
+
+```json
+{"type": "insight", "insight": {"insight_id": "synth_0007:goal:A09:1358", "match_id": "synth_0007", "t": 1358.39, "type": "goal",
+ "team": "AWAY", "player_id": "A09", "claim_facts": {"team_en": "Valemont", "team_tr": "Valemont", "player": "Baptiste",
+ "home_score": 0, "away_score": 1}, "evidence": [561, 562], "confidence": 1.0, "priority": 5, "expires_at": 1418.39}}
+
+{"type": "speech", "t": 1358.4, "insight_id": "synth_0007:goal:A09:1358", "priority": 5, "team": "AWAY", "persona": "fan",
+ "evidence": [561, 562], "text": {"en": "Goal! Baptiste gives Valemont the lead, and it's 0-1!",
+ "tr": "Gol! Baptiste Valemont için ağları sarsıyor, skor 0-1!"}, "source": {"en": "llm", "tr": "llm"},
+ "audio": {"en": "//NkxAAAAANI…", "tr": "//NkxAAaC1IE…"}, "duration_s": {"en": 4.2, "tr": 5.3}}
+```
+
+The listener sends two messages back: `{"type": "set_mode", "mode": "analyst"}` and `{"type": "set_favourite", "team": "HOME"}`.
+
 ## Microsoft stack
 
 | Service | What it does here | Where |
@@ -159,7 +203,8 @@ through **Web PubSub**, an Insight log in **Cosmos DB**, a shared clip cache in 
 
 - **Synthetic data only.** The matches are generated (calibrated on real open data, see [`docs/data.md`](docs/data.md)); no real
   feed has been connected.
-- **The demo narration is pre-generated.** A live cache miss (for example in Analyst mode) calls Foundry and Speech within a 4 s
+- **The demo narration is pre-generated** for the three chapters, both personas and every favourite club. Changing mode in the
+  middle of a session can make the Director pick an Insight outside that set. A live cache miss calls Foundry and Speech within a 4 s
   deadline; at the measured p95 of 3.60 s for the text plus TTS, the slowest misses fall back to the template sentence.
 - **The flank detector** has 11% precision (see above).
 - **Detection delay** is minutes, not seconds (median 264-589 s): tactical trends need a window of play before they are real.
@@ -173,7 +218,7 @@ through **Web PubSub**, an Insight log in **Cosmos DB**, a shared clip cache in 
 python3 -m venv .venv && source .venv/bin/activate        # Python 3.11+
 pip install -e ".[dev]"
 ruff check . && pytest
-python -m services.engine.serve --seed 7 --start-minute 13 --port 8000   # open http://localhost:8000
+python -m services.engine.serve --seed 7 --port 8000                      # open http://localhost:8000, pick a chapter
 ```
 
 Without Azure everything still runs: narration uses the template sentences and the browser's own voice.
@@ -182,7 +227,8 @@ Without Azure everything still runs: narration uses the template sentences and t
 the Foundry project endpoint, model and Speech endpoint, then run with `HTG_ENV=azure`.
 
 ```bash
-HTG_ENV=azure python -m htg.narration.pregen --seed 7                        # pre-generate the demo narration + clips
+HTG_ENV=azure python -m htg.narration.pregen --seed 7                        # demo narration + clips: every chapter, mode, club
+HTG_ENV=azure python -m eval.narration --limit 50 --persona fan --out /tmp/fan.md # one narration persona
 HTG_ENV=azure python -m eval.narration --seeds 11-30 --limit 100 --samples eval/results/narration_samples.jsonl
 python -m eval.foundry_eval                                                    # Foundry evaluation of those samples
 python -m eval.latency --url wss://<your-app>/ws --sessions 10 --minutes 3      # deployed latency
