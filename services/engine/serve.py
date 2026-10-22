@@ -2,7 +2,8 @@
 
     python -m services.engine.serve --seed 7 --port 8000
 
-GET /         -> web/live.html     GET /healthz -> ok     WS /ws?chapter=first_goal -> messages as in `run_local`.
+GET /         -> web/live.html     GET /healthz -> ok     WS /ws?chapter=first_goal -> messages as in `run_local`;
+`hello` adds `window` [start, end] (match seconds the session plays).
 GET /tour/tour.json, /tour/<step>_<lang>.mp3 -> the sound tour's text table and pre-generated voice lines.
 Each listener gets its own pipeline and replay clock, starting at the chosen chapter (unknown or missing -> the default);
 the Director mode and favourite club are set per listener with `set_mode` and `set_favourite`.
@@ -167,7 +168,7 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
         for msg in prefs:
             apply_listener_message(warm, msg)
         pipe = warm
-        await send(pipe.hello())
+        await send({**pipe.hello(), "window": [start_minute * 60.0, start_minute * 60.0 + END_AFTER_S]})  # the session's match time
         async for item in FileEventSource(match_dir, speed, start_minute):
             now = item.t
             if now - start_minute * 60.0 > END_AFTER_S:

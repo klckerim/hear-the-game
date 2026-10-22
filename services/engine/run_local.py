@@ -9,8 +9,11 @@ Insights +1 priority in the Director.
 Messages (JSON, one per WebSocket frame):
     hello      match info (teams with outfield players), score at the start, replay speed, mode (first message)
     state      batch of 10 Hz state packets, every ~200 ms of match time
-    event_cue  one sound cue (pass, shot, save, goal, whistle ..., period_end = half-time / full-time whistle), with the period
-    insight    a detected Insight (for the log)
+    event_cue  one sound cue (pass, shot, save, goal, whistle ..., period_end = half-time / full-time whistle), with the period;
+               shots and goals add x, y (where the shot was taken; global frame, as the client draws it), events that have them add
+               speed_mps and outcome, passes add length_m
+    insight    a detected Insight, its template text {en, tr}, evidence_points (one {seq, t, type, team, x, y} per evidence seq, max 30)
+               and zone (flank overload: the flank band the detector counted, {x: [lo, hi], y: [lo, hi]} in the global frame; else null)
     speech     the Insight the Director decided to tell now: team, persona, text, source ("llm" verified / "template") and base64 MP3 audio
                per language, duration_s per language. Resolved in the background (cache first, 4 s deadline), never blocks the replay.
 """
@@ -19,23 +22,38 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any
 
 from htg.adapters.local import FileEventSource, NoSpeech, TemplateNarrator, WebSocketBroadcaster
-from htg.engine.detectors import Detectors
+from htg.engine.detectors import Detectors, Params
 from htg.engine.director import SILENCE_S, decide
 from htg.engine.state import StateEngine
 from htg.env import load_env
 from htg.generate import OUT_DIR, generate
 from htg.narration.service import get_narrator, known_names, persona_for
 from htg.narration.templates import narrate
+from htg.pitch import LENGTH, WIDTH
 from htg.replay import Item, iter_items
 from services.engine.resolve import SpeechResolver, is_stale
 
 BATCH_FRAMES = 2  # 10 Hz frames per `state` message = 200 ms
 CUES = {"pass", "shot", "save", "goal", "out", "foul", "kickoff", "restart", "period_end"}
+MAX_POINTS = 30  # evidence points per insight message
+
+
+def evidence_zone(ins: dict, p: Params) -> dict | None:
+    """The pitch area an Insight is about, in the global frame: the flank band the detector counted. Other Insights have no zone;
+    their evidence points say enough. (Pressure has none: on seeds 1-10, 223 of 338 pressed actions were in the pressed team's
+    attacking half and 115 in its own, so a "pressed team's half" shade would contradict its own dots.)"""
+    if ins["type"] != "flank_overload":
+        return None
+    y0, y1 = (p.flank_high_y, WIDTH) if ins["claim_facts"]["side"] == "left" else (0.0, p.flank_low_y)  # attacking frame: left = high y
+    if ins["team"] == "AWAY":  # AWAY's attacking frame is the global one mirrored
+        y0, y1 = WIDTH - y1, WIDTH - y0
+    return {"x": [0.0, LENGTH], "y": [y0, y1]}
 
 
 class LivePipeline:
@@ -49,6 +67,8 @@ class LivePipeline:
         self.spoken: list[tuple[float, str, str | None]] = []
         self._batch: list[dict] = []
         self._last_pan = 0.0
+        self._points: dict[int, tuple] = {}  # seq -> (t, type, team, x, y, end x, end y) of every event with a position
+        self._last_shot: dict[str, dict] = {}  # team -> its last shot, for the goal cue's position and speed
 
     def hello(self) -> dict:
         teams = {k: {"name_en": v["name"]["en"], "name_tr": v["name"]["tr"], "color": v["color"]} for k, v in self.meta["teams"].items()}
@@ -64,18 +84,54 @@ class LivePipeline:
         if packets:
             self._last_pan = packets[-1]["pan"]
             self._batch += packets
-        if item.kind == "event" and item.data["type"] in CUES:
-            ev = item.data
-            out.append({"type": "event_cue", "t": ev["t"], "kind": ev["type"], "team": ev["team"], "seq": ev["seq"],
-                        "period": ev["period"], "player_id": ev.get("player_id"), "pan": self._last_pan})
+        if item.kind == "event":
+            self._remember(item.data)
+            if item.data["type"] in CUES:
+                out.append(self._cue(item.data))
         for ins in self.detectors.step(item, packets):
             self.queue.append(ins)
-            out.append({"type": "insight", "insight": ins})
+            out.append({"type": "insight", "insight": ins, "text": {"en": narrate(ins, "en"), "tr": narrate(ins, "tr")},
+                        "evidence_points": self.evidence_points(ins), "zone": evidence_zone(ins, self.detectors.p)})
         if packets:
             out += self._direct(item.t, packets[-1])
             if len(self._batch) >= BATCH_FRAMES:
                 out.insert(0, {"type": "state", "packets": self._batch})
                 self._batch = []
+        return out
+
+    def _remember(self, ev: dict) -> None:
+        if ev.get("start"):
+            end = ev.get("end") or ev["start"]
+            self._points[ev["seq"]] = (ev["t"], ev["type"], ev["team"], ev["start"]["x"], ev["start"]["y"], end["x"], end["y"])
+        if ev["type"] == "shot":
+            self._last_shot[ev["team"]] = ev
+
+    def _cue(self, ev: dict) -> dict:
+        cue = {"type": "event_cue", "t": ev["t"], "kind": ev["type"], "team": ev["team"], "seq": ev["seq"], "period": ev["period"],
+               "player_id": ev.get("player_id"), "pan": self._last_pan}
+        # A goal event sits on the goal line; the shot that scored says where it came from and how hard it was hit.
+        src = self._last_shot.get(ev["team"], ev) if ev["type"] == "goal" else ev
+        if ev["type"] in ("shot", "goal") and src.get("start"):
+            cue["x"], cue["y"] = src["start"]["x"], src["start"]["y"]
+        if src.get("speed_mps") is not None:
+            cue["speed_mps"] = src["speed_mps"]
+        if ev.get("outcome"):
+            cue["outcome"] = ev["outcome"]
+        if ev["type"] == "pass" and ev.get("start") and ev.get("end"):
+            cue["length_m"] = round(math.dist((ev["start"]["x"], ev["start"]["y"]), (ev["end"]["x"], ev["end"]["y"])), 1)
+        return cue
+
+    def evidence_points(self, ins: dict) -> list[dict]:
+        """Where the evidence happened: one point per evidence seq (the last MAX_POINTS), in the global frame the client draws.
+        A flank overload counts where passes ended, so its points are the pass ends; everything else uses the event's start."""
+        out = []
+        for seq in ins["evidence"][-MAX_POINTS:]:
+            if seq not in self._points:
+                continue
+            t, type_, team, x, y, ex, ey = self._points[seq]
+            if ins["type"] == "flank_overload":
+                x, y = ex, ey
+            out.append({"seq": seq, "t": t, "type": type_, "team": team, "x": x, "y": y})
         return out
 
     def _direct(self, now: float, state: dict) -> list[dict]:

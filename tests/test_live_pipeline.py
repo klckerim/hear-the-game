@@ -147,3 +147,56 @@ def test_resolver_uses_service_and_falls_back_on_timeout(synth_dir, tmp_path, mo
     assert local["text"] == sp["text"] and local["audio"]["en"] is None
     assert is_stale({"priority": 3, "t": 10}, 19) and not is_stale({"priority": 3, "t": 10}, 17)
     assert not is_stale({"priority": 5, "t": 10}, 99)
+
+
+def test_insight_evidence_points_match_their_events_and_stay_on_the_pitch(synth_dir):
+    events = {e["seq"]: e for e in map(json.loads, (synth_dir / "events.jsonl").open())}
+    insights = [m for m in run(synth_dir) if m["type"] == "insight"]
+    assert {m["insight"]["type"] for m in insights} >= {"goal", "chance", "pressure_shift"}
+    for m in insights:
+        ins, pts = m["insight"], m["evidence_points"]
+        assert m["text"]["en"] and m["text"]["tr"]
+        assert [p["seq"] for p in pts] == [s for s in ins["evidence"] if events[s].get("start")]
+        for p in pts:
+            ev = events[p["seq"]]
+            pos = ev["end"] if ins["type"] == "flank_overload" else ev["start"]
+            assert (p["t"], p["type"], p["team"], p["x"], p["y"]) == (ev["t"], ev["type"], ev["team"], pos["x"], pos["y"])
+            assert 0 <= p["x"] <= 105 and 0 <= p["y"] <= 68
+        if ins["type"] == "flank_overload":  # every counted pass ended inside the shaded band
+            assert all(m["zone"]["y"][0] <= p["y"] <= m["zone"]["y"][1] for p in pts)
+        assert (m["zone"] is None) == (ins["type"] != "flank_overload")
+
+
+def test_evidence_points_are_capped_at_30(synth_dir):
+    pipe = LivePipeline(json.loads((synth_dir / "meta.json").read_text()))
+    for item in iter_items(synth_dir):
+        pipe.feed(item)
+    seqs = [e["seq"] for e in map(json.loads, (synth_dir / "events.jsonl").open()) if e.get("start")][:40]
+    pts = pipe.evidence_points({"type": "tempo_change", "evidence": seqs})
+    assert [p["seq"] for p in pts] == seqs[-30:]
+
+
+def test_flank_zone_follows_the_attacking_frame():
+    from htg.engine.detectors import Params
+    from services.engine.run_local import evidence_zone
+
+    p = Params()
+    flank = lambda team, side: evidence_zone({"type": "flank_overload", "team": team, "claim_facts": {"side": side}}, p)["y"]  # noqa: E731
+    assert flank("HOME", "left") == [p.flank_high_y, 68.0] and flank("HOME", "right") == [0.0, p.flank_low_y]
+    assert flank("AWAY", "left") == [0.0, 68.0 - p.flank_high_y] and flank("AWAY", "right") == [68.0 - p.flank_low_y, 68.0]
+    assert evidence_zone({"type": "pressure_shift", "team": "HOME", "claim_facts": {}}, p) is None
+
+
+def test_shot_and_goal_cues_carry_where_the_shot_was_taken(synth_dir):
+    events = list(map(json.loads, (synth_dir / "events.jsonl").open()))
+    cues = [m for m in run(synth_dir) if m["type"] == "event_cue"]
+    shots = {e["seq"]: e for e in events if e["type"] == "shot"}
+    for c in cues:
+        if c["kind"] == "shot":
+            s = shots[c["seq"]]
+            assert (c["x"], c["y"], c["speed_mps"], c["outcome"]) == (s["start"]["x"], s["start"]["y"], s["speed_mps"], s["outcome"])
+        elif c["kind"] == "goal":
+            scorer = [s for s in shots.values() if s["team"] == c["team"] and s["seq"] < c["seq"]][-1]
+            assert scorer["outcome"] == "goal" and (c["x"], c["y"]) == (scorer["start"]["x"], scorer["start"]["y"])
+        elif c["kind"] == "pass" and "length_m" in c:
+            assert 0 < c["length_m"] < 130

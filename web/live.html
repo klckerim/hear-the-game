@@ -93,6 +93,50 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
   .score { font-size: 14px; padding: 2px 6px; }
   .clock { font-size: 13px; }
 }
+/* Evidence timeline: the session's 15 minutes. Top lane Insights (diamond, filled once spoken), bottom lane shots (small dot) and
+   goals (large ringed dot). Markers are buttons; selecting one highlights its evidence on the pitch and fills the Why card. */
+#timeline { display: grid; gap: 4px; }
+.tl-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 14px; font-size: 12px; color: var(--muted); }
+.tl-legend { display: flex; flex-wrap: wrap; gap: 2px 12px; }
+.tl-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.tl-legend i { display: inline-block; flex: none; background: var(--muted); }
+.tl-legend .ins { width: 8px; height: 8px; transform: rotate(45deg); }
+.tl-legend .shot { width: 7px; height: 7px; border-radius: 50%; }
+.tl-legend .goal { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--chalk); }
+.tl-track { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 0 12px; height: 56px; }
+.tl-inner { position: relative; height: 100%; }
+.tl-inner::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dashed var(--line); }
+.tl-past { position: absolute; left: -12px; top: 0; bottom: 0; width: 0; background: rgba(242, 179, 61, 0.07); }
+.tl-now { position: absolute; top: 4px; bottom: 4px; width: 2px; margin-left: -1px; background: var(--amber); left: 0; }
+.tl-axis { position: relative; height: 16px; margin: 0 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.tl-axis span { position: absolute; transform: translateX(-50%); }
+.tl .mk, .tl .mk[aria-pressed] { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; padding: 0; border: 0; border-radius: 50%;
+  background: none; display: grid; place-items: center; --c: var(--muted); }
+.tl .mk.ins { top: 28%; }
+.tl .mk.shot, .tl .mk.goal { top: 72%; }
+.tl .mk::before { content: ""; display: block; }
+.tl .mk.ins::before { width: 9px; height: 9px; transform: rotate(45deg); border: 2px solid var(--c); }
+.tl .mk.ins.spoken::before { background: var(--c); }
+.tl .mk.shot::before { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+.tl .mk.goal { z-index: 1; }
+.tl .mk.goal::before { width: 16px; height: 16px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 2px var(--chalk); }
+.tl .mk[aria-pressed="true"]::before { outline: 2px solid var(--amber); outline-offset: 2px; }
+.tl .mk.new::before { animation: ping 0.9s ease-out 3; }
+@keyframes ping { from { box-shadow: 0 0 0 0 var(--amber); } to { box-shadow: 0 0 0 9px rgba(242, 179, 61, 0); } }
+@media (prefers-reduced-motion: reduce) { .tl .mk.new::before { animation: none; outline: 2px solid var(--amber); } }
+.why { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: grid; gap: 6px; font-size: 13px; min-width: 0; }
+.why-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.why-head b { font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; }
+.why .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 1px 6px; border-radius: 3px; }
+.why .tag.dim { background: var(--line); color: var(--muted); }
+.why .tag[hidden], .why dl[hidden], .why small[hidden] { display: none; }
+.why p { margin: 0; }
+.why small { display: block; color: var(--muted); font-size: 12px; }
+.why dl { display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 0; font-family: var(--mono); font-size: 12px; }
+.why dl div { display: flex; gap: 6px; }
+.why dt { color: var(--muted); }
+.why dd { margin: 0; }
+body[data-mode="eyes_free"] .tl-only { display: none; }
 aside { display: grid; gap: 14px; min-width: 0; }
 .panel { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 12px; }
 .panel h2 { font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
@@ -179,9 +223,22 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <canvas id="pitch" data-i18n-aria="pitchAria"></canvas>
         <div class="blind" id="blind" hidden><p><span data-i18n="blindTitle"></span><small data-i18n="blindSub"></small></p></div>
       </div>
+      <div class="tl tl-only" id="timeline" role="group" aria-labelledby="tlTitle">
+        <div class="tl-head"><span id="tlTitle" data-i18n="tlTitle"></span>
+          <span class="tl-legend" aria-hidden="true"><span><i class="ins"></i><span data-i18n="tlLegendIns"></span></span><span><i class="shot"></i><span data-i18n="tlShot"></span></span><span><i class="goal"></i><span data-i18n="tlGoal"></span></span></span>
+        </div>
+        <div class="tl-track"><div class="tl-inner" id="tlInner"><div class="tl-past" id="tlPast"></div><div class="tl-now" id="tlNow" hidden></div></div></div>
+        <div class="tl-axis" id="tlAxis" aria-hidden="true"></div>
+      </div>
       <div class="caption" id="caption" aria-live="polite">
         <span class="tags"><span class="tag idle" id="captionTag" data-i18n="tagIdle"></span><span class="tag mine" id="captionMine" data-i18n="yourTeam" hidden></span></span>
         <p id="captionText"><span id="captionMain" data-i18n="captionIdle"></span><small id="captionSub" hidden></small></p>
+      </div>
+      <div class="why tl-only" id="why" aria-live="polite">
+        <div class="why-head"><b id="whyTitle"></b><span class="tag" id="whyTag" hidden></span></div>
+        <p><span id="whyMain"></span><small id="whySub" hidden></small></p>
+        <dl id="whyFacts" hidden></dl>
+        <small id="whyEvidence" hidden></small>
       </div>
     </section>
 
@@ -281,7 +338,13 @@ const T = {
     spaceKey: "Boşluk", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
     off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Demo maçı · seed", lost: "Bağlantı koptu.",
     fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
-    voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili", install: "Uygulamayı yükle" },
+    voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili", install: "Uygulamayı yükle",
+    tlTitle: "Zaman çizelgesi · bir işarete dokun, kanıtını gör", tlLegendIns: "Tespit (dolu = anlatıldı)", tlInsight: "Tespit", tlShot: "Şut", tlGoal: "Gol",
+    whyTitle: "Neden?", whyIdle: "Zaman çizelgesinde bir işaret seç: dayandığı olaylar sahada parlar, sayıları burada görünür.",
+    evidence: "Kanıt", events: "olay", spoken: "anlatıldı", notSpoken: "anlatılmadı", kmh: "km/s",
+    ins_pressure_shift: "{team} baskıyı artırdı", ins_tempo_change: "{team} oyunu yavaşlattı", ins_flank_overload: "{team} {side} kanada yüklendi",
+    ins_physical_drop: "{player} yoruldu", ins_chance: "{team} için pozisyon",
+    outcome: { saved: "kurtarıldı", off_target: "isabetsiz", blocked: "engellendi", goal: "gol" } },
   en: { sub: "The server sends the match as data; your device makes the sound. Best with headphones.", matchView: "Match view",
     pitchAria: "Ball position on the pitch", home: "Home", away: "Away", blindTitle: "Pitch hidden",
     blindSub: "You follow the match by sound alone.", tagIdle: "Narration",
@@ -299,7 +362,13 @@ const T = {
     spaceKey: "Space", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
     off: "Not connected.", wait: "Connected, waiting for the match.", live: "Demo match · seed", lost: "Connection lost.",
     fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
-    voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language", install: "Install the app" } };
+    voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language", install: "Install the app",
+    tlTitle: "Timeline · select a marker to see its evidence", tlLegendIns: "Insight (filled = spoken)", tlInsight: "Insight", tlShot: "Shot", tlGoal: "Goal",
+    whyTitle: "Why?", whyIdle: "Select a marker on the timeline: the events behind it light up on the pitch and its numbers show here.",
+    evidence: "Evidence", events: "events", spoken: "spoken", notSpoken: "not spoken", kmh: "km/h",
+    ins_pressure_shift: "{team} pressing", ins_tempo_change: "{team} slowing the tempo", ins_flank_overload: "{team} overloading the {side} flank",
+    ins_physical_drop: "{player} tiring", ins_chance: "{team} chance",
+    outcome: { saved: "saved", off_target: "off target", blocked: "blocked", goal: "goal" } } };
 const MODES = ["eyes_free", "casual", "analyst"];
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 const LANGS = ["en", "tr"];
@@ -426,7 +495,8 @@ function applyLayers() {
 
 /* ---------------- live stream ---------------- */
 // Match clock -> audio clock: audioTime = clock0 + matchT / speed. Everything the server sends carries a match time.
-const live = { ws: null, clock0: null, speed: 1, teams: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], favT: -99 };
+const live = { ws: null, clock0: null, speed: 1, teams: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], favT: -99,
+  gen: 0, marks: [], insBySeq: {}, players: {}, sel: null, hl: null, win: null };
 const matchNow = () => (ctx.currentTime - live.clock0) * live.speed;
 const audioAt = t => Math.max(ctx.currentTime, live.clock0 + t / live.speed);
 
@@ -450,14 +520,17 @@ function stopListening(msg) {
   $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off");
 }
 function resetLive() {
-  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false });
+  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false,
+    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, win: null });
+  $("tlInner").querySelectorAll(".mk").forEach(e => e.remove()); renderAxis(); renderWhy();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
 }
 
 function onMessage(m) {
   if (m.type === "hello") {
-    live.speed = m.speed || 1; live.teams = m.teams;
+    live.speed = m.speed || 1; live.teams = m.teams; live.win = m.window || null; renderAxis();
+    live.players = Object.fromEntries(["HOME", "AWAY"].flatMap(s => m.teams[s].players.map(p => [p.id, p.name])));
     for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) {
       $("dot" + id).style.background = COLOR[m.teams[side].color] || "#ccc";
     }
@@ -466,9 +539,12 @@ function onMessage(m) {
     fillFav(m.teams); setTeamNames(); fillClub(); sendMode(); sendClub();
   } else if (m.type === "state") {
     if (live.clock0 === null) live.clock0 = ctx.currentTime + JITTER_S - m.packets[0].t / live.speed;
+    if (!live.win) { live.win = [m.packets[0].t, m.packets[0].t + SESSION_S]; renderAxis(); }  // run_local sends no window
     live.frames.push(...m.packets);
   } else if (m.type === "event_cue") {
     live.due.push({ t: m.t, kind: "cue", m });
+  } else if (m.type === "insight") {
+    live.due.push({ t: m.insight.t, kind: "insight", m });
   } else if (m.type === "speech") {
     live.due.push({ t: m.t, kind: "speech", m });
   } else if (m.type === "recap") {
@@ -494,6 +570,7 @@ function schedule() {
   while (live.due.length && live.due[0].t < horizon) {
     const d = live.due.shift(), m = d.m, a = audioAt(m.t);
     if (d.kind === "cue") cue(m, a);
+    else if (d.kind === "insight") at(a, () => addInsight(m));
     else if (d.kind === "recap") setTimeout(() => { if (live.ws) playRecap(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
     else speech(m, a);
   }
@@ -514,6 +591,7 @@ function cue(m, a) {
     addLog(Math.ceil(m.t), null, m.period === 2 ? t("fullTimeLog") : t("halfTimeLog"), a);
   }
   else if (k === "goal") { sndGoal(L, a, m.team, !club ? "neutral" : m.team === club ? "for" : "against"); live.score[m.team === "HOME" ? 0 : 1]++; $("score").textContent = live.score.join(" – "); }
+  if ((k === "shot" && m.outcome !== "goal") || k === "goal") at(a, () => addEventMark(m));  // the scoring shot shows as the goal
   const fav = $("fav").value && m.player_id === $("fav").value;
   if (fav) {  // the favourite player touched the ball: a two-note chime on the side the ball is on, at most every 3 s of match time
     if (m.t - live.favT > 3) { sndEarcon(L, a + 0.02, m.pan); live.favT = m.t; flashFav(); }
@@ -525,6 +603,7 @@ function speech(m, a) {
   live.recap.unshift({ t: m.t, text: m.text }); live.recap.length = Math.min(live.recap.length, 5); setTimeout(renderRecap, Math.max(0, (a - ctx.currentTime) * 1000));
   m.buf = { [lang()]: decodeClip(m, lang()) };  // decode ahead; the clip plays when its match time arrives
   setTimeout(() => { if (live.ws) say(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
+  at(a, () => markSpoken(m));
   addLog(m.t, null, "🎙 " + text, a);
 }
 function decodeClip(m, l) {
@@ -587,6 +666,132 @@ function readRecap() {
   if ("speechSynthesis" in window && v) { speechSynthesis.cancel(); lines.forEach(l => { const u = new SpeechSynthesisUtterance(l); u.voice = v; u.lang = v.lang; u.rate = 1.05; speechSynthesis.speak(u); }); }
 }
 const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+
+/* ---------------- evidence timeline ---------------- */
+// Markers appear when their match time is played. A shot or goal marker carries the chance/goal Insight that rests on its event seq;
+// tactical Insights get their own diamond. Danger-only chances are left out: they are never spoken (the sound carries danger).
+const SESSION_S = 15 * 60, HL_S = 6;
+function at(a, fn) { const gen = live.gen; setTimeout(() => { if (live.gen === gen) fn(); }, Math.max(0, (a - ctx.currentTime) * 1000)); }
+const pct = tm => live.win ? Math.min(100, Math.max(0, 100 * (tm - live.win[0]) / (live.win[1] - live.win[0]))) : 0;
+function renderAxis() {
+  const ax = $("tlAxis"); ax.replaceChildren();
+  if (!live.win) return;
+  for (let k = 0; k <= 3; k++) {
+    const tm = live.win[0] + k * (live.win[1] - live.win[0]) / 3, s = document.createElement("span");
+    s.textContent = Math.round(tm / 60) + "'"; s.style.left = pct(tm) + "%"; ax.append(s);
+  }
+}
+function addInsight(m) {
+  const ins = m.insight;
+  if (ins.claim_facts.source === "danger") return;
+  if (ins.type === "goal" || ins.type === "chance") {  // belongs to its shot or goal marker, whichever exists first
+    const mk = live.marks.find(k => k.kind !== "ins" && ins.evidence.includes(k.seq));
+    if (mk) { mk.ins = m; renderMark(mk); } else ins.evidence.forEach(s => { live.insBySeq[s] = m; });
+    return;
+  }
+  const mk = addMark({ kind: "ins", t: ins.t, team: ins.team, ins: m });
+  mk.el.classList.add("new"); setTimeout(() => mk.el.classList.remove("new"), 2800);  // the system "noticing" something
+}
+function addEventMark(m) {
+  addMark({ kind: m.kind, t: m.t, team: m.team, seq: m.seq, x: m.x, y: m.y, player_id: m.player_id, outcome: m.outcome,
+    speed: m.speed_mps, ins: live.insBySeq[m.seq] || null });
+}
+function addMark(mk) {
+  const b = mk.el = document.createElement("button");
+  b.type = "button"; b.className = "mk " + mk.kind; b.setAttribute("aria-pressed", "false");
+  b.style.left = pct(mk.t) + "%"; b.style.setProperty("--c", teamColor(mk.team));
+  b.addEventListener("click", () => selectMark(mk));
+  live.marks.push(mk); $("tlInner").append(b); renderMark(mk);
+  return mk;
+}
+function markSpoken(m) {
+  const mk = live.marks.find(k => k.ins && k.ins.insight.insight_id === m.insight_id);
+  if (!mk) return;
+  mk.speech = m; renderMark(mk);
+  if (live.sel === mk) renderWhy();
+}
+function uiTeam(side) { return live.teams ? live.teams[side]["name_" + uiLang] : PLACEHOLDER_TEAMS[side]; }
+function insTitle(ins) {
+  const f = ins.claim_facts, tpl = t("ins_" + ins.type) || ins.type;
+  return tpl.replace("{team}", f["team_" + uiLang] || "").replace("{player}", f.player || "").replace("{side}", (uiLang === "tr" ? f.side_tr : f.side) || "");
+}
+function markParts(mk) {
+  if (mk.kind === "ins") return [t("tlInsight"), clock(mk.t), insTitle(mk.ins.insight) + (mk.speech ? ` (${t("spoken")})` : "")];
+  const who = live.players[mk.player_id];
+  return [mk.kind === "goal" ? t("tlGoal") : t("tlShot"), clock(mk.t), uiTeam(mk.team), ...(who ? [who] : []),
+    ...(mk.kind === "shot" && mk.outcome ? [t("outcome")[mk.outcome] || mk.outcome] : [])];
+}
+function renderMark(mk) {
+  const parts = markParts(mk);
+  mk.el.setAttribute("aria-label", parts.join(", ")); mk.el.title = parts.join(" · ");
+  mk.el.classList.toggle("spoken", !!mk.speech);
+}
+function selectMark(mk) {
+  live.sel = mk; live.hl = { mk, at: performance.now() };
+  live.marks.forEach(k => k.el.setAttribute("aria-pressed", String(k === mk)));
+  renderWhy();
+}
+// claim_facts as key/value pairs in the interface language: "team_en" shows as "team" in English, "side_tr" as "side" in Turkish.
+function factPairs(f) {
+  const out = [];
+  for (const [k, v] of Object.entries(f)) {
+    const m = k.match(/^(.*)_(en|tr)$/);
+    if (m ? m[2] !== uiLang : (uiLang === "tr" && (k + "_tr") in f)) continue;
+    out.push([(m ? m[1] : k).replace(/_/g, " "), String(v)]);
+  }
+  return out;
+}
+function renderWhy() {
+  const mk = live.sel, dl = $("whyFacts");
+  dl.replaceChildren();
+  if (!mk) {
+    $("whyTitle").textContent = t("whyTitle"); $("whyMain").textContent = t("whyIdle"); $("whyMain").lang = uiLang;
+    $("whySub").hidden = $("whyTag").hidden = dl.hidden = $("whyEvidence").hidden = true;
+    return;
+  }
+  $("whyTitle").textContent = markParts(mk).join(" · ");
+  const ins = mk.ins && mk.ins.insight, text = mk.speech ? mk.speech.text : mk.ins ? mk.ins.text : null;
+  const main = text && text[lang()] !== undefined ? lang() : uiLang, sub = text && main !== uiLang ? text[uiLang] : undefined;  // caption rules
+  $("whyMain").textContent = text ? text[main] : ""; $("whyMain").lang = main;
+  $("whySub").textContent = sub || ""; $("whySub").lang = uiLang; $("whySub").hidden = !sub;
+  const src = mk.speech && mk.speech.source && mk.speech.source[lang()];
+  $("whyTag").hidden = !text;
+  $("whyTag").textContent = mk.speech ? TAG[uiLang][src || "template"] : `${TAG[uiLang].template} · ${t("notSpoken")}`;
+  $("whyTag").classList.toggle("dim", !mk.speech || src === "template");
+  const pairs = ins ? factPairs(ins.claim_facts) : [];
+  if (mk.speed) pairs.push([t("tlShot").toLowerCase(), `${Math.round(mk.speed * 3.6)} ${t("kmh")}`]);
+  for (const [k, v] of pairs) {
+    const d = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
+    dt.textContent = k; dd.textContent = v; d.append(dt, dd); dl.append(d);
+  }
+  dl.hidden = !pairs.length;
+  $("whyEvidence").hidden = !ins;
+  if (ins) $("whyEvidence").textContent = `${t("evidence")}: ${ins.evidence.length} ${t("events")}`;
+}
+function drawEvidence(g, sx, sy, dpr) {
+  const hl = live.hl; if (!hl) return;
+  const age = (performance.now() - hl.at) / 1000;
+  if (age > HL_S) { live.hl = null; return; }
+  g.globalAlpha = Math.min(1, (HL_S - age) / 1.5);  // fades over the last 1.5 s
+  const mk = hl.mk, m = mk.ins, z = m && m.zone;
+  if (z && mk.kind === "ins") { g.fillStyle = "rgba(242,179,61,0.16)"; g.fillRect(sx(z.x[0]), sy(z.y[1]), sx(z.x[1]) - sx(z.x[0]), sy(z.y[0]) - sy(z.y[1])); }
+  const dot = (x, y, r, side) => {
+    g.beginPath(); g.arc(sx(x), sy(y), r * dpr, 0, Math.PI * 2); g.fillStyle = teamColor(side); g.fill();
+    g.lineWidth = 1.5 * dpr; g.strokeStyle = "#f5f7f5"; g.stroke();
+  };
+  if (mk.kind !== "ins" && mk.x !== undefined) {  // shot or goal: where it was struck, and a line to the goal it aimed at
+    g.setLineDash([6 * dpr, 5 * dpr]); g.lineWidth = 2 * dpr; g.strokeStyle = "#f5f7f5";
+    g.beginPath(); g.moveTo(sx(mk.x), sy(mk.y)); g.lineTo(sx(mk.team === "HOME" ? 105 : 0), sy(34)); g.stroke(); g.setLineDash([]);
+    dot(mk.x, mk.y, 7, mk.team);
+  } else if (m) m.evidence_points.forEach(p => dot(p.x, p.y, 4.5, p.team));
+  g.globalAlpha = 1;
+}
+function drawTimeline() {
+  const r = live.cur, on = !!(r && live.win);
+  $("tlNow").hidden = !on;
+  if (!on) return;
+  $("tlNow").style.left = pct(r.t) + "%"; $("tlPast").style.width = `calc(${pct(r.t)}% + 12px)`;
+}
 
 /* ---------------- narration ---------------- */
 let voiceFor = {}, fallbackTimer = null;
@@ -758,6 +963,7 @@ function drawPitch() {
     g.strokeRect(Math.min(sx(gx), sx(gx + d * 16.5)), sy(54.16), Math.abs(sx(16.5)), sy(13.84) - sy(54.16));
     g.strokeRect(Math.min(sx(gx), sx(gx + d * 5.5)), sy(43.16), Math.abs(sx(5.5)), sy(24.84) - sy(43.16));
   });
+  drawEvidence(g, sx, sy, dpr);
   const trail = live.trail || [];
   trail.slice(0, -1).forEach((p, i) => {
     if (!p.in_play) return;
@@ -779,7 +985,7 @@ function drawPanel() {
   $("vPan").textContent = !r.in_play ? "—" : r.pan < -0.33 ? t("left") : r.pan > 0.33 ? t("right") : t("mid");
   $("clock").textContent = live.ended ? `90:00 · ${t("ftShort")}` : clock(r.t);  // the last ball frame is 89:59.9
 }
-function loop() { drawPitch(); drawPanel(); requestAnimationFrame(loop); }
+function loop() { drawPitch(); drawPanel(); drawTimeline(); requestAnimationFrame(loop); }
 
 /* ---------------- wiring ---------------- */
 $("playBtn").addEventListener("click", () => { endTour(); live.ws ? stopListening() : connect(); });
@@ -839,7 +1045,7 @@ function applyI18n() {
   setTeamNames(); fillClub();
   if (live.ws && live.seed !== undefined) $("status").textContent = `${t("live")} ${live.seed}`;
   if (live.teams) fillFav(live.teams); else $("fav").replaceChildren(new Option(t("favNone"), ""));
-  renderLog(); renderRecap(); pickVoices(); renderTourBtn(); setRecapBusy(!!recapWait);
+  renderLog(); renderRecap(); pickVoices(); live.marks.forEach(renderMark); renderWhy(); renderTourBtn(); setRecapBusy(!!recapWait);
 }
 // Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
 $("uiLangSel").addEventListener("change", e => { uiLang = e.target.value; store.set("htg.lang", uiLang); applyI18n(); });
