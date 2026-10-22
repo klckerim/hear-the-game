@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -28,8 +28,8 @@
 html { scrollbar-gutter: stable; overflow-anchor: none; }  /* TR and EN texts differ in length: no scrollbar jump, no scroll-anchoring jump */
 #status { min-height: 1.5em; }
 #voiceNote { min-height: 4.5em; }
-#modes, #chapters { display: flex; width: 100%; }
-#modes button, #chapters button { flex: 1 1 0; white-space: nowrap; }
+#modes, #chapters, #commLang { display: flex; width: 100%; }
+#modes button, #chapters button, #commLang button { flex: 1 1 0; white-space: nowrap; }
 #chapters button { padding-inline: 6px; min-width: 0; white-space: normal; line-height: 1.25; }  /* long labels wrap on phones */
 body {
   background: var(--night); color: var(--chalk); font-family: var(--body); font-size: 15px; line-height: 1.5;
@@ -58,7 +58,7 @@ h1 span { color: var(--amber); }
 .blind[hidden] { display: none; }
 .blind p { font-family: var(--display); font-size: clamp(22px, 4vw, 34px); text-transform: uppercase; letter-spacing: 0.06em; margin: 0; }
 .blind small { display: block; font-family: var(--body); font-size: 14px; color: var(--muted); text-transform: none; letter-spacing: 0; margin-top: 6px; }
-.caption { min-width: 0; height: calc(3 * 1.5em + 22px); overflow-y: auto;  /* fixed height: TR and EN sentences differ in length, and the layout must not jump */ background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: flex; gap: 12px; align-items: flex-start; }
+.caption { min-width: 0; height: calc(4 * 1.5em + 22px); overflow-y: auto;  /* fixed height: TR and EN sentences differ in length, and the layout must not jump */ background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: flex; gap: 12px; align-items: flex-start; }
 .caption .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 2px 6px; border-radius: 3px; flex: none; margin-top: 2px; }
 .caption .tag.idle { background: var(--line); color: var(--muted); }
 .caption .tag.mine { background: var(--chalk); }
@@ -68,13 +68,16 @@ h1 span { color: var(--amber); }
 kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; color: var(--muted); }
 .play-row { align-items: center; }
 #captionText { margin: 0; min-width: 0; }
+#captionSub { display: block; margin-top: 2px; font-size: 12px; line-height: 1.4; color: var(--muted); }  /* the same sentence in the interface language */
+#captionSub[hidden], .out small[hidden] { display: none; }
+.recap .out small { font-size: 12px; color: var(--muted); }
 @media (max-width: 600px) {
   header { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "title lang" "sub sub"; }
   .sub { font-size: 13px; min-height: 4.5em; justify-self: start; text-align: left; }
   .scorebar { font-size: 18px; gap: 10px; }
   .score { font-size: 16px; padding: 2px 8px; }
   .clock { font-size: 15px; }
-  .caption { height: calc(5 * 1.5em + 22px); }
+  .caption { height: calc(6 * 1.5em + 22px); }
 }
 @media (max-width: 380px) {
   header { gap: 8px 12px; }
@@ -143,9 +146,9 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
     <h1>Hear the <span>Game</span></h1>
     <div class="hdr-right">
       <p class="sub" data-i18n="sub"></p>
-      <div class="seg" role="group" aria-label="Language / Dil" id="appLang">
-        <button type="button" data-lang="tr" aria-pressed="false">TR</button>
+      <div class="seg" role="group" data-i18n-aria="uiLangLabel" id="appLang">
         <button type="button" data-lang="en" aria-pressed="false">EN</button>
+        <button type="button" data-lang="tr" aria-pressed="false">TR</button>
       </div>
     </div>
   </header>
@@ -164,7 +167,7 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
       </div>
       <div class="caption" aria-live="polite">
         <span class="tags"><span class="tag idle" id="captionTag" data-i18n="tagIdle"></span><span class="tag mine" id="captionMine" data-i18n="yourTeam" hidden></span></span>
-        <p id="captionText" data-i18n="captionIdle"></p>
+        <p id="captionText"><span id="captionMain" data-i18n="captionIdle"></span><small id="captionSub" hidden></small></p>
       </div>
     </section>
 
@@ -188,6 +191,12 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
             <button type="button" data-mode="eyes_free" aria-pressed="false" data-i18n="mode_eyes_free"></button>
             <button type="button" data-mode="casual" aria-pressed="true" data-i18n="mode_casual"></button>
             <button type="button" data-mode="analyst" aria-pressed="false" data-i18n="mode_analyst"></button>
+          </div>
+        </div>
+        <div class="field"><span data-i18n="commLabel" id="commLabel"></span>
+          <div class="seg" role="group" aria-labelledby="commLabel" id="commLang">
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+            <button type="button" data-lang="tr" aria-pressed="false">TR</button>
           </div>
         </div>
         <label class="field" for="club"><span data-i18n="clubLabel"></span>
@@ -238,7 +247,7 @@ const $ = id => document.getElementById(id);
 const COLOR = { red: "#f06a4f", blue: "#5b9cf5" };
 const LABEL = { tr: { shot: "Şut", save: "Kurtarış", goal: "GOL", out: "Top dışarıda", foul: "Faul", kickoff: "Santra" },
   en: { shot: "Shot", save: "Save", goal: "GOAL", out: "Ball out", foul: "Foul", kickoff: "Kick-off" } };
-// One dictionary for every UI string. The app language also picks the narration language.
+// One dictionary for every UI string, in the interface language. The commentary language (what is spoken) is set apart.
 const T = {
   tr: { sub: "Sunucu maçı veri olarak gönderir, sesi senin cihazın üretir. En iyi kulaklıkla dinlenir.", matchView: "Maç görünümü",
     pitchAria: "Topun saha üzerindeki konumu", home: "Ev sahibi", away: "Deplasman", blindTitle: "Saha gizli",
@@ -257,7 +266,7 @@ const T = {
     spaceKey: "Boşluk", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
     off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Demo maçı · seed", lost: "Bağlantı koptu.",
     fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
-    voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)" },
+    voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili" },
   en: { sub: "The server sends the match as data; your device makes the sound. Best with headphones.", matchView: "Match view",
     pitchAria: "Ball position on the pitch", home: "Home", away: "Away", blindTitle: "Pitch hidden",
     blindSub: "You follow the match by sound alone.", tagIdle: "Narration",
@@ -275,16 +284,18 @@ const T = {
     spaceKey: "Space", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
     off: "Not connected.", wait: "Connected, waiting for the match.", live: "Demo match · seed", lost: "Connection lost.",
     fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
-    voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)" } };
+    voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language" } };
 const MODES = ["eyes_free", "casual", "analyst"];
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
-let appLang = ["tr", "en"].includes(store.get("htg.lang")) ? store.get("htg.lang") : (navigator.language || "en").toLowerCase().startsWith("tr") ? "tr" : "en";
+const LANGS = ["en", "tr"];
+let uiLang = LANGS.includes(store.get("htg.lang")) ? store.get("htg.lang") : (navigator.language || "en").toLowerCase().startsWith("tr") ? "tr" : "en";
+let commLang = LANGS.includes(store.get("htg.commentary")) ? store.get("htg.commentary") : null;  // null: follows the interface language
 let mode = MODES.includes(store.get("htg.mode")) ? store.get("htg.mode") : "casual";
 let club = ["HOME", "AWAY"].includes(store.get("htg.club")) ? store.get("htg.club") : "";  // favourite club: "", "HOME" or "AWAY"
 let chapter = "first_goal";  // demo start point; the server only accepts its own chapters
 const PLACEHOLDER_TEAMS = { HOME: "Northport", AWAY: "Valemont" };  // shown in the club picker until the server's hello names the teams
-const t = k => T[appLang][k];
-const lang = () => appLang;
+const t = k => T[uiLang][k];
+const lang = () => commLang || uiLang;  // the commentary language: narration, recaps, tour voice
 
 /* ---------------- audio ---------------- */
 let ctx, master, duck, voiceBus, noiseBuf, waves, session = null, clip = null;
@@ -490,12 +501,12 @@ function cue(m, a) {
   if (fav) {  // the favourite player touched the ball: a two-note chime on the side the ball is on, at most every 3 s of match time
     if (m.t - live.favT > 3) { sndEarcon(L, a + 0.02, m.pan); live.favT = m.t; flashFav(); }
   }
-  if (LABEL[lang()][k]) addLog(m.t, m.team, LABEL[lang()][k] + (fav ? " ★" : ""), a);
+  if (LABEL[uiLang][k]) addLog(m.t, m.team, LABEL[uiLang][k] + (fav ? " ★" : ""), a);
 }
 function speech(m, a) {
   const text = m.text[lang()];
   live.recap.unshift({ t: m.t, text: m.text }); live.recap.length = Math.min(live.recap.length, 5); setTimeout(renderRecap, Math.max(0, (a - ctx.currentTime) * 1000));
-  m.buf = decodeClip(m, lang());  // decode ahead; the clip plays when its match time arrives
+  m.buf = { [lang()]: decodeClip(m, lang()) };  // decode ahead; the clip plays when its match time arrives
   setTimeout(() => { if (live.ws) say(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
   addLog(m.t, null, "🎙 " + text, a);
 }
@@ -525,7 +536,9 @@ function renderRecap() {
     const li = document.createElement("li"), b = document.createElement("b"), p = document.createElement("span");
     li.className = "out";
     b.textContent = r0.kind === "full_time" ? t("fullTime") : `${t("recapTag")} · ${t("missedSince")} ${r0.since_min}${t("recapSince") ? " " + t("recapSince") : ""}`;
-    p.textContent = r0.text[lang()].join(" "); li.append(b, p); ol.append(li);
+    p.textContent = r0.text[lang()].join(" "); p.lang = lang(); li.append(b, p);
+    const sub = document.createElement("small"); sub.lang = uiLang; sub.hidden = lang() === uiLang; sub.textContent = r0.text[uiLang].join(" ");
+    li.append(sub); ol.append(li);
   }
   if (!live.recap.length) { if (!r0) { const li = document.createElement("li"); li.className = "note"; li.textContent = t("recapEmpty"); ol.append(li); } return; }
   for (const r of live.recap) { const li = document.createElement("li"), tm = document.createElement("time"); tm.textContent = clock(r.t); li.append(tm, r.text[lang()]); ol.append(li); }
@@ -549,9 +562,10 @@ function playRecap(m) {
 }
 // The old "What did I miss": speak the score and the last three narrations, oldest first, with the device voice
 function readRecap() {
-  if (!live.recap.length) { setCaption(t("recapEmpty"), false); return; }
-  const lines = [`${t("recapScore")}: ${live.score.join(" - ")}.`, ...live.recap.slice(0, 3).reverse().map(r => r.text[lang()])];
-  setCaption(lines.join(" "), true); $("captionTag").textContent = t("recapTitle");
+  if (!live.recap.length) { setCaption({ [uiLang]: t("recapEmpty") }, false); return; }
+  const said = l => [`${T[l].recapScore}: ${live.score.join(" - ")}.`, ...live.recap.slice(0, 3).reverse().map(r => r.text[l])];
+  const lines = said(lang());
+  setCaption({ [lang()]: lines.join(" "), [uiLang]: said(uiLang).join(" ") }, true); $("captionTag").textContent = t("recapTitle");
   const v = voiceFor[lang()];
   if ("speechSynthesis" in window && v) { speechSynthesis.cancel(); lines.forEach(l => { const u = new SpeechSynthesisUtterance(l); u.voice = v; u.lang = v.lang; u.rate = 1.05; speechSynthesis.speak(u); }); }
 }
@@ -567,18 +581,25 @@ function pickVoices() {
   $("voiceNote").textContent = voiceFor[lang()] ? `${t("voice")}: ${voiceFor[lang()].name} ${t("voiceTail")}` : t("novoice");
 }
 function primeVoice() { if ("speechSynthesis" in window) speechSynthesis.speak(new SpeechSynthesisUtterance("")); }  // unlock on the user gesture
-function setCaption(text, liveNow) { $("captionText").textContent = text; $("captionTag").classList.toggle("idle", !liveNow); }
+// text: { en, tr }. Shows the commentary-language sentence; when the interface language differs and the message has it, that version
+// sits under it in smaller muted text. A message with only one language shows that one (no translation in the client).
+function setCaption(text, liveNow) {
+  const main = text[lang()] !== undefined ? lang() : uiLang, sub = main !== uiLang ? text[uiLang] : undefined;
+  $("captionMain").textContent = text[main] ?? ""; $("captionMain").lang = main;
+  $("captionSub").textContent = sub ?? ""; $("captionSub").lang = uiLang; $("captionSub").hidden = !sub;
+  $("captionTag").classList.toggle("idle", !liveNow);
+}
 function duckTo(v) { if (duck) duck.gain.setTargetAtTime(v, ctx.currentTime, 0.08); }
 const TAG = { tr: { llm: "doğrulandı", agent: "doğrulandı", template: "şablon" }, en: { llm: "verified", agent: "verified", template: "template" } };
 async function say(m, prefix) {
   const l = lang(), text = m.text[l];
-  setCaption(text, true);
-  $("captionTag").textContent = (prefix ? prefix + " · " : "") + TAG[l][(m.source && m.source[l]) || "template"];
+  setCaption(m.text, true);
+  $("captionTag").textContent = (prefix ? prefix + " · " : "") + TAG[uiLang][(m.source && m.source[l]) || "template"];
   $("captionMine").hidden = !(club && m.team === club);
   const finish = () => { duckTo(1); setTimeout(() => { $("captionTag").classList.add("idle"); $("captionMine").hidden = true; }, 400); };
   if (!$("L_voice").checked) return;
   duckTo(0.3);
-  const buf = await (m.buf || decodeClip(m, l));
+  const buf = await ((m.buf && m.buf[l]) || decodeClip(m, l));
   if (buf && ctx) {  // Azure clip from the server
     stopClip();
     const src = ctx.createBufferSource(); src.buffer = buf; src.connect(voiceBus);
@@ -643,7 +664,7 @@ async function tourClip(step, l) {
 }
 function tourVoice(step) {
   const l = lang(), text = step[l];
-  setCaption(text, true); $("captionTag").textContent = t("tourTag"); $("captionMine").hidden = true;
+  setCaption(step, true); $("captionTag").textContent = t("tourTag"); $("captionMine").hidden = true;
   return new Promise(async done => {
     tour.wake = done;
     const buf = await tourClip(step, l);
@@ -689,7 +710,7 @@ function endTour() {
   if (tour.bus) { const b = tour.bus; tour.bus = null; b.gain.setTargetAtTime(0, ctx.currentTime, 0.01); setTimeout(() => b.disconnect(), 200); }
   duckTo(1);
   if (tour.wake) { const w = tour.wake; tour.wake = null; w(); }  // lets the running step return at once
-  setCaption(t("captionIdle"), false); $("captionTag").textContent = t("tagIdle");
+  setCaption({ [uiLang]: t("captionIdle") }, false); $("captionTag").textContent = t("tagIdle");
   renderTourBtn();
 }
 function renderTourBtn() {
@@ -783,10 +804,13 @@ function applyMode() {
   $("blindBtn").setAttribute("aria-pressed", String(eyes)); $("blind").hidden = !eyes;
 }
 function applyI18n() {
-  document.documentElement.lang = appLang;
-  document.querySelectorAll("[data-i18n]").forEach(e => { if (!(e.id === "captionText" && live.ws)) e.textContent = t(e.dataset.i18n); });
+  document.documentElement.lang = uiLang;
+  const busy = live.ws || tour.on;
+  document.querySelectorAll("[data-i18n]").forEach(e => { if (!(e.id === "captionMain" && busy)) e.textContent = t(e.dataset.i18n); });
+  if (!busy) { $("captionMain").lang = uiLang; $("captionSub").hidden = true; }
   document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
-  document.querySelectorAll("#appLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === appLang)));
+  document.querySelectorAll("#appLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === uiLang)));
+  document.querySelectorAll("#commLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang())));
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
   if (!live.ws) $("status").textContent = t("off");
   setTeamNames(); fillClub();
@@ -794,8 +818,12 @@ function applyI18n() {
   if (live.teams) fillFav(live.teams); else $("fav").replaceChildren(new Option(t("favNone"), ""));
   renderLog(); renderRecap(); pickVoices(); renderTourBtn(); setRecapBusy(!!recapWait);
 }
+// Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
 document.querySelectorAll("#appLang button").forEach(b => b.addEventListener("click", () => {
-  appLang = b.dataset.lang; store.set("htg.lang", appLang); stopSpeech(); applyI18n();
+  uiLang = b.dataset.lang; store.set("htg.lang", uiLang); applyI18n();
+}));
+document.querySelectorAll("#commLang button").forEach(b => b.addEventListener("click", () => {
+  commLang = b.dataset.lang; store.set("htg.commentary", commLang); applyI18n();
 }));
 document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
   mode = b.dataset.mode; store.set("htg.mode", mode); applyMode(); sendMode();

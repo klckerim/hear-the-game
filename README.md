@@ -32,7 +32,11 @@ The browser synthesises all match sound itself (Web Audio) from small state pack
 (danger ≥ 0.15), never the same kind of Insight for the same team within 5 minutes, one sentence at a time, and only after a
 mode-dependent silence (Audio only 10 s, Analyst 15 s, Casual 25 s). Moments of danger are left to the sound: they are not
 narrated. **What did I miss?** asks the [Recap agent](#recap-agent) for 2-3 verified sentences about the last 10 minutes, told from
-your club's side; at the end of the match it gives a **full-time recap** by itself. Interface and narration are in **Turkish or English**.
+your club's side; at the end of the match it gives a **full-time recap** by itself.
+
+**Two language settings.** The **interface** (EN/TR, in the header) and the **commentary language** (EN/TR, next to the listening
+mode) are set apart and remembered on the device, so the page can stay in English while you hear Turkish commentary. When they
+differ, the caption shows the spoken sentence with the same verified sentence in the interface language under it.
 
 **Sound tour.** Before the first start the page offers a 60-second tour: each step plays the real sound (ball tick low to high,
 left to right, the two team tones, heartbeat, crowd, pass/shot/save/whistle, goal for and against your club, the favourite-player
@@ -244,6 +248,7 @@ Built: everything above, running on one Container App with a synthetic replay as
 **Not built** (the production path, described only): real data feeds ingested through **Event Hubs**, fan-out to many listeners
 through **Web PubSub**, an Insight log in **Cosmos DB**, a shared clip cache in **Blob Storage**. The code keeps the seams for them
 (`EventSource`, `Broadcaster` and `Speech` adapters with local implementations), but none of these services are used.
+More languages than English and Turkish are not built: each one needs its own Verifier rules, templates and voices.
 
 ## Limitations
 

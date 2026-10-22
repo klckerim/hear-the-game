@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 night (features B: sound tour + Recap agent; task `docs/tasks/done/2026-10-23-features-b.md`). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-22 night (language split: interface vs commentary language; code done, owner to deploy and listen). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -176,6 +176,15 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Owner listened to the full-time recap (2026-10-22). Features B is closed. (To hear it again locally:
   `HTG_ENV=azure python -m services.engine.serve --speed 10`, pick club and mode, chapter Late drama; it plays at 90:00.)
 
+## Language split (2026-10-22; task: `docs/tasks/done/2026-10-23-language-split.md`)
+- Client only (`web/live.html`; `speech`/`recap` messages and `tour.json` already carry EN + TR, so no `set_lang`). Interface language
+  (header, `htg.lang`, browser default) drives the `T` dictionary; commentary language (next to the listening mode, `htg.commentary`,
+  follows the interface until changed) drives narration, recaps, tour voice and the device voice. EN listed first.
+- Dual caption when they differ (spoken sentence + muted interface-language line, each with its own `lang` attribute for screen
+  readers); also under the agent recap in the "What did I miss?" panel. Caption box is one line taller (4 desktop / 6 phone) so the
+  layout stays fixed. Changing either mid-match takes effect from the next sentence (clips decoded per language on demand).
+- Checked in headless Chrome via CDP (local serve, 30x): EN page + TR commentary and the reverse, both stored and restored after reload,
+  no console errors; screenshots at 1280 and 375 px. **Owner, open:** `azd deploy`, then listen to EN page + TR commentary and the reverse.
 
 - Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
   the Foundry evaluation run, the App Insights metrics chart (htg.speech.resolved by source).
