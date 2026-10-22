@@ -6,7 +6,7 @@ Speech). Target users: blind and partially sighted fans, and anyone who can't lo
 
 Deadline: submission 2026-10-27 23:59 PT (2026-10-28 09:59 Istanbul). Plan to submit on 2026-10-27.
 Read first: `docs/STATUS.md` (where we are, decisions, next steps). Design: `docs/design.md`.
-Current task: the newest file in `docs/tasks/`.
+Current task: the newest file in `docs/tasks/` (finished ones are in docs/tasks/done/).
 
 ## Priority order (when in doubt, top wins)
 1. A working end-to-end demo that never crashes: replay → sound → verified narration, in a good-looking UI.
