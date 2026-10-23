@@ -31,7 +31,7 @@ def test_each_listener_gets_its_own_session_and_the_warm_up_runs_once(monkeypatc
 
     calls = []
     real = serve.warm_up
-    monkeypatch.setattr(serve, "_warm", {})
+    monkeypatch.setattr(serve, "_warm", serve.OrderedDict())
     monkeypatch.setattr(serve, "warm_up", lambda *a: (calls.append(1), real(*a)))
 
     async def run() -> list[str]:
@@ -39,11 +39,10 @@ def test_each_listener_gets_its_own_session_and_the_warm_up_runs_once(monkeypatc
 
         match_dir = OUT_DIR / "match_0001"
         match_dir = match_dir if match_dir.exists() else generate(1)
-        meta = json.loads((match_dir / "meta.json").read_text())
-        sessions: set = set()
+        match, sessions = serve.Match.load(match_dir), set()
 
         async def handler(ws) -> None:
-            await serve.session(ws, match_dir, meta, 5.0, 50.0, sessions)
+            await serve.session(ws, match, [[300.0, 5400.0]], 50.0, sessions)
 
         async with websockets.serve(handler, "localhost", 0, process_request=process_request) as srv:
             uri = f"ws://localhost:{srv.sockets[0].getsockname()[1]}/ws"
@@ -60,17 +59,17 @@ def test_warm_up_does_not_block_the_event_loop(monkeypatch):
     from services.engine import serve
 
     monkeypatch.setattr(serve, "warm_up", lambda *a: time.sleep(0.3))
-    monkeypatch.setattr(serve, "_warm", {})
+    monkeypatch.setattr(serve, "_warm", serve.OrderedDict())
 
     async def run() -> int:
         from htg.generate import OUT_DIR, generate
 
         match_dir = OUT_DIR / "match_0001"
         match_dir = match_dir if match_dir.exists() else generate(1)
-        meta = json.loads((match_dir / "meta.json").read_text())
+        match = serve.Match.load(match_dir)
 
         async def handler(ws) -> None:
-            await serve.session(ws, match_dir, meta, 5.0, 50.0, set())
+            await serve.session(ws, match, [[300.0, 5400.0]], 50.0, set())
 
         ticks = 0
 
@@ -91,40 +90,89 @@ def test_warm_up_does_not_block_the_event_loop(monkeypatch):
     assert asyncio.run(run()) >= 8  # a blocked loop would tick ~0 times during the 0.3 s warm-up
 
 
-def test_unknown_chapter_falls_back_to_the_default():
-    from services.engine.serve import CHAPTERS, DEFAULT_CHAPTER, chapter_of
+def test_query_picks_the_match_mode_and_start_second():
+    from htg.league import DEFAULT_MATCH, fixture
+    from services.engine.serve import from_of, mode_of, query
 
-    assert chapter_of("/ws?chapter=late") == "late" and CHAPTERS["late"] == 76.0
-    assert chapter_of("/ws") == chapter_of("/ws?chapter=../etc") == chapter_of("/ws?chapter=") == DEFAULT_CHAPTER
+    assert fixture(query("/ws?match=northport-valemont", "match"))["seed"] == 7
+    assert fixture(query("/ws?match=../etc", "match"))["id"] == fixture("")["id"] == DEFAULT_MATCH
+    assert mode_of("/ws?mode=highlights") == "highlights" and mode_of("/ws?mode=x") == mode_of("/ws") == "live"
+    assert from_of("/ws?from=1345.6", 5400.0) == 1345.0 and from_of("/ws", 5400.0) == 0.0
+    assert from_of("/ws?from=-5", 5400.0) == 0.0 and from_of("/ws?from=99999", 5400.0) == 5399.0
+    assert from_of("/ws?from=nan", 5400.0) == from_of("/ws?from=inf", 5400.0) == from_of("/ws?from=x", 5400.0) == 0.0
 
 
-def test_late_chapter_starts_with_the_score_of_minute_76(monkeypatch):
-    from htg.generate import OUT_DIR, generate
+def run_session(match_dir, windows: list, speed: float, until: str, path: str = "/ws", mode: str = "live") -> list[dict]:
+    """Messages of one session up to (and including) the first message of type `until`."""
     from services.engine import serve
 
-    monkeypatch.setattr(serve, "_warm", {})
+    async def run() -> list[dict]:
+        match = serve.Match.load(match_dir)
+
+        async def handler(ws) -> None:
+            await serve.session(ws, match, windows, speed, set(), mode=mode)
+
+        async with websockets.serve(handler, "localhost", 0, process_request=process_request) as srv:
+            async with websockets.connect(f"ws://localhost:{srv.sockets[0].getsockname()[1]}{path}") as c:
+                out = []
+                while not out or out[-1]["type"] != until:
+                    out.append(json.loads(await asyncio.wait_for(c.recv(), 30)))
+                return out
+
+    return asyncio.run(run())
+
+
+def seed7():
+    from htg.generate import OUT_DIR, generate
+
     match_dir = OUT_DIR / "match_0007"
-    match_dir = match_dir if match_dir.exists() else generate(7)
-    meta = json.loads((match_dir / "meta.json").read_text())
+    return match_dir if match_dir.exists() else generate(7)
+
+
+def test_live_from_minute_76_starts_with_its_score_and_runs_to_full_time(monkeypatch):
+    from services.engine import serve
+
+    monkeypatch.setattr(serve, "_warm", serve.OrderedDict())
+    match_dir = seed7()
     goals = [json.loads(line) for line in (match_dir / "events.jsonl").open() if '"type": "goal"' in line]
     expected = {"HOME": 0, "AWAY": 0}
     for g in goals:
         if g["t"] < 76 * 60:
             expected[g["team"]] += 1
-    assert sum(expected.values()) >= 1  # seed 7: the first goal comes before the late chapter
+    assert sum(expected.values()) >= 1  # seed 7: the first goal comes before minute 76
+    hello = run_session(match_dir, [[76 * 60.0, 5400.0]], 50.0, "hello")[0]
+    assert hello["score"] == expected and hello["windows"] == [[4560.0, 5400.0]] and hello["watch"] == "live"
+    assert hello["match"] == "synth_0007" and {m["kind"] for m in hello["moments"]} >= {"goal", "save", "yellow"}
 
-    async def run() -> dict:
-        async def handler(ws) -> None:
-            await serve.session(ws, match_dir, meta, serve.CHAPTERS[serve.chapter_of(ws.request.path)], 50.0, set())
 
-        async with websockets.serve(handler, "localhost", 0, process_request=process_request) as srv:
-            uri = f"ws://localhost:{srv.sockets[0].getsockname()[1]}/ws?chapter=late"
-            async with websockets.connect(uri) as c:
-                return json.loads(await asyncio.wait_for(c.recv(), 30))
+def test_moments_and_highlight_windows():
+    from services.engine.serve import highlight_windows, moments_of
 
-    hello = asyncio.run(run())
-    assert hello["type"] == "hello" and hello["score"] == expected
-    assert hello["window"] == [76 * 60.0, meta["duration_s"]]  # the timeline ends at 90', not at 76' + 15
+    events = [{"t": 100.0, "type": "pass"}, {"t": 200.0, "type": "shot", "outcome": "saved", "team": "HOME"},
+              {"t": 210.0, "type": "shot", "outcome": "blocked", "team": "AWAY"},
+              {"t": 400.0, "type": "foul", "card": "yellow", "team": "AWAY"},
+              {"t": 420.0, "type": "shot", "outcome": "goal", "team": "HOME"}, {"t": 420.5, "type": "goal", "team": "HOME"},
+              {"t": 5390.0, "type": "foul", "card": "red", "team": "HOME"}]
+    moments = moments_of(events)
+    assert [(m["t"], m["kind"], m["team"]) for m in moments] == [(200.0, "save", "HOME"), (400.0, "yellow", "AWAY"),
+                                                                  (420.0, "goal", "HOME"), (5390.0, "red", "HOME")]
+    # 400 and 420 overlap and merge; the last window stops at full time
+    assert highlight_windows(moments, 5400.0) == [[170.0, 216.0], [370.0, 436.0], [5360.0, 5400.0]]
+    assert highlight_windows([{"t": 10.0}], 5400.0) == [[0.0, 26.0]]
+
+
+def test_highlights_cut_to_the_next_clip_with_the_warm_up_score(monkeypatch):
+    from services.engine import serve
+
+    monkeypatch.setattr(serve, "_warm", serve.OrderedDict())
+    match_dir = seed7()
+    windows = [[1300.0, 1310.0], [4740.0, 4800.0]]  # before the first goal (22:38), then after it
+    msgs = run_session(match_dir, windows, 100.0, "cut", mode="highlights")
+    hello, cut = msgs[0], msgs[-1]
+    assert hello["watch"] == "highlights" and hello["windows"] == windows
+    assert cut == {"type": "cut", "t_from": 1310.0, "t_to": 4740.0, "score": {"HOME": 0, "AWAY": 1}}
+    played = [p["t"] for m in msgs if m["type"] == "state" for p in m["packets"]]
+    assert played and 1300.0 <= min(played) and max(played) <= 1310.0  # nothing from outside the clip
 
 
 def test_stats_come_every_10_s_from_the_recap_tool(monkeypatch):
@@ -132,14 +180,14 @@ def test_stats_come_every_10_s_from_the_recap_tool(monkeypatch):
     from htg.recap.tools import get_stats
     from services.engine import serve
 
-    monkeypatch.setattr(serve, "_warm", {})
+    monkeypatch.setattr(serve, "_warm", serve.OrderedDict())
     match_dir = OUT_DIR / "match_0001"
     match_dir = match_dir if match_dir.exists() else generate(1)
-    meta = json.loads((match_dir / "meta.json").read_text())
+    match = serve.Match.load(match_dir)
 
     async def run() -> tuple[dict, list[dict]]:
         async def handler(ws) -> None:
-            await serve.session(ws, match_dir, meta, 30.0, 100.0, set())
+            await serve.session(ws, match, [[1800.0, 5400.0]], 100.0, set())
 
         async with websockets.serve(handler, "localhost", 0, process_request=process_request) as srv:
             async with websockets.connect(f"ws://localhost:{srv.sockets[0].getsockname()[1]}/ws") as c:
@@ -151,24 +199,9 @@ def test_stats_come_every_10_s_from_the_recap_tool(monkeypatch):
                 return hello, stats
 
     hello, stats = asyncio.run(run())
-    assert hello["window"] == [1800.0, 1800.0 + serve.END_AFTER_S]
+    assert hello["windows"] == [[1800.0, 5400.0]]
     rec = serve.record_for(match_dir)
     assert [round(b["t"] - a["t"]) for a, b in zip(stats, stats[1:], strict=False)] == [10, 10]
     for m in stats:
         assert m["match"] == get_stats(rec, m["t"]) and m["last10"] == get_stats(rec, m["t"], from_min=m["t"] / 60 - 10)
         assert m["last10"]["length_min"] == 10 and m["match"]["from_minute"] == 0
-
-
-def test_next_moment_starts_30_s_before_the_next_goal_save_or_card():
-    from services.engine.serve import moments_of, start_minute_of
-
-    events = [{"t": 100.0, "type": "pass"}, {"t": 200.0, "type": "shot", "outcome": "saved"},
-              {"t": 210.0, "type": "shot", "outcome": "blocked"}, {"t": 400.0, "type": "foul", "card": "yellow"},
-              {"t": 1300.0, "type": "shot", "outcome": "goal"}, {"t": 1300.5, "type": "goal"}]
-    moments = moments_of(events)
-    assert moments == [200.0, 400.0, 1300.0]
-    assert start_minute_of("/ws?chapter=kickoff", moments) == 0.0  # no `next`: the chapter
-    assert start_minute_of("/ws?chapter=kickoff&next=1", moments) * 60 == 170.0  # from the chapter start
-    assert start_minute_of("/ws?chapter=kickoff&next=1&after=175", moments) * 60 == 370.0  # pressing again moves on
-    assert start_minute_of("/ws?chapter=kickoff&next=1&after=1290", moments) == 0.0  # none left: the chapter
-    assert start_minute_of("/ws?chapter=late&next=1&after=x", moments) == 76.0

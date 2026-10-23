@@ -2,9 +2,10 @@
 
     HTG_ENV=azure python -m htg.speech.callouts
 
-Writes `data/cache/callouts/<lang>_<tone>_<id>.mp3` for every word, club and squad surname, in two tones (normal = `neutral`,
+Writes `data/cache/callouts/<lang>_<tone>_<id>.mp3` for every word, club and squad surname of the league, in two tones (normal = `neutral`,
 excited = `excited`), and `callouts.json`: {"voices": {lang: voice}, "clips": {lang: {tone: {key: file}}}}. A key is a word id
 ("shot", "yellow_card"), a club name or a player name, exactly as the client gets them in `hello`. No LLM: the words are fixed.
+Clips already on disk are kept (same text, same voice), so a new club costs only its own clips; `--all` makes every clip again.
 """
 from __future__ import annotations
 
@@ -14,7 +15,7 @@ import unicodedata
 from pathlib import Path
 
 from htg.env import load_env
-from htg.generate import SQUADS
+from htg.league import CLUBS
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "data" / "cache" / "callouts"
@@ -46,8 +47,8 @@ def slug(text: str) -> str:
 def items() -> list[tuple[str, str, dict[str, str]]]:
     """(key, file id, text per language) for every clip: words, then club names, then surnames (names are said as they are)."""
     out = [(k, k, v) for k, v in WORDS.items()]
-    out += [(s["name"]["en"], "c_" + slug(s["name"]["en"]), s["name"]) for s in SQUADS.values()]
-    out += [(n, "p_" + slug(n), {"en": n, "tr": n}) for s in SQUADS.values() for n in s["players"]]
+    out += [(c["name"], "c_" + slug(c["name"]), {"en": c["name"], "tr": c["name"]}) for c in CLUBS.values()]
+    out += [(n, "p_" + slug(n), {"en": n, "tr": n}) for c in CLUBS.values() for n in c["players"]]
     return out
 
 
@@ -55,7 +56,7 @@ def spoken(text: str, tone: str) -> str:
     return text + ("!" if tone == "excited" else ".")
 
 
-def main() -> None:
+def main(redo: bool = False) -> None:
     load_env()
     from htg.speech.azure import AzureSpeech
 
@@ -68,11 +69,13 @@ def main() -> None:
             for lang in LANGS:
                 for tone, style in TONES.items():
                     name = f"{lang}_{tone}_{fid}.mp3"
+                    clips[lang][tone][key] = name
+                    if (OUT / name).exists() and not redo:
+                        continue
                     audio = speech.commentate(spoken(text[lang], tone), lang, style)
                     if audio is None:
                         raise SystemExit(f"TTS failed for {name}")
                     (OUT / name).write_bytes(audio)
-                    clips[lang][tone][key] = name
     wanted = {n for lang in clips.values() for tone in lang.values() for n in tone.values()}
     for old in OUT.glob("*.mp3"):
         if old.name not in wanted:
@@ -84,4 +87,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    main(redo="--all" in sys.argv)

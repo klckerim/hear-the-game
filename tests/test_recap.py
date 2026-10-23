@@ -115,14 +115,13 @@ def test_recap_request_gets_a_recap_message(monkeypatch):
     from htg.generate import OUT_DIR, generate
     from services.engine import serve
 
-    monkeypatch.setattr(serve, "_warm", {})
+    monkeypatch.setattr(serve, "_warm", serve.OrderedDict())
     match_dir = OUT_DIR / "match_0001"
-    match_dir = match_dir if match_dir.exists() else generate(1)
-    meta = json.loads((match_dir / "meta.json").read_text())
+    match = serve.Match.load(match_dir if match_dir.exists() else generate(1))
 
     async def run() -> dict:
         async def handler(ws) -> None:
-            await serve.session(ws, match_dir, meta, 30.0, 50.0, set())
+            await serve.session(ws, match, [[1800.0, 5400.0]], 50.0, set())
 
         async with websockets.serve(handler, "localhost", 0, process_request=serve.process_request) as srv:
             async with websockets.connect(f"ws://localhost:{srv.sockets[0].getsockname()[1]}/ws") as c:

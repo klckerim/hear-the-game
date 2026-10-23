@@ -18,8 +18,9 @@ MISSED_MIN = 10  # "What did I miss?" covers the last 10 minutes by default
 
 
 def since_for(kind: str, t: float, since_min: Any = None) -> int:
-    """Full time: the whole match. Otherwise the asked minute (clamped to [0, now]) or the last MISSED_MIN minutes."""
-    if kind == "full_time":
+    """Full time and half-time (Highlights): the whole match so far. Otherwise the asked minute (clamped to
+    [0, now]) or the last MISSED_MIN minutes."""
+    if kind in ("full_time", "half_time"):
         return 0
     now_min = int(t // 60)
     if isinstance(since_min, (int, float)) and not isinstance(since_min, bool):
@@ -30,8 +31,8 @@ def since_for(kind: str, t: float, since_min: Any = None) -> int:
 async def recap_message(rec: MatchRecord, model: RecapModel | None, speech: Speech, names: list[str], t: float, kind: str,
                         since_min: int, favourite: str | None, persona: str) -> dict[str, Any]:
     def work() -> tuple[dict, dict[str, bytes | None]]:
-        # only full-time recaps are cached (pre-generated for the demo); a "missed" recap is asked at a new moment every time
-        r = write_recap(rec, t, since_min, favourite, persona, model, names, CACHE_DIR if kind == "full_time" else None)
+        # full-time (pre-generated for the demo) and half-time recaps are cached; a "missed" recap is asked at a new moment every time
+        r = write_recap(rec, t, since_min, favourite, persona, model, names, CACHE_DIR if kind in ("full_time", "half_time") else None)
         return r, {lang: speech.synthesize(" ".join(r[lang]), lang) for lang in LANGS}
 
     try:

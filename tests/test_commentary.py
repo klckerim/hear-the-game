@@ -152,7 +152,7 @@ def test_the_first_seconds_come_at_once_with_a_lead(synth_dir):
 def test_serve_parses_delay_and_lang():
     from services.engine.serve import delay_of, lang_of
 
-    assert delay_of("/ws?chapter=late&delay=20") == 20.0 and delay_of("/ws?delay=99") == 30.0 and delay_of("/ws?delay=x") == 0.0
+    assert delay_of("/ws?match=x&delay=20") == 20.0 and delay_of("/ws?delay=99") == 30.0 and delay_of("/ws?delay=x") == 0.0
     assert delay_of("/ws") == 0.0 and lang_of("/ws?lang=tr") == "tr" and lang_of("/ws?lang=de") == "en"
 
 

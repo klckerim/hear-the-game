@@ -23,8 +23,11 @@ from htg.generate import OUT_DIR, generate
 from htg.narration.service import CACHE_DIR, fingerprint, get_narrator, known_names, narrate_insight
 from htg.replay import iter_items
 from services.engine.run_local import LivePipeline, warm_up
-from services.engine.serve import CHAPTERS, END_AFTER_S
 
+# The demo's start points on seed 7 (goals at 22:38, 79:11 and 87:14) and how long a demo window runs: what the cache was made for.
+# The app now starts at any minute; a sentence outside these windows is narrated live (cache miss) and cached then.
+CHAPTERS = {"kickoff": 0.0, "first_goal": 19.0, "late": 76.0}
+END_AFTER_S = 15 * 60.0
 SENTENCES = Path(__file__).resolve().parents[2] / "eval" / "results" / "demo_sentences.md"
 FAVOURITES = (None, "HOME", "AWAY")
 

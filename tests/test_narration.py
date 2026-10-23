@@ -171,9 +171,8 @@ def test_cache_hits_per_persona(ctx, tmp_path):
 
 def test_demo_cache_covers_every_chapter_mode_and_favourite():
     """The committed seed-7 demo cache must hit for everything a demo session can speak: prompt version, model, persona."""
-    from htg.narration.pregen import demo_speech
+    from htg.narration.pregen import CHAPTERS, demo_speech
     from htg.narration.service import CACHE_DIR
-    from services.engine.serve import CHAPTERS
 
     _, rows = demo_speech(7)
     assert {c for c, _, _ in rows} == set(CHAPTERS) and {m["persona"] for _, m, _ in rows} == {"fan", "analyst"}

@@ -32,6 +32,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from htg.league import CLUBS
 from htg.pitch import LENGTH, WIDTH, sample_in_zone, to_global, zone_of
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -55,24 +56,18 @@ FINISH_SCALE = 0.85
 CARD_STREAM = 0xCA2D
 YELLOW_SHARE, RED_SHARE = 0.15, 0.006
 
-# Fictional squads. Anchors are attacking-frame positions (left flank = high y).
-# Club names are fictional (no professional club uses them) and never feed the RNG: renaming does not change the match.
+# Squads come from the fictional league (htg/league.py), in ROLES order. Anchors are attacking-frame positions (left flank = high y).
+# Club names never feed the RNG: the same seed with other clubs is the same match with other names.
 ROLES = [("GK", 5, 34), ("FB", 30, 58), ("CB", 25, 44), ("CB", 25, 24), ("FB", 30, 10),
          ("CM", 48, 46), ("CM", 44, 34), ("CM", 48, 22), ("W", 74, 58), ("ST", 82, 34), ("W", 74, 10)]
-SQUADS = {
-    "HOME": {"name": {"tr": "Northport", "en": "Northport"}, "color": "red",
-             "players": ["Usta", "Aksoy", "Demir", "Toprak", "Kurt", "Kaya", "Polat", "Erdem", "Şahin", "Arda", "Yıldız"]},
-    "AWAY": {"name": {"tr": "Valemont", "en": "Valemont"}, "color": "blue",
-             "players": ["Novak", "Moreau", "Haddad", "Lindqvist", "Costa", "Silva", "Mensah", "Ito", "Baptiste", "Okafor", "Rossi"]},
-}
 OTHER = {"HOME": "AWAY", "AWAY": "HOME"}
 
 
-def roster(team: str) -> list[dict]:
+def roster(team: str, club: str) -> list[dict]:
     prefix = "H" if team == "HOME" else "A"
     return [{"player_id": f"{prefix}{i + 1:02d}", "name": name, "role": ROLES[i][0],
              "anchor": [ROLES[i][1], ROLES[i][2]]}
-            for i, name in enumerate(SQUADS[team]["players"])]
+            for i, name in enumerate(CLUBS[club]["players"])]
 
 
 # ---------------------------------------------------------------- calibration helpers
@@ -169,6 +164,8 @@ def active_mods(scen: list[dict], t: float, team: str, actor_id: str) -> Mods:
 class Match:
     seed: int
     cal: Cal
+    home: str = "northport"
+    away: str = "valemont"
     duration: float = 5400.0
     rng: np.random.Generator = field(init=False)
 
@@ -177,7 +174,8 @@ class Match:
         self.card_rng = np.random.default_rng([self.seed, CARD_STREAM])
         self.booked: set[str] = set()
         self.match_id = f"synth_{self.seed:04d}"
-        self.rosters = {t: roster(t) for t in ("HOME", "AWAY")}
+        self.clubs = {"HOME": self.home, "AWAY": self.away}
+        self.rosters = {t: roster(t, self.clubs[t]) for t in ("HOME", "AWAY")}
         self.scenarios = draw_scenarios(self.rng, self.rosters)
         self.events: list[dict] = []
         self.keys: list[tuple] = []  # (t, x, y, in_play, team, teleport) in global frame
@@ -442,8 +440,8 @@ class Match:
         d.mkdir(parents=True, exist_ok=True)
         meta = {"match_id": self.match_id, "seed": self.seed, "duration_s": self.duration, "hz": HZ,
                 "calibration_version": self.cal.version, "synthetic": True,
-                "teams": {t: {"name": SQUADS[t]["name"], "color": SQUADS[t]["color"], "attacks_towards_x": 105 if t == "HOME" else 0,
-                              "players": self.rosters[t]} for t in ("HOME", "AWAY")}}
+                "teams": {t: {"club": c, "name": {"tr": CLUBS[c]["name"], "en": CLUBS[c]["name"]}, "color": CLUBS[c]["color"],
+                              "attacks_towards_x": 105 if t == "HOME" else 0, "players": self.rosters[t]} for t, c in self.clubs.items()}}
         (d / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1))
         with (d / "events.jsonl").open("w") as fh:
             for e in self.events:
@@ -456,8 +454,9 @@ class Match:
         return d
 
 
-def generate(seed: int, cal: Cal | None = None, out_dir: Path = OUT_DIR) -> Path:
-    return Match(seed, cal or Cal()).run().save(out_dir)
+def generate(seed: int, cal: Cal | None = None, out_dir: Path = OUT_DIR, home: str = "northport", away: str = "valemont") -> Path:
+    """Generate and save one match; `home` and `away` are club ids from htg/league.py (they only name the teams)."""
+    return Match(seed, cal or Cal(), home, away).run().save(out_dir)
 
 
 def main():

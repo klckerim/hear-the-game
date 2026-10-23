@@ -32,9 +32,8 @@
 html { scrollbar-gutter: stable; overflow-anchor: none; }  /* TR and EN texts differ in length: no scrollbar jump, no scroll-anchoring jump */
 #status { min-height: 1.5em; }
 #voiceNote { min-height: 4.5em; }
-#modes, #chapters, #commLang { display: flex; width: 100%; }
-#modes button, #chapters button, #commLang button { flex: 1 1 0; white-space: nowrap; }
-#chapters button { padding-inline: 6px; min-width: 0; white-space: normal; line-height: 1.25; }  /* long labels wrap on phones */
+#modes, #commLang { display: flex; width: 100%; }
+#modes button, #commLang button { flex: 1 1 0; white-space: nowrap; }
 body {
   background: var(--night); color: var(--chalk); font-family: var(--body); font-size: 15px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -51,6 +50,11 @@ h1 .accent { color: var(--amber); }
 .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
 @media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 .stage { display: grid; gap: 10px; min-width: 0; }
+/* Match bar: which match and how to watch it; one row on desktop, wraps on phones */
+.matchbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; }
+.matchbar select { flex: 1 1 240px; min-width: 0; font-family: var(--display); font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; padding: 6px 10px; }
+.matchbar .seg button { padding: 7px 14px; font-size: 14px; }
+.matchbar[hidden] { display: none; }
 .scorebar { display: flex; flex-wrap: nowrap; align-items: center; gap: 16px; min-width: 0; font-family: var(--display); font-size: 22px; text-transform: uppercase; letter-spacing: 0.03em; }
 .team { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .team > span:not(.dot) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }  /* one line in every language: the pitch never moves */
@@ -96,18 +100,26 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
 /* Evidence timeline: the session's 15 minutes. Top lane Insights (diamond, filled once spoken), bottom lane shots (small dot) and
    goals (large ringed dot). Markers are buttons; selecting one highlights its evidence on the pitch and fills the Why card. */
 #timeline { display: grid; gap: 4px; }
-.tl-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 14px; font-size: 12px; color: var(--muted); }
+.tl-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.tl-head .tl-left { display: grid; gap: 2px; min-width: 0; flex: 1 1 260px; }
+.tl-next { display: inline-flex; align-items: center; gap: 6px; }
+#nextBtn { padding: 5px 12px; font-size: 13px; }
 .tl-legend { display: flex; flex-wrap: wrap; gap: 2px 12px; }
 .tl-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .tl-legend i { display: inline-block; flex: none; background: var(--muted); }
 .tl-legend .ins { width: 8px; height: 8px; transform: rotate(45deg); }
 .tl-legend .shot { width: 7px; height: 7px; border-radius: 50%; }
 .tl-legend .goal { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 2px var(--chalk); }
-.tl-track { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 0 12px; height: 56px; }
+.tl-legend .mo { width: 9px; height: 9px; border-radius: 50%; background: none; border: 2px solid var(--muted); }
+.tl-track { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 0 12px; height: 56px; cursor: pointer; }
 .tl-inner { position: relative; height: 100%; }
 .tl-inner::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dashed var(--line); }
 .tl-past { position: absolute; left: -12px; top: 0; bottom: 0; width: 0; background: rgba(242, 179, 61, 0.07); }
 .tl-now { position: absolute; top: 4px; bottom: 4px; width: 2px; margin-left: -1px; background: var(--amber); left: 0; }
+.tl-band { position: absolute; top: 2px; bottom: 2px; background: rgba(242, 179, 61, 0.09); border-inline: 1px solid rgba(242, 179, 61, 0.35); border-radius: 2px; }
+.tl-ht { position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1px solid var(--muted); opacity: 0.45; }
+.tl-axis span.ht { color: var(--chalk); }
+#tlHint { font-size: 12px; color: var(--muted); margin: 0 12px; min-height: 1.5em; }
 .tl-axis { position: relative; height: 16px; margin: 0 12px; font-family: var(--mono); font-size: 11px; color: var(--muted); }
 .tl-axis span { position: absolute; transform: translateX(-50%); }
 .tl .mk, .tl .mk[aria-pressed] { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; padding: 0; border: 0; border-radius: 50%;
@@ -118,7 +130,16 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
 .tl .mk.ins::before { width: 9px; height: 9px; transform: rotate(45deg); border: 2px solid var(--c); }
 .tl .mk.ins.spoken::before { background: var(--c); }
 .tl .mk.shot::before { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
-.tl .mk.goal { z-index: 1; }
+.tl .mk.goal { z-index: 2; }
+.tl .mk.shot { z-index: 1; }
+/* Known moments of the match, shown before they are played: hollow ring (goal larger), card as a small upright card. Select one to
+   start 30 s before it. Played shots and goals sit on top of them. */
+.tl .mk.mo { top: 72%; }
+.tl .mk.mo::before { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--c); opacity: 0.8; }
+.tl .mk.mo.goal::before { width: 15px; height: 15px; box-shadow: none; background: none; }
+.tl .mk.mo.yellow::before, .tl .mk.mo.red::before { width: 7px; height: 10px; border-radius: 1px; border: 1px solid var(--night); opacity: 1; }
+.tl .mk.mo.yellow::before { background: #f5d547; }
+.tl .mk.mo.red::before { background: #e5484d; }
 .tl .mk.goal::before { width: 16px; height: 16px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 2px var(--chalk); }
 .tl .mk[aria-pressed="true"]::before { outline: 2px solid var(--amber); outline-offset: 2px; }
 .tl .mk.new::before { animation: ping 0.9s ease-out 3; }
@@ -137,6 +158,17 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
 .why dt { color: var(--muted); }
 .why dd { margin: 0; }
 body[data-mode="eyes_free"] .tl-only { display: none; }
+/* Live commentary feed (fan modes): the commentator's last lines, newest on top, as they are spoken. Fixed height: no layout jump. */
+.feed { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 8px 14px; display: grid; gap: 6px; align-content: start; height: calc(6 * 1.45em + 46px); overflow: hidden; font-size: 13px; min-width: 0; }
+.feed h2 { font-family: var(--display); font-weight: 500; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.feed ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.feed li { display: grid; grid-template-columns: 30px auto minmax(0, 1fr); gap: 8px; align-items: baseline; line-height: 1.45; }
+.feed time { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.feed .tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 0 5px; border-radius: 3px; white-space: nowrap; }
+.feed .tag.dim { background: var(--line); color: var(--muted); }
+.feed small { display: block; color: var(--muted); font-size: 12px; }
+.feed .empty { color: var(--muted); }
+body[data-mode="analyst"] .feed { display: none; }
 .stats-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .stats-head .seg button { padding: 4px 10px; font-size: 12px; }
 table.stats { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
@@ -225,6 +257,13 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
 
   <div class="grid">
     <section class="stage" data-i18n-aria="matchView">
+      <div class="matchbar" id="matchbar" role="group" data-i18n-aria="matchBar" hidden>
+        <select id="matchSel" data-i18n-aria="matchLabel"></select>
+        <div class="seg" role="group" data-i18n-aria="watchLabel" id="watch">
+          <button type="button" data-watch="live" aria-pressed="true" data-i18n="watchLive"></button>
+          <button type="button" data-watch="highlights" aria-pressed="false" data-i18n="watchHl"></button>
+        </div>
+      </div>
       <div class="scorebar">
         <span class="team"><span class="dot" id="dotHome" style="background: var(--red)"></span><span id="nameHome" data-i18n="home"></span><span class="yours" id="yoursHome" data-i18n="yourTeam" hidden></span></span>
         <span class="score" id="score">0 – 0</span>
@@ -235,17 +274,21 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <canvas id="pitch" data-i18n-aria="pitchAria"></canvas>
         <div class="blind" id="blind" hidden><p><span data-i18n="blindTitle"></span><small data-i18n="blindSub"></small></p></div>
       </div>
-      <div class="tl tl-only" id="timeline" role="group" aria-labelledby="tlTitle">
-        <div class="tl-head"><span id="tlTitle" data-i18n="tlTitle"></span>
-          <span class="tl-legend" aria-hidden="true"><span><i class="ins"></i><span data-i18n="tlLegendIns"></span></span><span><i class="shot"></i><span data-i18n="tlShot"></span></span><span><i class="goal"></i><span data-i18n="tlGoal"></span></span></span>
+      <div class="tl" id="timeline" role="group" aria-labelledby="tlTitle">
+        <div class="tl-head">
+          <span class="tl-left"><span id="tlTitle" data-i18n="tlTitle"></span>
+            <span class="tl-legend" aria-hidden="true"><span><i class="ins"></i><span data-i18n="tlLegendIns"></span></span><span><i class="shot"></i><span data-i18n="tlShot"></span></span><span><i class="goal"></i><span data-i18n="tlGoal"></span></span><span><i class="mo"></i><span data-i18n="tlMoment"></span></span></span></span>
+          <span class="tl-next"><button id="nextBtn" type="button" aria-keyshortcuts="N" data-i18n="nextBtn"></button><kbd aria-hidden="true">N</kbd></span>
         </div>
-        <div class="tl-track"><div class="tl-inner" id="tlInner"><div class="tl-past" id="tlPast"></div><div class="tl-now" id="tlNow" hidden></div></div></div>
+        <div class="tl-track" id="tlTrack"><div class="tl-inner" id="tlInner"><div class="tl-past" id="tlPast"></div><div class="tl-ht"></div><div class="tl-now" id="tlNow" hidden></div></div></div>
         <div class="tl-axis" id="tlAxis" aria-hidden="true"></div>
+        <p id="tlHint"></p>
       </div>
       <div class="caption" id="caption" aria-live="polite">
         <span class="tags"><span class="tag idle" id="captionTag" data-i18n="tagIdle"></span><span class="tag mine" id="captionMine" data-i18n="yourTeam" hidden></span></span>
         <p id="captionText"><span id="captionMain" data-i18n="captionIdle"></span><small id="captionSub" hidden></small></p>
       </div>
+      <div class="feed" id="feed" aria-live="off"><h2 data-i18n="feedTitle"></h2><ol id="feedList"></ol></div>
       <div class="why tl-only" id="why" aria-live="polite">
         <div class="why-head"><b id="whyTitle"></b><span class="tag" id="whyTag" hidden></span></div>
         <p><span id="whyMain"></span><small id="whySub" hidden></small></p>
@@ -256,21 +299,10 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
 
     <aside>
       <div class="panel">
-        <div class="field"><span data-i18n="chapterLabel" id="chapterLabel"></span>
-          <div class="seg" role="group" aria-labelledby="chapterLabel" id="chapters">
-            <button type="button" data-chapter="kickoff" aria-pressed="false" data-i18n="ch_kickoff"></button>
-            <button type="button" data-chapter="first_goal" aria-pressed="true" data-i18n="ch_first_goal"></button>
-            <button type="button" data-chapter="late" aria-pressed="false" data-i18n="ch_late"></button>
-          </div>
-        </div>
         <div class="row play-row">
           <button id="playBtn" type="button" aria-keyshortcuts="Space"></button>
           <span class="note" aria-hidden="true"><kbd data-i18n="spaceKey"></kbd></span>
           <button id="blindBtn" type="button" aria-pressed="false" data-i18n="blindBtn"></button>
-        </div>
-        <div class="row play-row">
-          <button id="nextBtn" type="button" aria-keyshortcuts="N" data-i18n="nextBtn"></button>
-          <span class="note" aria-hidden="true"><kbd>N</kbd></span>
         </div>
         <button id="tourBtn" type="button" hidden></button>
         <div class="field"><span data-i18n="modeLabel" id="modeLabel"></span>
@@ -287,7 +319,7 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
           </div>
         </div>
         <label class="field" for="club"><span data-i18n="clubLabel"></span>
-          <select id="club"><option value="" data-i18n="clubNone"></option><option value="HOME"></option><option value="AWAY"></option></select>
+          <select id="club"></select>
         </label>
         <label class="field" for="fav"><span data-i18n="favLabel"></span>
           <select id="fav"></select>
@@ -351,7 +383,7 @@ const JITTER_S = 0.3;  // how far behind the server clock we play, so packets ar
 const DELAY_S = 20;
 const PENTA = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24].map(s => 220 * Math.pow(2, s / 12));
 const $ = id => document.getElementById(id);
-const COLOR = { red: "#f06a4f", blue: "#5b9cf5" };
+const COLOR = { red: "#f06a4f", blue: "#5b9cf5", yellow: "#e8d44d", orange: "#f39a3d", white: "#e8efe9", purple: "#b18cf5" };
 const LABEL = { tr: { shot: "Şut", save: "Kurtarış", goal: "GOL", out: "Top dışarıda", foul: "Faul", kickoff: "Santra", yellow: "Sarı kart", red: "Kırmızı kart" },
   en: { shot: "Shot", save: "Save", goal: "GOAL", out: "Ball out", foul: "Foul", kickoff: "Kick-off", yellow: "Yellow card", red: "Red card" } };
 // One dictionary for every UI string, in the interface language. The commentary language (what is spoken) is set apart.
@@ -369,12 +401,17 @@ const T = {
     nowTitle: "Şu an", danger: "Tehlike", pressure: "Baskı", wing: "Kanat", earL: "sol kulak", earR: "sağ kulak",
     left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
     layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lCallout: "Kısa anonslar (isim, şut, taç…)", lVoice: "Anlatım",
-    chapterLabel: "Nereden başlasın?", ch_kickoff: "Başlangıç\u00a0·\u00a00'", ch_first_goal: "İlk gol\u00a0·\u00a019'", ch_late: "Son dakikalar\u00a0·\u00a076'",
-    spaceKey: "Boşluk", nextBtn: "Sonraki an", jumpedTo: "sonraki an:", liveDelay: "Canlı anlatım", delayWord: "gecikme", secs: "sn", liveTag: "canlı", fallbackTag: "yedek", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
-    off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Demo maçı · seed", lost: "Bağlantı koptu.",
+    matchBar: "Maç ve izleme biçimi", matchLabel: "Maç seç", watchLabel: "İzleme biçimi", watchLive: "Canlı", watchHl: "Önemli anlar",
+    liveFrom: "Canlı, başlangıç", hlCount: "an", cutTo: "Sıradaki an:", halfTimeRecap: "Devre arası özeti",
+    pausedHidden: "Sekme 2 dakika gizli kaldı, dinleme durdu. Başlat'a basınca şuradan sürer:",
+    feedTitle: "Canlı anlatım", feedEmpty: "Anlatıcının son cümleleri, söylendikçe burada görünür.",
+    mo_goal: "Gol", mo_save: "Kurtarış", mo_yellow: "Sarı kart", mo_red: "Kırmızı kart", startBefore: "30 saniye önceden başla",
+    tlHint: "İlk gol {m}. dakikada · 30 saniye önceden başlamak için işaretini seç.",
+    spaceKey: "Boşluk", nextBtn: "Sonraki an", liveDelay: "Canlı anlatım", delayWord: "gecikme", secs: "sn", liveTag: "canlı", fallbackTag: "yedek", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
+    off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", lost: "Bağlantı koptu.",
     fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
     voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili", install: "Uygulamayı yükle",
-    tlTitle: "Zaman çizelgesi · bir işarete dokun, kanıtını gör", tlLegendIns: "Tespit (dolu = anlatıldı)", tlInsight: "Tespit", tlShot: "Şut", tlGoal: "Gol",
+    tlTitle: "Zaman çizelgesi · bir yere ya da ana dokun, oradan başla; oynanmış işaret kanıtını gösterir", tlLegendIns: "Tespit (dolu = anlatıldı)", tlInsight: "Tespit", tlShot: "Şut", tlGoal: "Gol", tlMoment: "An (seç: 30 sn önceden başla)",
     whyTitle: "Neden?", whyIdle: "Zaman çizelgesinde bir işaret seç: dayandığı olaylar sahada parlar, sayıları burada görünür.",
     evidence: "Kanıt", events: "olay", event: "olay", speed: "hız", spoken: "anlatıldı", notSpoken: "anlatılmadı", kmh: "km/s",
     ins_pressure_shift: "{team} baskıyı artırdı", ins_tempo_change: "{team} oyunu yavaşlattı", ins_flank_overload: "{team} {side} kanada yüklendi",
@@ -397,12 +434,17 @@ const T = {
     nowTitle: "Right now", danger: "Danger", pressure: "Pressure", wing: "Wing", earL: "left ear", earR: "right ear",
     left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
     layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lCallout: "Callouts (names, shots, throw-ins…)", lVoice: "Narration",
-    chapterLabel: "Start from", ch_kickoff: "Kick-off\u00a0·\u00a00'", ch_first_goal: "First goal\u00a0·\u00a019'", ch_late: "Late drama\u00a0·\u00a076'",
-    spaceKey: "Space", nextBtn: "Next moment", jumpedTo: "next moment from", liveDelay: "Live commentary", delayWord: "delay", secs: "s", liveTag: "live", fallbackTag: "fallback", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
-    off: "Not connected.", wait: "Connected, waiting for the match.", live: "Demo match · seed", lost: "Connection lost.",
+    matchBar: "Match and how to watch", matchLabel: "Pick a match", watchLabel: "How to watch", watchLive: "Live", watchHl: "Highlights",
+    liveFrom: "Live from", hlCount: "moments", cutTo: "Next highlight:", halfTimeRecap: "Half-time recap",
+    pausedHidden: "The tab was hidden for 2 minutes, so listening stopped. Start picks up at",
+    feedTitle: "Live commentary", feedEmpty: "The commentator's latest lines show here as they are spoken.",
+    mo_goal: "Goal", mo_save: "Save", mo_yellow: "Yellow card", mo_red: "Red card", startBefore: "start 30 seconds before",
+    tlHint: "First goal at {m}' · select its marker to start 30 s before.",
+    spaceKey: "Space", nextBtn: "Next moment", liveDelay: "Live commentary", delayWord: "delay", secs: "s", liveTag: "live", fallbackTag: "fallback", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
+    off: "Not connected.", wait: "Connected, waiting for the match.", lost: "Connection lost.",
     fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
     voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language", install: "Install the app",
-    tlTitle: "Timeline · select a marker to see its evidence", tlLegendIns: "Insight (filled = spoken)", tlInsight: "Insight", tlShot: "Shot", tlGoal: "Goal",
+    tlTitle: "Timeline · select a minute or a moment to start there; a played marker shows its evidence", tlLegendIns: "Insight (filled = spoken)", tlInsight: "Insight", tlShot: "Shot", tlGoal: "Goal", tlMoment: "Moment (select: start 30 s before)",
     whyTitle: "Why?", whyIdle: "Select a marker on the timeline: the events behind it light up on the pitch and its numbers show here.",
     evidence: "Evidence", events: "events", event: "event", speed: "speed", spoken: "spoken", notSpoken: "not spoken", kmh: "km/h",
     ins_pressure_shift: "{team} pressing", ins_tempo_change: "{team} slowing the tempo", ins_flank_overload: "{team} overloading the {side} flank",
@@ -418,9 +460,13 @@ const LANGS = ["en", "tr"];
 let uiLang = LANGS.includes(store.get("htg.lang")) ? store.get("htg.lang") : (navigator.language || "en").toLowerCase().startsWith("tr") ? "tr" : "en";
 let commLang = LANGS.includes(store.get("htg.commentary")) ? store.get("htg.commentary") : null;  // null: follows the interface language
 let mode = MODES.includes(store.get("htg.mode")) ? store.get("htg.mode") : "casual";
-let club = ["HOME", "AWAY"].includes(store.get("htg.club")) ? store.get("htg.club") : "";  // favourite club: "", "HOME" or "AWAY"
-let chapter = "first_goal";  // demo start point; the server only accepts its own chapters
-const PLACEHOLDER_TEAMS = { HOME: "Northport", AWAY: "Valemont" };  // shown in the club picker until the server's hello names the teams
+// Favourite club: a club id of the league ("" = none). It applies to whichever match includes that club; `club` is its side in the
+// current match ("", "HOME" or "AWAY"). Stores from before the league held the side of the one demo match.
+let favClub = (v => ({ HOME: "northport", AWAY: "valemont" })[v] || v || "")(store.get("htg.club")), club = "";
+let league = null;  // /matches.json: { default, clubs, matches }; null when opened as a file (run_local: one match, no picker)
+let matchId = store.get("htg.match"), watch = store.get("htg.watch") === "highlights" ? "highlights" : "live";
+let startT = 0;  // Live: the match second the session starts from (a timeline click, a moment, or where listening stopped)
+const curMatch = () => league && (league.matches.find(m => m.id === matchId) || league.matches.find(m => m.id === league.default));
 const t = k => T[uiLang][k];
 const lang = () => commLang || uiLang;  // the commentary language: narration, recaps, tour voice
 
@@ -539,13 +585,13 @@ function applyLayers() {
 /* ---------------- live stream ---------------- */
 // Match clock -> audio clock: audioTime = clock0 + matchT / speed. Everything the server sends carries a match time.
 const live = { ws: null, clock0: null, speed: 1, teams: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], favT: -99,
-  gen: 0, marks: [], insBySeq: {}, players: {}, sel: null, hl: null, win: null, stats: null, statsWin: "match" };
+  gen: 0, marks: [], insBySeq: {}, players: {}, sel: null, hl: null, windows: null, stats: null, statsWin: "match", feed: [] };
 const matchNow = () => (ctx.currentTime - live.clock0) * live.speed;
 const audioAt = t => Math.max(ctx.currentTime, live.clock0 + t / live.speed);
 
-let lastQuery = "";  // the session's start (chapter or jump), so a mode change can restart the same window
-function connect(query = "") {
-  lastQuery = query;
+// Live: from `from` (match seconds) to full time. Highlights: the clips not yet over at `from` (0: all of them).
+function connect(from = startT) {
+  startT = Math.max(0, Math.floor(from));
   initAudio(); ctx.resume();
   primeVoice(); preloadCallouts();
   resetLive();
@@ -553,7 +599,8 @@ function connect(query = "") {
   $("playBtn").textContent = t("stop");
   $("status").textContent = t("wait");
   const delay = mode === "analyst" ? "" : `&delay=${DELAY_S}`;
-  const ws = live.ws = new WebSocket(WS_URL + (WS_URL.includes("?") ? "&" : "?") + "chapter=" + chapter + delay + "&lang=" + lang() + query);
+  const q = `match=${encodeURIComponent(matchId || "")}&mode=${watch}&from=${startT}`;
+  const ws = live.ws = new WebSocket(WS_URL + (WS_URL.includes("?") ? "&" : "?") + q + delay + "&lang=" + lang());
   ws.onmessage = e => onMessage(JSON.parse(e.data));
   ws.onclose = () => { if (live.ws === ws) { stopListening(t("lost")); } };
   ws.onerror = () => { if (live.ws === ws) { stopListening(t("fail")); } };
@@ -563,31 +610,34 @@ function stopListening(msg) {
   const ws = live.ws; live.ws = null;
   if (ws) { ws.onclose = ws.onerror = null; ws.close(); }
   clearInterval(live.timer); endSession(session); session = null; stopSpeech();
-  $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off"); renderNextBtn();
+  $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off"); renderTimeline();
 }
-// "Next moment": a new session 30 s before the next goal, saved shot or card more than 30 s after the play clock (when stopped: the
-// chosen chapter's start); the server picks it, and the client resets exactly as for a chapter jump. Disabled when `moments` run out.
-const playT = () => !live.ws ? null : live.cur ? live.cur.t : live.win ? live.win[0] : null;
-const hasNextMoment = () => !live.moments || playT() === null || live.moments.some(tm => tm > playT() + 30);
-function renderNextBtn() { $("nextBtn").disabled = !hasNextMoment(); }
-function nextMoment() {
-  if (!hasNextMoment()) return;
-  const after = playT();
+// "Next moment" (Live): a new session 30 s before the next goal, saved shot or card more than 30 s after the play clock (stopped: after
+// the chosen start). The client resets exactly as for any new start. Highlights already go from moment to moment: disabled there.
+const playT = () => live.ws && live.cur ? live.cur.t : null;
+const moments = () => live.moments || (curMatch() ? curMatch().moments : []);
+function nextMomentT() { const from = playT() ?? startT, m = moments().find(mo => mo.t > from + 30); return m ? m.t : null; }
+function renderNextBtn() { $("nextBtn").disabled = watch === "highlights" || nextMomentT() === null; }
+function nextMoment() { const tm = watch === "live" ? nextMomentT() : null; if (tm !== null) startLive(tm - 30); }
+function startLive(from) {  // a timeline click, a moment marker or Next moment: Live from there, listening at once
   endTour();
+  if (watch !== "live") { watch = "live"; store.set("htg.watch", watch); applyWatch(); }
   if (live.ws) stopListening();
-  connect("&next=1" + (after === null ? "" : "&after=" + after.toFixed(1))); live.jumped = true;
+  connect(from);
 }
-// The status is read aloud: match, a jump, and in the fan modes "Live commentary · 20 s delay". Redrawn on a language change.
+// The status is read aloud: match, Live from a minute or Highlights, and in the fan modes "Live commentary · 20 s delay". Redrawn on
+// a language change.
 function renderStatus() {
-  let s = `${t("live")} ${live.seed}`;
-  if (live.jumped && live.win) s += ` · ${t("jumpedTo")} ${Math.floor(live.win[0] / 60)}'`;
+  let s = `${uiTeam("HOME")} – ${uiTeam("AWAY")}`;
+  if (live.watch === "highlights") s += ` · ${t("watchHl")} · ${(live.moments || []).length} ${t("hlCount")}`;
+  else s += ` · ${startT > 0 ? `${t("liveFrom")} ${Math.floor(startT / 60)}'` : t("watchLive")}`;
   if (live.delay_s) s += ` · ${live.commentary ? t("liveDelay") + " · " : ""}${live.delay_s} ${t("secs")} ${t("delayWord")}`;
   $("status").textContent = s;
 }
 function resetLive() {
   Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false,
-    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, win: null, stats: null, jumped: false, delay_s: 0, commentary: false });
-  $("tlInner").querySelectorAll(".mk").forEach(e => e.remove()); renderAxis(); renderWhy(); renderStats();
+    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, windows: null, stats: null, delay_s: 0, commentary: false, feed: [], cutShow: null, trail: [] });
+  $("tlInner").querySelectorAll(".mk:not(.mo)").forEach(e => e.remove()); renderTimeline(); renderWhy(); renderStats(); renderFeed();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
   Object.assign(callouts, { cur: null, lastA: -99, nameT: -99, held: 0 });
@@ -595,18 +645,18 @@ function resetLive() {
 
 function onMessage(m) {
   if (m.type === "hello") {
-    live.speed = m.speed || 1; live.teams = m.teams; live.win = m.window || null; live.dur = m.duration_s || Infinity; renderAxis();
-    live.moments = m.moments || null; renderNextBtn();
+    live.speed = m.speed || 1; live.teams = m.teams; live.windows = m.windows || null; live.dur = m.duration_s || Infinity;
+    live.moments = m.moments || null; live.watch = m.watch || "live"; renderTimeline();
     live.players = Object.fromEntries(["HOME", "AWAY"].flatMap(s => m.teams[s].players.map(p => [p.id, p.name])));
     for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) {
       $("dot" + id).style.background = COLOR[m.teams[side].color] || "#ccc";
     }
     if (m.score) { live.score = [m.score.HOME || 0, m.score.AWAY || 0]; $("score").textContent = live.score.join(" – "); }
-    Object.assign(live, { seed: m.seed ?? m.match_id, delay_s: m.delay_s || 0, commentary: !!m.commentary }); renderStatus();
+    Object.assign(live, { delay_s: m.delay_s || 0, commentary: !!m.commentary }); renderStatus();
     fillFav(m.teams); setTeamNames(); fillClub(); sendMode(); sendClub();
   } else if (m.type === "state") {
     if (live.clock0 === null) live.clock0 = ctx.currentTime + JITTER_S - m.packets[0].t / live.speed;
-    if (!live.win) { live.win = [m.packets[0].t, Math.min(m.packets[0].t + SESSION_S, live.dur || Infinity)]; renderAxis(); }  // run_local sends no window
+    if (!live.windows) { live.windows = [[m.packets[0].t, matchLen()]]; renderTimeline(); }  // run_local sends no windows
     live.frames.push(...m.packets);
   } else if (m.type === "event_cue") {
     live.due.push({ t: m.t, kind: "cue", m });
@@ -618,8 +668,10 @@ function onMessage(m) {
     live.due.push({ t: m.insight.t, kind: "insight", m });
   } else if (m.type === "speech") {
     live.due.push({ t: m.t, kind: "speech", m });
+  } else if (m.type === "cut") {  // Highlights: the clip ends at t_from, the next one starts at t_to
+    live.due.push({ t: m.t_from, kind: "cut", m });
   } else if (m.type === "recap") {
-    if (m.kind === "full_time") { live.due.push({ t: m.t, kind: "recap", m }); return; }  // plays when its match time arrives
+    if (m.kind === "full_time" || m.kind === "half_time") { live.due.push({ t: m.t, kind: "recap", m }); return; }  // plays when its match time arrives
     clearTimeout(recapWait); recapWait = null; setRecapBusy(false); playRecap(m);
   }
 }
@@ -639,7 +691,9 @@ function schedule() {
   }
   live.due.sort((x, y) => x.t - y.t);
   while (live.due.length && live.due[0].t < horizon) {
-    const d = live.due.shift(), m = d.m, a = audioAt(m.t);
+    const d = live.due.shift(), m = d.m;
+    if (d.kind === "cut") { cutTo(m); break; }  // the play clock jumps; the next clip's items are due from the next tick
+    const a = audioAt(m.t);
     if (d.kind === "cue") cue(m, a);
     else if (d.kind === "insight") at(a, () => addInsight(m));
     else if (d.kind === "recap") setTimeout(() => { if (live.ws) playRecap(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
@@ -647,6 +701,18 @@ function schedule() {
     else if (d.kind === "comm") commentaryLine(m, a);
     else speech(m, a);
   }
+}
+// Highlights transition: a soft whoosh, the next clip's minute on the pitch (and read in the status line), then the clip ~1.2 s later.
+// The score comes from the server's warm-up; nothing is recomputed here.
+const CUT_GAP_S = 1.2;
+function cutTo(m) {
+  const now = ctx.currentTime;
+  live.clock0 = now + CUT_GAP_S - m.t_to / live.speed;
+  Object.assign(live, { lastTickSlot: -1, nextBeat: 0, trail: [], cutShow: { text: `${Math.floor(m.t_to / 60)}'`, at: performance.now() } });
+  if (m.score) { live.score = [m.score.HOME || 0, m.score.AWAY || 0]; $("score").textContent = live.score.join(" – "); }
+  const f = sndNoise(session.L.cue, now, 0.9, "bandpass", 350, 0.8, 0.22, 0, 0.45);
+  f.frequency.exponentialRampToValueAtTime(2400, now + 0.8);
+  $("status").textContent = `${t("cutTo")} ${Math.floor(m.t_to / 60)}'`;
 }
 function cue(m, a) {
   const L = session.L.cue, k = m.kind;
@@ -716,7 +782,7 @@ function renderRecap() {
   if (r0) {  // the latest agent (or template) recap, above the narration list
     const li = document.createElement("li"), b = document.createElement("b"), p = document.createElement("span");
     li.className = "out";
-    b.textContent = r0.kind === "full_time" ? t("fullTime") : `${t("recapTag")} · ${t("missedSince")} ${r0.since_min}${t("recapSince") ? " " + t("recapSince") : ""}`;
+    b.textContent = r0.kind === "full_time" ? t("fullTime") : r0.kind === "half_time" ? t("halfTimeRecap") : `${t("recapTag")} · ${t("missedSince")} ${r0.since_min}${t("recapSince") ? " " + t("recapSince") : ""}`;
     p.textContent = r0.text[lang()].join(" "); p.lang = lang(); li.append(b, p);
     const sub = document.createElement("small"); sub.lang = uiLang; sub.hidden = lang() === uiLang; sub.textContent = r0.text[uiLang].join(" ");
     li.append(sub); ol.append(li);
@@ -739,7 +805,7 @@ function askRecap() {
 function playRecap(m) {
   live.recapOut = m; renderRecap();
   const joined = { en: m.text.en.join(" "), tr: m.text.tr.join(" ") };
-  say({ text: joined, source: m.source, audio: m.audio, team: null }, m.kind === "full_time" ? t("fullTime") : t("recapTag"));
+  say({ text: joined, source: m.source, audio: m.audio, team: null }, m.kind === "full_time" ? t("fullTime") : m.kind === "half_time" ? t("halfTimeRecap") : t("recapTag"));
 }
 // The old "What did I miss": speak the score and the last three narrations, oldest first, with the device voice
 function readRecap() {
@@ -777,16 +843,44 @@ function renderStats() {
 /* ---------------- evidence timeline ---------------- */
 // Markers appear when their match time is played. A shot or goal marker carries the chance/goal Insight that rests on its event seq;
 // tactical Insights get their own diamond. Danger-only chances are left out: they are never spoken (the sound carries danger).
-const SESSION_S = 15 * 60, HL_S = 6;
+// The axis is the whole match (0'-90', half-time tick). Bands: what the session plays (Live: from the start minute; Highlights: the
+// clips). The match's known moments (goals, saved shots, cards) show from the start as buttons that start 30 s before them; a click
+// on the track starts Live from that minute.
+const HL_S = 6;
 function at(a, fn) { const gen = live.gen; setTimeout(() => { if (live.gen === gen) fn(); }, Math.max(0, (a - ctx.currentTime) * 1000)); }
-const pct = tm => live.win ? Math.min(100, Math.max(0, 100 * (tm - live.win[0]) / (live.win[1] - live.win[0]))) : 0;
+const matchLen = () => (isFinite(live.dur) && live.dur) || (curMatch() && curMatch().duration_s) || 5400;
+const pct = tm => Math.min(100, Math.max(0, 100 * tm / matchLen()));
+function renderTimeline() { renderAxis(); renderBands(); renderMoments(); renderNextBtn(); }
 function renderAxis() {
   const ax = $("tlAxis"); ax.replaceChildren();
-  if (!live.win) return;
-  for (let k = 0; k <= 3; k++) {
-    const tm = live.win[0] + k * (live.win[1] - live.win[0]) / 3, s = document.createElement("span");
-    s.textContent = Math.round(tm / 60) + "'"; s.style.left = pct(tm) + "%"; ax.append(s);
+  for (let k = 0; k <= 6; k++) {
+    const s = document.createElement("span");
+    s.textContent = k * 15 + "'"; s.style.left = pct(k * 900) + "%"; s.className = k === 3 ? "ht" : ""; ax.append(s);
   }
+}
+function plannedWindows() {
+  if (live.ws && live.windows) return live.windows;
+  const m = curMatch();
+  return watch === "highlights" ? (m ? m.windows : []) : [[startT, matchLen()]];
+}
+function renderBands() {
+  const inner = $("tlInner"); inner.querySelectorAll(".tl-band").forEach(e => e.remove());
+  for (const [a, b] of plannedWindows()) {
+    const d = document.createElement("div"); d.className = "tl-band";
+    d.style.left = pct(a) + "%"; d.style.width = (pct(b) - pct(a)) + "%"; inner.prepend(d);
+  }
+}
+function renderMoments() {
+  const inner = $("tlInner"); inner.querySelectorAll(".mk.mo").forEach(e => e.remove());
+  for (const mo of moments()) {
+    const b = document.createElement("button"), parts = [t("mo_" + mo.kind), clock(mo.t), uiTeam(mo.team), t("startBefore")];
+    b.type = "button"; b.className = "mk mo " + mo.kind; b.style.left = pct(mo.t) + "%"; b.style.setProperty("--c", teamColor(mo.team));
+    b.setAttribute("aria-label", parts.join(", ")); b.title = parts.join(" · ");
+    b.addEventListener("click", () => startLive(mo.t - 30));
+    inner.append(b);
+  }
+  const g = moments().find(mo => mo.kind === "goal");  // a hint, not a button: where the first goal is
+  $("tlHint").textContent = g && !live.ws ? t("tlHint").replace("{m}", Math.floor(g.t / 60) + 1) : "";
 }
 function addInsight(m) {
   const ins = m.insight;
@@ -817,7 +911,9 @@ function markSpoken(m) {
   mk.speech = m; renderMark(mk);
   if (live.sel === mk) renderWhy();
 }
-function uiTeam(side) { return live.teams ? live.teams[side]["name_" + uiLang] : PLACEHOLDER_TEAMS[side]; }
+// A side's club in the current match: from the session's hello, else from the fixture list (before Start), else none (run_local).
+const teamInfo = side => live.teams ? live.teams[side] : curMatch() ? curMatch().teams[side] : null;
+function uiTeam(side) { const i = teamInfo(side); return i ? i["name_" + uiLang] : t(side === "HOME" ? "home" : "away"); }
 function insTitle(ins) {
   const f = ins.claim_facts, tpl = t("ins_" + ins.type) || ins.type;
   return tpl.replace("{team}", f["team_" + uiLang] || "").replace("{player}", f.player || "").replace("{side}", (uiLang === "tr" ? f.side_tr : f.side) || "");
@@ -894,10 +990,10 @@ function drawEvidence(g, sx, sy, dpr) {
   g.globalAlpha = 1;
 }
 function drawTimeline() {
-  const r = live.cur, on = !!(r && live.win);
+  const r = live.ws && live.cur, on = !!r;
   $("tlNow").hidden = !on;
-  if (!on) return;
-  $("tlNow").style.left = pct(r.t) + "%"; $("tlPast").style.width = `calc(${pct(r.t)}% + 12px)`;
+  $("tlPast").style.width = on ? `calc(${pct(r.t)}% + 12px)` : "0";
+  if (on) $("tlNow").style.left = pct(r.t) + "%";
 }
 
 /* ---------------- narration ---------------- */
@@ -1062,9 +1158,8 @@ function commentaryLine(m, a) {
     if (live.gen !== gen || !live.ws) return;
     if (m.goal) { stopClip(); stopComm(); if ("speechSynthesis" in window) speechSynthesis.cancel(); }
     stopCallout();
-    setCaption(m.text, true);
-    const secs = (m.latency_s ?? 0).toFixed(1).replace(".", uiLang === "tr" ? "," : ".");
-    $("captionTag").textContent = m.source === "live" ? `${t("liveTag")} · ${secs} ${t("secs")}` : t("fallbackTag");
+    setCaption(m.text, true); addFeed(m);
+    $("captionTag").textContent = commTag(m);
     $("captionMine").hidden = true;
     const idle = () => setTimeout(() => { if (!comm && !clip) $("captionTag").classList.add("idle"); }, 400);
     if (!$("L_voice").checked || !b) { idle(); return; }
@@ -1077,6 +1172,23 @@ function commentaryLine(m, a) {
   setTimeout(tryPlay, Math.max(0, (a - ctx.currentTime) * 1000));
 }
 function stopComm() { const c = comm; comm = null; if (c) { c.src.onended = null; try { c.src.stop(); } catch (e) {} } }
+const commTag = m => m.source === "live" ? `${t("liveTag")} · ${(m.latency_s ?? 0).toFixed(1).replace(".", uiLang === "tr" ? "," : ".")} ${t("secs")}` : t("fallbackTag");
+// The feed: the last FEED_N lines as they were spoken (never before), newest on top, by the caption's dual-language rules. Not a live
+// region: the caption already speaks.
+const FEED_N = 6;
+function addFeed(m) { live.feed.unshift(m); live.feed.length = Math.min(live.feed.length, FEED_N); renderFeed(); }
+function renderFeed() {
+  const ol = $("feedList"); ol.replaceChildren();
+  if (!live.feed.length) { const li = document.createElement("li"); li.className = "empty"; li.style.display = "block"; li.textContent = t("feedEmpty"); ol.append(li); return; }
+  for (const m of live.feed) {
+    const li = document.createElement("li"), tm = document.createElement("time"), tag = document.createElement("span"), p = document.createElement("span");
+    const main = m.text[lang()] !== undefined ? lang() : uiLang, sub = main !== uiLang ? m.text[uiLang] : undefined;
+    tm.textContent = `${Math.floor(m.t / 60) + 1}'`; tag.className = "tag" + (m.source === "live" ? "" : " dim"); tag.textContent = commTag(m);
+    p.textContent = m.text[main] ?? ""; p.lang = main;
+    if (sub) { const sm = document.createElement("small"); sm.lang = uiLang; sm.textContent = sub; p.append(sm); }
+    li.append(tm, tag, p); ol.append(li);
+  }
+}
 
 /* ---------------- sound tour ---------------- */
 // Before the first start: each step shows a caption, plays its pre-generated voice line (device voice if the clip is missing), then
@@ -1188,7 +1300,7 @@ function fit(c) {
   if (c.width !== Math.round(r.width * dpr) || c.height !== Math.round(r.height * dpr)) { c.width = Math.round(r.width * dpr); c.height = Math.round(r.height * dpr); }
   return { w: c.width, h: c.height, dpr };
 }
-function teamColor(side) { return live.teams ? COLOR[live.teams[side].color] : "#ccc"; }
+function teamColor(side) { const i = teamInfo(side); return i ? COLOR[i.color] || "#ccc" : "#ccc"; }
 function drawPitch() {
   const { w, h, dpr } = fit(pc), g = pc.getContext("2d");
   const sx = x => x / 105 * w, sy = y => h - y / 68 * h;
@@ -1210,11 +1322,23 @@ function drawPitch() {
     g.beginPath(); g.arc(sx(p.x), sy(p.y), 4 * dpr, 0, Math.PI * 2); g.fill();
   });
   g.globalAlpha = 1;
+  drawCut(g, w, h, dpr);
   const p = live.cur;
   if (!p) return;
+  const white = live.teams && live.teams[p.team].color === "white";  // a white ring on a white ball would hide the team: dark ball
   g.beginPath(); g.arc(sx(p.x), sy(p.y), 9 * dpr, 0, Math.PI * 2);
-  g.fillStyle = p.in_play ? "#f5f7f5" : "rgba(245,247,245,0.4)"; g.fill();
+  g.fillStyle = white ? (p.in_play ? "#1d2b26" : "rgba(29,43,38,0.5)") : p.in_play ? "#f5f7f5" : "rgba(245,247,245,0.4)"; g.fill();
   g.lineWidth = 3 * dpr; g.strokeStyle = teamColor(p.team); g.stroke();
+}
+function drawCut(g, w, h, dpr) {  // the next highlight's minute, large on the pitch for 1.6 s
+  const c = live.cutShow; if (!c) return;
+  const age = (performance.now() - c.at) / 1000;
+  if (age > 1.6) { live.cutShow = null; return; }
+  g.globalAlpha = Math.min(1, (1.6 - age) / 0.4);
+  g.fillStyle = "rgba(5,8,7,0.55)"; g.fillRect(0, 0, w, h);
+  g.fillStyle = "#e8efe9"; g.font = `700 ${Math.round(h * 0.28)}px "Barlow Condensed", "Arial Narrow", sans-serif`;
+  g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(c.text, w / 2, h / 2);
+  g.globalAlpha = 1; g.textAlign = "start"; g.textBaseline = "alphabetic";
 }
 function drawPanel() {
   const r = live.cur; if (!r) return;
@@ -1251,18 +1375,38 @@ function syncLiveRegions() {
   $("caption").setAttribute("aria-live", v); $("recap").setAttribute("aria-live", v);
 }
 function setTeamNames() {
-  if (!live.teams) return;
-  for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) $("name" + id).textContent = live.teams[side]["name_" + lang()];
+  for (const [side, id] of [["HOME", "Home"], ["AWAY", "Away"]]) {
+    const i = teamInfo(side);
+    if (!i) continue;
+    $("name" + id).textContent = i["name_" + lang()]; $("dot" + id).style.background = teamColor(side);
+  }
 }
-function teamName(side) { return live.teams ? live.teams[side]["name_" + lang()] : PLACEHOLDER_TEAMS[side]; }
+// The six clubs of the league (or, opened as a file, the two of the session); the favourite applies to whichever match has it.
 function fillClub() {
-  const sel = $("club");
-  sel.options[0].textContent = t("clubNone"); sel.options[1].textContent = teamName("HOME"); sel.options[2].textContent = teamName("AWAY");
-  sel.value = club;
+  const sel = $("club"), clubs = league ? Object.entries(league.clubs).map(([id, c]) => [id, c.name])
+    : ["HOME", "AWAY"].map(s => teamInfo(s)).filter(i => i && i.club).map(i => [i.club, i["name_" + lang()]]);
+  sel.replaceChildren(new Option(t("clubNone"), ""), ...clubs.map(([id, name]) => new Option(name, id)));
+  sel.value = clubs.some(([id]) => id === favClub) ? favClub : "";
+  club = ["HOME", "AWAY"].find(s => favClub && teamInfo(s) && teamInfo(s).club === favClub) || "";
   $("yoursHome").hidden = club !== "HOME"; $("yoursAway").hidden = club !== "AWAY";
 }
+// Match picker: the favourite club's matches first, marked "your team".
+function fillMatches() {
+  $("matchbar").hidden = !league;
+  if (!league) return;
+  const mine = m => !!favClub && (m.home === favClub || m.away === favClub);
+  const label = m => `${m.teams.HOME["name_" + uiLang]} – ${m.teams.AWAY["name_" + uiLang]}` + (mine(m) ? ` · ${t("yourTeam")}` : "");
+  $("matchSel").replaceChildren(...[...league.matches.filter(mine), ...league.matches.filter(m => !mine(m))].map(m => new Option(label(m), m.id)));
+  $("matchSel").value = curMatch().id;
+}
+function applyWatch() { document.querySelectorAll("#watch button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.watch === watch))); renderTimeline(); }
+// Before Start (or after a new match is picked): names, colours, clubs and the timeline come from the fixture list.
+function applyMatch() {
+  if (!live.ws) { live.teams = null; live.moments = null; live.dur = Infinity; live.windows = null; $("score").textContent = "0 – 0"; }
+  setTeamNames(); fillClub(); fillMatches(); renderTimeline(); renderStats();
+  if (!live.ws) $("fav").replaceChildren(new Option(t("favNone"), ""));
+}
 function sendClub() { if (live.ws && live.ws.readyState === 1) live.ws.send(JSON.stringify({ type: "set_favourite", team: club || null })); }
-function applyChapter() { document.querySelectorAll("#chapters button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.chapter === chapter))); }
 function fillFav(teams) {
   const sel = $("fav"), keep = sel.value; sel.replaceChildren(new Option(t("favNone"), ""));
   for (const side of ["HOME", "AWAY"]) {
@@ -1291,10 +1435,11 @@ function applyI18n() {
   document.querySelectorAll("#commLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang())));
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
   if (!live.ws) $("status").textContent = t("off");
-  setTeamNames(); fillClub();
-  if (live.ws && live.seed !== undefined) renderStatus();
+  setTeamNames(); fillClub(); fillMatches();
+  if (live.ws && live.teams) renderStatus();
   if (live.teams) fillFav(live.teams); else $("fav").replaceChildren(new Option(t("favNone"), ""));
   renderLog(); renderRecap(); pickVoices(); live.marks.forEach(renderMark); renderWhy(); renderStats(); renderTourBtn(); setRecapBusy(!!recapWait);
+  renderTimeline(); renderFeed();
 }
 // Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
 $("uiLangSel").addEventListener("change", e => { uiLang = e.target.value; store.set("htg.lang", uiLang); applyI18n(); });
@@ -1302,20 +1447,29 @@ document.querySelectorAll("#commLang button").forEach(b => b.addEventListener("c
   commLang = b.dataset.lang; store.set("htg.commentary", commLang); applyI18n(); preloadCallouts();
 }));
 // The delay is fixed per session (20 s in the fan modes, none in Analyst), so crossing between Analyst and a fan mode while listening
-// restarts the same window in the new mode; otherwise a session started in Analyst would stay without the live commentator.
+// restarts where the listener is, in the new mode (Highlights: the clip under way); otherwise a session started in Analyst would stay
+// without the live commentator.
 document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
   const was = mode;
   mode = b.dataset.mode; store.set("htg.mode", mode); applyMode(); sendMode();
-  if (live.ws && (was === "analyst") !== (mode === "analyst")) {
-    const jumped = live.jumped;
-    stopListening(); connect(lastQuery); live.jumped = jumped;
-  }
+  if (live.ws && (was === "analyst") !== (mode === "analyst")) { const at = playT(); stopListening(); connect(at ?? startT); }
 }));
-$("club").addEventListener("change", e => { club = e.target.value; store.set("htg.club", club); fillClub(); sendClub(); });
-document.querySelectorAll("#chapters button").forEach(b => b.addEventListener("click", () => {
-  chapter = b.dataset.chapter; applyChapter();
-  if (live.ws) { stopListening(); connect(); }  // jump: a new session from the chosen chapter
+$("club").addEventListener("change", e => { favClub = e.target.value; store.set("htg.club", favClub); fillClub(); fillMatches(); sendClub(); });
+// A new match or a new way to watch starts over (from kick-off / the first clip); while listening, the session restarts at once.
+$("matchSel").addEventListener("change", e => {
+  matchId = e.target.value; store.set("htg.match", matchId); startT = 0;
+  if (live.ws) { stopListening(); applyMatch(); connect(0); } else applyMatch();
+});
+document.querySelectorAll("#watch button").forEach(b => b.addEventListener("click", () => {
+  if (watch === b.dataset.watch) return;
+  watch = b.dataset.watch; store.set("htg.watch", watch); startT = 0; applyWatch();
+  if (live.ws) { stopListening(); connect(0); }
 }));
+$("tlTrack").addEventListener("click", e => {
+  if (e.target.closest(".mk")) return;
+  const r = $("tlInner").getBoundingClientRect();
+  startLive(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * matchLen());
+});
 $("nextBtn").addEventListener("click", nextMoment);
 $("recapBtn").addEventListener("click", askRecap);
 document.querySelectorAll("#statsWin button").forEach(b => b.addEventListener("click", () => { live.statsWin = b.dataset.win; renderStats(); }));
@@ -1347,7 +1501,28 @@ if ("onbeforeinstallprompt" in window) {
     e.prompt(); await e.userChoice.catch(() => null);
   });
 }
-applyMode(); applyChapter(); applyI18n(); syncLiveRegions();
+// A tab left hidden for 2 minutes stops listening (the client closes the socket, the server stops the session and its commentator),
+// so a forgotten tab does not call Foundry for 90 minutes. Start picks up where it stopped.
+const HIDDEN_STOP_MS = 120000;
+let hiddenTimer = null;
+document.addEventListener("visibilitychange", () => {
+  clearTimeout(hiddenTimer);
+  if (!document.hidden || !live.ws) return;
+  hiddenTimer = setTimeout(() => {
+    if (!document.hidden || !live.ws) return;
+    const at = playT();
+    stopListening(at === null ? undefined : `${t("pausedHidden")} ${clock(at)}.`);
+    if (at !== null) startT = Math.floor(at);
+  }, HIDDEN_STOP_MS);
+});
+if (location.protocol.startsWith("http")) {
+  fetch("matches.json").then(r => r.ok ? r.json() : null).then(j => {
+    if (!j || !j.matches || !j.matches.length) return;
+    league = j; matchId = curMatch().id;
+    applyMatch();
+  }).catch(() => {});
+}
+applyMode(); applyWatch(); applyI18n(); syncLiveRegions(); renderFeed();
 requestAnimationFrame(loop);
 </script>
 </body>
