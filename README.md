@@ -5,7 +5,8 @@ your own device, plus short, verified narration in English or Turkish, so blind 
 look at a screen) can follow the shape of a match as it happens.
 
 > Built for the Microsoft × Premier League **Inside the Game** hackathon (October 2026), category **Best Use of Microsoft Foundry**.
-> All teams, players and matches are fictional and synthetic. The demo match is **Northport** (red) v **Valemont** (blue).
+> All teams, players and matches are fictional and synthetic: a small league of six clubs and six matches. The default match is
+> **Northport** (red) v **Valemont** (blue).
 
 ## The problem
 
@@ -24,7 +25,7 @@ The browser synthesises all match sound itself (Web Audio) from small state pack
 | **Heartbeat** (low thump) | Pressure on the ball carrier: starts above a threshold, beats faster and louder as pressure rises. |
 | **Crowd** | Filtered noise whose level follows danger. |
 | **Event sounds** | Pass: soft click on the ball's side. Shot: rising whoosh. Save: thud. Out or foul: short whistle. Kick-off: long whistle. Half-time: two short whistles; full time: two short and a long one (the clock then shows 90:00 FT). Goal: crowd swell, a rising four-note figure in the scoring team's timbre, whistle. |
-| **Favourite club** | Pick Northport or Valemont. Your club's goal gets a brighter, longer crowd swell; a goal against you is short and muted, with no fanfare. The score bar marks "your team" in text, the caption tags narration about your club, and the Director moves your club's Insights one step up the queue. |
+| **Favourite club** | Pick one of the six clubs; it applies to every match that club plays (its matches are listed first). Your club's goal gets a brighter, longer crowd swell; a goal against you is short and muted, with no fanfare. The score bar marks "your team" in text, the caption tags narration about your club, and the Director moves your club's Insights one step up the queue. |
 | **Favourite player** | Pick a player; a two-note chime plays on the ball's side when they touch it (at most every 3 s). |
 | **Narration** | One short sentence (Azure neural voice, EN or TR) when something tactical is detected. Other sound dips to 30% under the voice. The caption shows **verified** (model text that passed the Verifier) or **template** (fallback). |
 
@@ -48,12 +49,15 @@ pressing noticeably harder now, and Valemont are under more pressure."). Analyst
 comparison ("Northport press harder: 39% of Valemont's play is under pressure in the last 5 minutes, 22% earlier on."). Both
 come from the same facts and pass the same Verifier.
 
-**Evidence timeline (what you see).** Under the pitch, a strip covers the session's 15 minutes: goals (large ringed dot), shots
-(small dot) and Insights (diamond, filled once spoken), in club colour, with a playhead on the match clock. A new Insight's marker
+**Evidence timeline (what you see).** Under the pitch, a strip covers the whole match (0'-90', half-time tick). The match's known
+moments (goals, saved shots, cards) show from the start as hollow markers; selecting one (click or Enter) starts Live 30 s before it,
+and a click anywhere on the strip starts Live from that minute. A band marks what the session plays. As the match plays, goals
+(large ringed dot), shots (small dot) and Insights (diamond, filled once spoken) appear in club colour, with a playhead on the match
+clock. A new Insight's marker
 flashes when it is detected. Every marker is a button with a screen-reader label ("Insight, 21:25, Northport slowing the tempo"). Selecting
 one lights up its evidence on the pitch for six seconds: the events (by `seq`) the Insight rests on, the flank band a flank overload
 counted, or a shot's position with a line to goal. The **Why** card shows the sentence (verified or template, and whether it was
-spoken), the `claim_facts` it was allowed to use, and how many events back it. Hidden in Audio only.
+spoken), the `claim_facts` it was allowed to use, and how many events back it (the Why card is hidden in Audio only).
 
 **Analyst view.** Analyst adds a team stats table (possession, shots on target, pass completion, pressing, corners, fouls; whole
 match or last 10 minutes), updated every 10 s of match time from the same `get_stats` tool the [Recap agent](#recap-agent) calls, so
@@ -77,12 +81,21 @@ fallback):
   20 s delay"; the caption tag shows **live · 2.8 s** (time from the end of the play to the line being ready) or **fallback**. One
   voice at a time: a goal line cuts in, otherwise narration and recaps come first and a commentator line that cannot start within
   3 s is dropped. Analyst keeps the 300 ms buffer and no commentator.
-- **Cards and Next moment**: fouls can carry a yellow or red card (booking whistle and callout). **Next moment** (key N) jumps to
-  30 s before the next goal, saved shot or card.
+- **Commentary feed**: under the caption, the commentator's last six lines with their minute and the live / fallback tag, newest
+  on top, shown as they are spoken (never before). It makes "live" visible to anyone watching without sound.
+- **Cards**: fouls can carry a yellow or red card (booking whistle and callout).
 
-**Chapters.** The demo match (seed 7) starts where you choose: **Kick-off** (0'), **First goal** (19', the goal comes at 22:38) or
-**Late drama** (76', goals at 79' and 87'). Each session plays 15 match-minutes; the detectors are warmed up on everything before
-the start, so the score and the tactical baselines are already right. **Space** starts and stops listening.
+**Pick a match, watch live or as highlights.** The match bar above the pitch lists six matches between fictional clubs and offers
+two ways to watch, both at normal speed (speech cannot be sped up, and sound at 2x loses its meaning):
+- **Live**: the whole match from the chosen minute (kick-off by default, a timeline click, or a moment) to full time.
+  **Next moment** (button at the timeline, key N) starts 30 s before the next goal, saved shot or card.
+- **Highlights**: every moment of the match back to back, TV-style: each clip runs from 30 s before the moment to 15 s after it
+  (overlapping clips merge), with a short transition (soft whoosh, the next minute shown on the pitch and read in the status line)
+  and the half-time and full-time recaps in between. 10.7-12.3 minutes per match.
+
+Every start is warmed up on everything before it, so the score and the tactical baselines are already right. Only the default
+match's narration and recaps are pre-generated; the other matches are narrated, commented and voiced live (the cache fills as
+people listen). **Space** starts and stops listening.
 
 ## Architecture
 
@@ -126,8 +139,8 @@ that would arrive more than 8 s of match time late is dropped (goals excepted).
   Turkish percent signs or suffixes on numbers (the voice misreads them), or more than 25 words. A rejected draft goes back to the
   model once with the reasons; if it fails again, the deterministic **template** sentence is used. No unverified model text is spoken.
 - **Sound never waits.** Narration can fail completely and the match still sounds the same.
-- **Reproducible demo.** The demo match's narration (text + audio, both personas, every chapter) is pre-generated and committed,
-  so the demo does not depend on live model latency. Same seed, same match, same sentences: all 36 are listed in
+- **Reproducible demo.** The default match's narration (text + audio, both personas, three 15-minute demo windows) is pre-generated
+  and committed, so the demo does not depend on live model latency. Same seed, same match, same sentences: all 36 are listed in
   [`eval/results/demo_sentences.md`](eval/results/demo_sentences.md).
 
 **What the Verifier cannot do**, and how we found out: it checks numbers, names and wording, not meaning. Reading 100 model
@@ -203,7 +216,7 @@ not the correctness of the numbers in it: each sentence still states shares that
 - Narration latency per Insight (EN + TR in one call): **p50 1.58 s / p95 3.60 s**, down from 10.73 s / 17.42 s before setting
   the reasoning effort to `minimal` (both measured, dated history in the file). Azure TTS per clip: p50 0.56 s / p95 2.13 s.
 
-**Live commentary** (8 windows of up to 15 minutes, 119 match minutes: the three chapters of seed 7 and seeds 11-15 from 19';
+**Live commentary** (8 windows of up to 15 minutes, 119 match minutes: seed 7 from 0', 19' and 76' and seeds 11-15 from 19';
 every line generated live, English listener, [`eval/results/commentary.md`](eval/results/commentary.md))
 
 | | Narration only | + callouts | + callouts + commentator |
@@ -248,19 +261,21 @@ not measured.
 
 ## Overlay feed (machine-readable)
 
-Everything the browser receives is timed JSON over one WebSocket (`/ws?chapter=first_goal`), so the same feed could drive other
+Everything the browser receives is timed JSON over one WebSocket (`/ws?match=<id>&mode=live&from=<seconds>`, or
+`mode=highlights`; the fixture list with each match's moments and clips is at `/matches.json`), so the same feed could drive other
 outputs, for example a broadcast graphics engine rendering overlays. No such integration exists; this is the format it would read.
 Every message carries match time `t` (seconds); schemas for the payloads are in [`schemas/`](schemas/).
 
 | message | content |
 |---|---|
-| `hello` | match id, seed, teams (names EN/TR, colour, outfield players), score at the chapter start, mode, match length `duration_s`, session `window` (match seconds, ends at full time at the latest) |
+| `hello` | `match` (fixture id), seed, teams (club id, names EN/TR, colour, outfield players), score at the start, `watch` (`live` or `highlights`), match length `duration_s`, `windows` (the match seconds the session plays), `moments` (`{t, kind, team}` for every goal, saved shot and card) |
+| `cut` | Highlights only: the clip ends at `t_from`, the next starts at `t_to`, with the `score` at `t_to` (from the server's warm-up) |
 | `state` | 10 Hz state packets: ball position, team, danger (xT), pressure, pan, tempo ([`state.schema.json`](schemas/state.schema.json)) |
 | `event_cue` | pass, shot, save, goal, whistle, half-time and full time (`period_end`), with team, player, period and event `seq`; shots and goals add `x`, `y` (where the shot was taken), events that have them `speed_mps` and `outcome`, passes `length_m` |
 | `insight` | a detected tactical story: `claim_facts` (every number in it) and `evidence` (event `seq`s) ([`insight.schema.json`](schemas/insight.schema.json)), plus the template `text`, `evidence_points` (`{seq, t, type, team, x, y}` per evidence event, max 30, pitch frame x 0-105, y 0-68) and `zone` (the flank band for a flank overload, else null) |
 | `stats` | every 10 s: per team possession, shots (on target), pass completion, pressing, corners, fouls, for the `match` so far and the `last10` minutes |
 | `speech` | the Insight told now: EN + TR text, `source` (`llm` verified or `template`), persona, MP3 per language |
-| `recap` | "What did I miss?" (`kind: missed`) or full time (`kind: full_time`): 2-3 sentences per language, `source` (`agent` or `template`), MP3 per language |
+| `recap` | "What did I miss?" (`kind: missed`), half-time in Highlights (`kind: half_time`) or full time (`kind: full_time`): 2-3 sentences per language, `source` (`agent` or `template`), MP3 per language |
 
 Real messages from seed 7, the first goal (audio trimmed):
 
@@ -312,8 +327,8 @@ More languages than English and Turkish are not built: each one needs its own Ve
 
 - **Synthetic data only.** The matches are generated (calibrated on real open data, see [`docs/data.md`](docs/data.md)); no real
   feed has been connected.
-- **The demo narration is pre-generated** for the three chapters, both personas and every favourite club. Changing mode in the
-  middle of a session can make the Director pick an Insight outside that set. A live cache miss calls Foundry and Speech within a 4 s
+- **Only the default match's narration is pre-generated**, for three 15-minute windows, both personas and every favourite club.
+  Anything else (other minutes, Highlights clips, the five other matches) is narrated live. A live cache miss calls Foundry and Speech within a 4 s
   deadline; at the measured p95 of 3.60 s for the text plus TTS, the slowest misses fall back to the template sentence.
 - **Live commentary depends on the 20 s delay.** MAI-Voice is in public preview (no SLA). When a live line is late or fails, the
   listener hears the line an earlier session cached for that segment, or only the callouts; the sound never waits.
@@ -321,6 +336,8 @@ More languages than English and Turkish are not built: each one needs its own Ve
 - **Live recaps take seconds** (p50 6 s without TTS) and Turkish recap sentences pass the Verifier less often than English ones
   (88% vs 98% after the revision); a dropped sentence makes the recap shorter, not wrong.
 - **Detection delay** is minutes, not seconds (median 264-589 s): tactical trends need a window of play before they are real.
+- **A tab hidden for 2 minutes stops listening** (so a forgotten tab does not call Foundry for 90 minutes); Start picks up where it
+  stopped. This also stops a listener whose phone screen locks.
 - **iOS background audio** is untested. The layout was checked in headless Chrome at phone and desktop widths, not on many real phones.
 - **Accessibility** was checked by the author with VoiceOver. It has **not been validated with blind users**. A listening-test
   protocol with an answer key is in [`docs/listening-test.md`](docs/listening-test.md); it has not been run yet.
@@ -331,7 +348,7 @@ More languages than English and Turkish are not built: each one needs its own Ve
 python3 -m venv .venv && source .venv/bin/activate        # Python 3.11+
 pip install -e ".[dev]"
 ruff check . && pytest
-python -m services.engine.serve --seed 7 --port 8000                      # open http://localhost:8000, pick a chapter
+python -m services.engine.serve --port 8000                                # open http://localhost:8000, pick a match
 ```
 
 Without Azure everything still runs: narration uses the template sentences and the browser's own voice.
@@ -340,7 +357,7 @@ Without Azure everything still runs: narration uses the template sentences and t
 the Foundry project endpoint, model and Speech endpoint, then run with `HTG_ENV=azure`.
 
 ```bash
-HTG_ENV=azure python -m htg.narration.pregen --seed 7                        # demo narration + clips: every chapter, mode, club
+HTG_ENV=azure python -m htg.narration.pregen --seed 7                        # default-match narration + clips: demo windows, modes, clubs
 HTG_ENV=azure python -m htg.recap.pregen --seed 7                            # full-time recaps + clips: every club, persona
 HTG_ENV=azure python -m htg.speech.tour                                      # sound-tour voice lines from web/tour.json
 HTG_ENV=azure python -m eval.recap --seeds 11-30 --n 20                      # Recap agent: Verifier, fallback, tools, latency

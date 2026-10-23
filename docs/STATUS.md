@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-23 (live-commentary task closed: deployed, owner saw the live tag in all three chapters). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-23 (Features D built and committed: match choice, Live / Highlights, six-club league; waiting for the owner's deploy and check). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -289,6 +289,49 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   Chrome (Analyst -> Start -> Casual: "canlı · x sn" lines; Casual -> Analyst: no delay). Needs a deploy (rides along with the next).
   **Closed (2026-10-23):** owner deployed (includes the commentator's 20 s Foundry timeout and the mode-switch fix) and saw the
   "live" tag in all three chapters on the deployed app. Task file moved to `docs/tasks/done/`.
+
+## Features D (2026-10-23; task: `docs/tasks/2026-10-24-features-d.md`; built, waiting for deploy)
+- **Layout:** match bar above the pitch (match picker, favourite club's matches first and marked "your team"; Live / Highlights).
+  Right panel: listening settings only (chapters and Next moment removed from it). Timeline = whole match (0'-90', half-time tick,
+  played part shaded, session band(s)); known moments (`hello.moments` / `/matches.json`: goals, saved shots, cards) show from the
+  start as hollow markers (button: start 30 s before; card = small yellow/red card), a click on the track starts Live from that
+  minute, "First goal at 23'" is a hint line (not a button). Next moment + key N sit at the timeline (disabled in Highlights).
+  Timeline is now shown in Audio only too (it is the match control); the Why card stays hidden there.
+- **Commentary feed** under the caption (fan modes): last 6 lines, minute + "live · x s" / "fallback", newest on top, dual
+  language by caption rules, added when spoken; `aria-live="off"`; hidden in Analyst.
+- **Server** (`serve.py`): `/ws?match=&mode=live|highlights&from=`; `from` clamped, whole seconds; warm-up per (match, second) in a
+  thread, LRU of 64 (~2 MB each; worst warm-up 0.4 s at 79', copy 8 ms). Live runs to full time (no 15-minute cap; `MAX_SESSIONS`
+  kept). Client closes the socket after the tab is hidden 2 min (Start resumes there). **Trade-off to know:** this also stops a
+  listener whose phone screen locks; say if you want a longer limit. Mode switch Analyst <-> fan restarts **where the listener is**
+  (Highlights: the clip under way, `from` filters clips), not the session start.
+- **Highlights:** windows [moment - 30 s, moment + 15 s], merged; between clips the server waits the delay (the listener reaches the
+  clip end), sends `cut {t_from, t_to, score}` and starts the next clip with its own 20 s burst; client re-anchors the play clock
+  (1.2 s gap, soft whoosh, minute shown large on the pitch, status line "Next highlight: 34'"). Half-time recap (new `kind:
+  half_time`, cached like full time) before the first second-half clip; full-time recap after the last clip, same request as Live
+  at 90:00 (seed 7 cache hits). Checked at 40x: seed 7 = 15 clips, 14 cuts, scores from warm-up right (0-1 after 22', 1-1 after
+  79'), both recaps arrive.
+- **Highlights lengths** (clips only; transitions add ~1.2 s each, recaps ~15-30 s each): seed 7 11.7 min, 33 11.1, 37 12.3,
+  47 11.5, 49 11.4, 34 10.7. All inside 8-14, so no stricter moment rule.
+- **Commentary cache key** = (match seed, segment id, prompt version, model); start minute dropped. Test: a pipeline warmed to 30'
+  cuts identical segments (ids, times, facts) to a kick-off run. 108 cached seed-7 files moved to the new key (12 orphans left).
+- **League** (`htg/league.py`): Northport (red), Valemont (blue), Kingsmoor (yellow), Lornbridge (orange), Zekteris (white),
+  Thornfield (purple). Web search (2026-10-23): no club named Kingsmoor, Lornbridge or Thornfield, so no spare needed. Zekteris
+  squad is all Turkish (owner, 2026-10-23: Tunalı, Karadağ, Akbulut, Ertuğrul, Doğanay, Özbey, Sevim, Kocabaş, Uzunoğlu, Gürsoy, Alkan).
+  Fixtures: 7 Northport v Valemont (default, 1-2), 33 Zekteris v Thornfield (2-2), 37 Lornbridge v Zekteris (2-1), 47 Kingsmoor v
+  Valemont (2-3), 49 Thornfield v Kingsmoor (2-2), 34 Valemont v Lornbridge (1-3). Seeds 31-60 surveyed, picked for goals; no
+  red v orange, yellow v white or blue v purple pairs. `generate(seed, home=, away=)`; test pins seed 7's events hash (identical to
+  before the league) and shows seed 31 is the same with two club pairs. meta teams gain `club`; `hello` teams too.
+  Server generates fixtures at start (or on a squad change); Dockerfile runs `python -m htg.generate --league`.
+  White kit: the ball is drawn dark with a white ring (a white ring on a white ball hid the team).
+- **Callouts:** `htg.speech.callouts` keeps existing clips (`--all` remakes); +192 clips for 4 clubs and 44 surnames, now 340
+  clips, 3.2 MB (was 1.25 MB). 0 fallback voices.
+- **Live on a new match** (local -> Foundry/MAI-Voice, Zekteris v Thornfield from 13', 3 min, Casual EN): 12 live lines, latency
+  p50 2.48 s, max 6.99 s (the first, cold call), 0 fallback; narration `llm` for two of three Insights, the goal sentence fell back
+  to the template (4 s deadline). Seen once: "Zekteris lead restored!" on 1-0 (invented word; the Verifier does not check meaning).
+- **Checks:** 99 tests pass. Headless Chrome: all six matches start in Live and Highlights, timeline click (45') works, favourite
+  club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
+- **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout
+  on the phone; listen to a few new callout names (TR and EN). Then move the task file to `docs/tasks/done/`.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
