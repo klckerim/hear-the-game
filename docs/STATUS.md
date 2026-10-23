@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-23 (live-commentary part 5 done: `eval/results/commentary.md`, README; deploy 2 checked from outside; owner's listening check of the three chapters open). Before: 2026-10-22 night (Features C closed: evidence timeline + Analyst stats deployed and checked; screenshots open). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-23 (live-commentary task closed: deployed, owner saw the live tag in all three chapters). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -287,7 +287,8 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   a language change also wiped "Live commentary · 20 s delay" from the status line. Now crossing Analyst <-> fan mode while listening
   restarts the same window (chapter or jump) in the new mode, and the status line is redrawn with the delay. Checked in headless
   Chrome (Analyst -> Start -> Casual: "canlı · x sn" lines; Casual -> Analyst: no delay). Needs a deploy (rides along with the next).
-  Left: owner listens to all three chapters; then move the task file to `docs/tasks/done/`.
+  **Closed (2026-10-23):** owner deployed (includes the commentator's 20 s Foundry timeout and the mode-switch fix) and saw the
+  "live" tag in all three chapters on the deployed app. Task file moved to `docs/tasks/done/`.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
