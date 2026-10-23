@@ -50,9 +50,47 @@ h1 .accent { color: var(--amber); }
 .sub { grid-area: sub; justify-self: end; display: grid; justify-items: end; gap: 3px; margin: 0; min-width: 0; }
 .sub .tagline { font-family: var(--display); font-weight: 500; font-size: 21px; letter-spacing: 0.02em; color: var(--chalk); line-height: 1.15; }
 .sub .hp { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
-@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
-.stage { display: grid; gap: 10px; min-width: 0; }
+/* Layout, "broadcast desk". Player bar (match, score, transport) on top; then the desk: the pitch column (pitch, timeline, Why) left and
+   the listening column (mode, caption, commentary feed or Analyst panels, recaps, settings) right, filling the pitch column's height.
+   DOM order is the phone order. Phones (<= 860 px): one column, and the transport row is fixed to the bottom of the screen. */
+.player { display: grid; gap: 8px; min-width: 0; }
+.p-match { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; min-width: 0; }
+.p-match .matchbar { flex: 1 1 420px; }
+.p-match .scorebar { flex: 1 1 380px; }
+.p-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; min-width: 0; }
+.p-btns { display: flex; align-items: center; gap: 8px; }
+.p-btns .hint { margin-right: 8px; }
+#status { flex: 1 1 240px; min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }  /* one line: the bar never grows */
+.desk { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px 18px; min-width: 0; }
+/* minmax(0, 1fr): a column is never wider than the screen because of a long unbreakable line (the Settings summary once forced
+   405 px on a 390 px phone, and Chrome zoomed the page out to fit) */
+.d-now, .d-pitch, .d-listen { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; align-content: start; }
+.modebar { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.modebar > span { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.why[hidden] { display: none; }
+@media (min-width: 861px) {
+  .player { position: sticky; top: 0; z-index: 10; background: var(--night); padding-block: 10px; margin-block: -10px; border-bottom: 1px solid var(--line); }
+  .desk { grid-template-columns: minmax(0, 1fr) 360px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "pitch now" "pitch listen"; }
+  .d-now { grid-area: now; }
+  .d-pitch { grid-area: pitch; }
+  .d-listen { grid-area: listen; grid-template-rows: minmax(220px, 1fr); align-content: stretch; }
+  .d-listen > :not(.feed) { align-self: start; }
+  .d-listen .feed { height: auto; }  /* fills the column beside the pitch and scrolls inside */
+  body[data-mode="analyst"] .d-listen { grid-template-rows: none; }  /* no feed in Analyst: the panels stack at their own height */
+  /* pitch + timeline fit under the header and the player bar at 800-900 px; a narrower pitch is centred */
+  .pitch-box { justify-self: center; width: min(100%, max(460px, calc((100vh - 420px) * 110 / 73))); }
+  .d-now .caption { font-size: 17px; height: calc(5 * 1.45em + 22px); }  /* "now": the sentence being spoken, large */
+}
+@media (max-width: 860px) {
+  body { padding-bottom: calc(var(--bar-h, 130px) + 20px); }  /* the fixed transport row never covers content (height measured in JS) */
+  .p-ctl { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; flex-direction: column-reverse; align-items: stretch; gap: 6px;
+    padding: 8px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+    background: rgba(13, 21, 18, 0.97); border-top: 1px solid var(--line); }
+  .p-btns { display: grid; grid-template-columns: 2fr 1fr 1fr; }
+  .p-btns .hint { display: none; }
+  .p-btns button { min-height: 46px; padding: 6px 8px; line-height: 1.2; }
+  #status { flex: none; font-size: 12px; }
+}
 /* Match bar: which match and how to watch it; one row on desktop, wraps on phones */
 .matchbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; }
 .matchbar select { flex: 1 1 240px; min-width: 0; font-family: var(--display); font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; padding: 6px 10px; }
@@ -78,7 +116,6 @@ h1 .accent { color: var(--amber); }
 .yours { flex: none; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--night); background: var(--chalk); padding: 1px 5px; border-radius: 3px; }
 .yours[hidden] { display: none; }
 kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; padding: 0 4px; color: var(--muted); }
-.play-row { align-items: center; }
 #captionText { margin: 0; min-width: 0; }
 #captionSub { display: block; margin-top: 2px; font-size: 12px; line-height: 1.4; color: var(--muted); }  /* the same sentence in the interface language */
 #captionSub[hidden], .out small[hidden] { display: none; }
@@ -105,9 +142,7 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
    goals (large ringed dot). Markers are buttons; selecting one highlights its evidence on the pitch and fills the Why card. */
 #timeline { display: grid; gap: 4px; }
 .tl-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 14px; font-size: 12px; color: var(--muted); }
-.tl-head .tl-left { display: grid; gap: 2px; min-width: 0; flex: 1 1 260px; }
-.tl-next { display: inline-flex; align-items: center; gap: 6px; }
-#nextBtn { padding: 5px 12px; font-size: 13px; }
+
 .tl-legend { display: flex; flex-wrap: wrap; gap: 2px 12px; }
 .tl-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .tl-legend i { display: inline-block; flex: none; background: var(--muted); }
@@ -191,17 +226,30 @@ table.stats .v { display: block; font-family: var(--mono); font-size: 12px; font
 table.stats .b { display: block; height: 4px; margin-top: 3px; background: #0f1916; border-radius: 2px; overflow: hidden; }
 table.stats .b i { display: block; height: 100%; border-radius: 2px; }
 #statsNote { font-size: 11px; }
-aside { display: grid; gap: 14px; min-width: 0; }
 .panel { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 12px; }
 .panel h2 { font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; }
 button, select { font: inherit; color: var(--chalk); background: #1c2a25; border: 1px solid var(--line); border-radius: 5px; padding: 8px 12px; cursor: pointer; }
 button:hover, select:hover { border-color: var(--muted); }
 button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
-#playBtn { background: var(--amber); color: var(--night); border-color: var(--amber); font-weight: 500; min-width: 120px; }
-#tourBtn { justify-self: start; border-style: dashed; border-color: var(--amber); color: var(--amber); background: transparent; }
-#tourBtn[aria-pressed="true"] { border-style: solid; background: transparent; color: var(--chalk); border-color: var(--chalk); }
-#tourBtn[hidden] { display: none; }
+#playBtn { background: var(--amber); color: var(--night); border-color: var(--amber); font-weight: 500; min-width: 150px; }
+/* First-visit sound tour offer: gone for good once done or dismissed */
+.banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; border: 1px dashed var(--amber); border-radius: 6px; padding: 8px 12px; color: var(--amber); font-size: 14px; }
+.banner[hidden] { display: none; }
+.banner > span { flex: 1 1 200px; color: var(--chalk); }
+#tourBtn { border-color: var(--amber); color: var(--amber); background: transparent; }
+#tourBtn[aria-pressed="true"] { background: transparent; color: var(--chalk); border-color: var(--chalk); }
+.banner .icon { background: transparent; border: 0; font-size: 20px; line-height: 1; padding: 2px 8px; color: var(--muted); }
+#blindBtn { position: absolute; top: 8px; right: 8px; z-index: 2; padding: 3px 10px; font-size: 12px; background: rgba(13, 21, 18, 0.8); }
+#blindBtn[aria-pressed="true"] { background: var(--chalk); color: var(--night); border-color: var(--chalk); }  /* pressed: readable on the dark cover */
+/* Settings: one closed box; the summary shows the current choices */
+.settings { display: block; }
+.settings summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 10px; min-width: 0; font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.settings summary::-webkit-details-marker { display: none; }
+.settings summary::before { content: "▸"; color: var(--amber); }
+.settings[open] summary::before { content: "▾"; }
+.settings .sum { margin-left: auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--body); font-size: 13px; letter-spacing: 0; text-transform: none; color: var(--chalk); }
+.settings-body { display: grid; gap: 12px; margin-top: 12px; }
 #installBtn { justify-self: stretch; }
 #installBtn[hidden] { display: none; }
 #recapBtn[aria-busy="true"] { opacity: 0.7; cursor: progress; }
@@ -225,7 +273,7 @@ ol.log { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-
 ol.log li { display: grid; grid-template-columns: 46px 10px minmax(0, 1fr); gap: 8px; align-items: center; }
 ol.log time { font-family: var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
 ol.log .fav { color: var(--amber); font-size: 11px; margin-left: 4px; }
-ol.log .empty { color: var(--muted); display: block; }
+ol.log .empty { color: var(--muted); display: block; grid-column: 1 / -1; }
 .note { font-size: 12px; color: var(--muted); margin: 0; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; padding: 6px 12px; background: transparent; font-size: 13px; }
@@ -267,8 +315,17 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
     </div>
   </header>
 
-  <div class="grid">
-    <section class="stage" data-i18n-aria="matchView">
+  <div class="banner" id="tourBanner" hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4" height="7" rx="1.5"/><rect x="17" y="14" width="4" height="7" rx="1.5"/></svg>
+    <span data-i18n="tourOffer"></span>
+    <button id="tourBtn" type="button"></button>
+    <button id="tourClose" type="button" class="icon" data-i18n-aria="tourDismiss"><span aria-hidden="true">×</span></button>
+  </div>
+
+  <!-- Player bar: which match, how to watch, the score, and the transport. Desktop: sticky under the header. Phone: the transport
+       row (Start, Next moment, Catch me up, status) is fixed to the bottom of the screen; same buttons, not copies. -->
+  <section class="player" id="player" data-i18n-aria="matchView">
+    <div class="p-match">
       <div class="matchbar" id="matchbar" role="group" data-i18n-aria="matchBar" hidden>
         <select id="matchSel" data-i18n-aria="matchLabel"></select>
         <div class="seg" role="group" data-i18n-aria="watchLabel" id="watch">
@@ -282,69 +339,58 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <span class="team"><span class="yours" id="yoursAway" data-i18n="yourTeam" hidden></span><span id="nameAway" data-i18n="away"></span><span class="dot" id="dotAway" style="background: var(--blue)"></span></span>
         <span class="clock" id="clock">0:00</span>
       </div>
-      <div class="pitch-box">
-        <canvas id="pitch" data-i18n-aria="pitchAria"></canvas>
-        <div class="blind" id="blind" hidden><p><span data-i18n="blindTitle"></span><small data-i18n="blindSub"></small></p></div>
+    </div>
+    <div class="p-ctl" id="controls">
+      <div class="p-btns">
+        <button id="playBtn" type="button" aria-keyshortcuts="Space"></button><kbd class="hint" aria-hidden="true" data-i18n="spaceKey"></kbd>
+        <button id="nextBtn" type="button" aria-keyshortcuts="N" data-i18n="nextBtn"></button><kbd class="hint" aria-hidden="true">N</kbd>
+        <button id="recapBtn" type="button" data-i18n="recapBtn"></button>
       </div>
-      <div class="tl" id="timeline" role="group" aria-labelledby="tlTitle">
-        <div class="tl-head">
-          <span class="tl-left"><span id="tlTitle" data-i18n="tlTitle"></span>
-            <span class="tl-legend" aria-hidden="true"><span><i class="ins"></i><span data-i18n="tlLegendIns"></span></span><span><i class="shot"></i><span data-i18n="tlShot"></span></span><span><i class="goal"></i><span data-i18n="tlGoal"></span></span><span><i class="mo"></i><span data-i18n="tlMoment"></span></span></span></span>
-          <span class="tl-next"><button id="nextBtn" type="button" aria-keyshortcuts="N" data-i18n="nextBtn"></button><kbd aria-hidden="true">N</kbd></span>
+      <p class="note" id="status" role="status"></p>
+    </div>
+  </section>
+
+  <!-- The desk. DOM order is the phone order (mode, caption, pitch, timeline, Why, listening column, settings); on desktop the
+       pitch column sits left and the listening column right (grid-template-areas), with the listening column filling the height. -->
+  <main class="desk">
+    <div class="d-now">
+      <div class="modebar"><span data-i18n="modeLabel" id="modeLabel"></span>
+        <div class="seg" role="group" aria-labelledby="modeLabel" id="modes">
+          <button type="button" data-mode="eyes_free" aria-pressed="false" data-i18n="mode_eyes_free"></button>
+          <button type="button" data-mode="casual" aria-pressed="true" data-i18n="mode_casual"></button>
+          <button type="button" data-mode="analyst" aria-pressed="false" data-i18n="mode_analyst"></button>
         </div>
-        <div class="tl-track" id="tlTrack"><div class="tl-inner" id="tlInner"><div class="tl-past" id="tlPast"></div><div class="tl-ht"></div><div class="tl-now" id="tlNow" hidden></div></div></div>
-        <div class="tl-axis" id="tlAxis" aria-hidden="true"></div>
-        <p id="tlHint"></p>
       </div>
       <div class="caption" id="caption" aria-live="polite">
         <span class="tags"><span class="tag idle" id="captionTag" data-i18n="tagIdle"></span><span class="tag mine" id="captionMine" data-i18n="yourTeam" hidden></span></span>
         <p id="captionText"><span id="captionMain" data-i18n="captionIdle"></span><small id="captionSub" hidden></small></p>
       </div>
-      <div class="feed" id="feed" aria-live="off"><h2 data-i18n="feedTitle" id="feedTitle"></h2><ol id="feedList" tabindex="0" aria-labelledby="feedTitle"></ol></div>
-      <div class="why tl-only" id="why" aria-live="polite">
+    </div>
+
+    <div class="d-pitch">
+      <div class="pitch-box">
+        <canvas id="pitch" data-i18n-aria="pitchAria"></canvas>
+        <div class="blind" id="blind" hidden><p><span data-i18n="blindTitle"></span><small data-i18n="blindSub"></small></p></div>
+        <button id="blindBtn" type="button" aria-pressed="false" data-i18n="blindBtn"></button>
+      </div>
+      <div class="tl" id="timeline" role="group" aria-labelledby="tlTitle">
+        <div class="tl-head"><span id="tlTitle" data-i18n="tlTitle"></span>
+          <span class="tl-legend" aria-hidden="true"><span><i class="ins"></i><span data-i18n="tlLegendIns"></span></span><span><i class="shot"></i><span data-i18n="tlShot"></span></span><span><i class="goal"></i><span data-i18n="tlGoal"></span></span><span><i class="mo"></i><span data-i18n="tlMoment"></span></span></span>
+        </div>
+        <div class="tl-track" id="tlTrack"><div class="tl-inner" id="tlInner"><div class="tl-past" id="tlPast"></div><div class="tl-ht"></div><div class="tl-now" id="tlNow" hidden></div></div></div>
+        <div class="tl-axis" id="tlAxis" aria-hidden="true"></div>
+        <p id="tlHint"></p>
+      </div>
+      <div class="why tl-only" id="why" aria-live="polite" hidden>
         <div class="why-head"><b id="whyTitle"></b><span class="tag" id="whyTag" hidden></span></div>
         <p><span id="whyMain"></span><small id="whySub" hidden></small></p>
         <dl id="whyFacts" hidden></dl>
         <small id="whyEvidence" hidden></small>
       </div>
-    </section>
+    </div>
 
-    <aside>
-      <div class="panel">
-        <div class="row play-row">
-          <button id="playBtn" type="button" aria-keyshortcuts="Space"></button>
-          <span class="note" aria-hidden="true"><kbd data-i18n="spaceKey"></kbd></span>
-          <button id="blindBtn" type="button" aria-pressed="false" data-i18n="blindBtn"></button>
-        </div>
-        <button id="tourBtn" type="button" hidden></button>
-        <div class="field"><span data-i18n="modeLabel" id="modeLabel"></span>
-          <div class="seg" role="group" aria-labelledby="modeLabel" id="modes">
-            <button type="button" data-mode="eyes_free" aria-pressed="false" data-i18n="mode_eyes_free"></button>
-            <button type="button" data-mode="casual" aria-pressed="true" data-i18n="mode_casual"></button>
-            <button type="button" data-mode="analyst" aria-pressed="false" data-i18n="mode_analyst"></button>
-          </div>
-        </div>
-        <div class="field"><span data-i18n="commLabel" id="commLabel"></span>
-          <div class="seg" role="group" aria-labelledby="commLabel" id="commLang">
-            <button type="button" data-lang="en" aria-pressed="false">EN</button>
-            <button type="button" data-lang="tr" aria-pressed="false">TR</button>
-          </div>
-        </div>
-        <label class="field" for="club"><span data-i18n="clubLabel"></span>
-          <select id="club"></select>
-        </label>
-        <label class="field" for="fav"><span data-i18n="favLabel"></span>
-          <select id="fav"></select>
-        </label>
-        <p class="note" id="status" role="status"></p>
-        <p class="note" id="voiceNote"></p>
-      </div>
-
-      <div class="panel">
-        <h2 data-i18n="recapTitle"></h2>
-        <button id="recapBtn" type="button" data-i18n="recapBtn"></button>
-        <ol class="recap" id="recap" aria-live="polite"></ol>
-      </div>
+    <div class="d-listen">
+      <div class="feed" id="feed" aria-live="off"><h2 data-i18n="feedTitle" id="feedTitle"></h2><ol id="feedList" tabindex="0" aria-labelledby="feedTitle"></ol></div>
 
       <div class="panel analyst-only" aria-live="off">
         <h2 data-i18n="nowTitle"></h2>
@@ -369,20 +415,42 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <p class="note" id="statsNote" data-i18n="statsNote"></p>
       </div>
 
-      <div class="panel">
-        <h2 data-i18n="layersTitle"></h2>
-        <div class="toggles">
-          <label for="L_ball"><input type="checkbox" id="L_ball" checked> <span data-i18n="lBall"></span></label>
-          <label for="L_press"><input type="checkbox" id="L_press" checked> <span data-i18n="lPress"></span></label>
-          <label for="L_crowd"><input type="checkbox" id="L_crowd" checked> <span data-i18n="lCrowd"></span></label>
-          <label for="L_cue"><input type="checkbox" id="L_cue" checked> <span data-i18n="lCue"></span></label>
-          <label for="L_callout"><input type="checkbox" id="L_callout" checked> <span data-i18n="lCallout"></span></label>
-          <label for="L_voice"><input type="checkbox" id="L_voice" checked> <span data-i18n="lVoice"></span></label>
-        </div>
+      <div class="panel recap-panel">
+        <h2 data-i18n="recapTitle"></h2>
+        <ol class="recap" id="recap" aria-live="polite"></ol>
       </div>
-      <button id="installBtn" type="button" data-i18n="install" hidden></button>
-    </aside>
-  </div>
+
+      <details class="panel settings" id="settings">
+        <summary><span data-i18n="settingsTitle"></span><span class="sum" id="settingsSum"></span></summary>
+        <div class="settings-body">
+        <div class="field"><span data-i18n="commLabel" id="commLabel"></span>
+          <div class="seg" role="group" aria-labelledby="commLabel" id="commLang">
+            <button type="button" data-lang="en" aria-pressed="false">EN</button>
+            <button type="button" data-lang="tr" aria-pressed="false">TR</button>
+          </div>
+        </div>
+        <label class="field" for="club"><span data-i18n="clubLabel"></span>
+          <select id="club"></select>
+        </label>
+        <label class="field" for="fav"><span data-i18n="favLabel"></span>
+          <select id="fav"></select>
+        </label>
+        <div class="field"><span data-i18n="layersTitle" id="layersTitle"></span>
+          <div class="toggles" role="group" aria-labelledby="layersTitle">
+            <label for="L_ball"><input type="checkbox" id="L_ball" checked> <span data-i18n="lBall"></span></label>
+            <label for="L_press"><input type="checkbox" id="L_press" checked> <span data-i18n="lPress"></span></label>
+            <label for="L_crowd"><input type="checkbox" id="L_crowd" checked> <span data-i18n="lCrowd"></span></label>
+            <label for="L_cue"><input type="checkbox" id="L_cue" checked> <span data-i18n="lCue"></span></label>
+            <label for="L_callout"><input type="checkbox" id="L_callout" checked> <span data-i18n="lCallout"></span></label>
+            <label for="L_voice"><input type="checkbox" id="L_voice" checked> <span data-i18n="lVoice"></span></label>
+          </div>
+        </div>
+        <p class="note" id="voiceNote"></p>
+        <button id="installBtn" type="button" data-i18n="install" hidden></button>
+        </div>
+      </details>
+    </div>
+  </main>
 </div>
 
 <script>
@@ -409,7 +477,7 @@ const T = {
     recapTitle: "Ne kaçırdım?", recapBtn: "Beni özetle", recapEmpty: "Henüz anlatım yok.", recapScore: "Skor",
     preparing: "Hazırlanıyor…", recapTag: "Özet", fullTime: "Maç sonu özeti", missedSince: "Dakika", recapSince: "sonrası",
     fullTimeLog: "Maç sonu", halfTimeLog: "Devre arası", ftShort: "MS",
-    tourOffer: "Yeni misin? 60 saniyelik ses turu", tourSkip: "Turu geç", tourTag: "Ses turu",
+    tourOffer: "Yeni misin? 60 saniyelik ses turu", tourSkip: "Turu geç", tourTag: "Ses turu", tourStart: "Turu başlat", tourDismiss: "Kapat", settingsTitle: "Ayarlar", sumNoClub: "Favori kulüp yok",
     nowTitle: "Şu an", danger: "Tehlike", pressure: "Baskı", wing: "Kanat", earL: "sol kulak", earR: "sağ kulak",
     left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
     layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lCallout: "Kısa anonslar (isim, şut, taç…)", lVoice: "Anlatım",
@@ -442,7 +510,7 @@ const T = {
     recapTitle: "What did I miss?", recapBtn: "Catch me up", recapEmpty: "No narration yet.", recapScore: "Score",
     preparing: "Preparing…", recapTag: "Recap", fullTime: "Full-time recap", missedSince: "Since minute", recapSince: "",
     fullTimeLog: "Full time", halfTimeLog: "Half-time", ftShort: "FT",
-    tourOffer: "New here? 60-second sound tour", tourSkip: "Skip tour", tourTag: "Sound tour",
+    tourOffer: "New here? 60-second sound tour", tourSkip: "Skip tour", tourTag: "Sound tour", tourStart: "Take the tour", tourDismiss: "Dismiss", settingsTitle: "Settings", sumNoClub: "No favourite club",
     nowTitle: "Right now", danger: "Danger", pressure: "Pressure", wing: "Wing", earL: "left ear", earR: "right ear",
     left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
     layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lCallout: "Callouts (names, shots, throw-ins…)", lVoice: "Narration",
@@ -642,7 +710,7 @@ function startLive(from) {  // a timeline click, a moment marker or Next moment:
 function renderStatus() {
   let s = `${uiTeam("HOME")} – ${uiTeam("AWAY")}`;
   if (live.watch === "highlights") s += ` · ${t("watchHl")} · ${(live.moments || []).length} ${t("hlCount")}`;
-  else s += ` · ${startT > 0 ? `${t("liveFrom")} ${Math.floor(startT / 60)}'` : t("watchLive")}`;
+  else s += ` · ${startT >= 60 ? `${t("liveFrom")} ${Math.floor(startT / 60)}'` : t("watchLive")}`;
   if (live.delay_s) s += ` · ${live.commentary ? t("liveDelay") + " · " : ""}${live.delay_s} ${t("secs")} ${t("delayWord")}`;
   $("status").textContent = s;
 }
@@ -973,6 +1041,7 @@ function factPairs(f) {
 function renderWhy() {
   const mk = live.sel, dl = $("whyFacts");
   dl.replaceChildren();
+  $("why").hidden = !mk;  // only when a marker is selected
   if (!mk) {
     $("whyTitle").textContent = t("whyTitle"); $("whyMain").textContent = t("whyIdle"); $("whyMain").lang = uiLang;
     $("whySub").hidden = $("whyTag").hidden = dl.hidden = $("whyEvidence").hidden = true;
@@ -1316,10 +1385,11 @@ function endTour() {
   setCaption({ [uiLang]: t("captionIdle") }, false); $("captionTag").textContent = t("tagIdle");
   renderTourBtn();
 }
+// The tour offer is a first-visit banner: shown until the tour is done, skipped or dismissed (same localStorage key), then gone.
 function renderTourBtn() {
   const b = $("tourBtn");
-  b.hidden = !tour.steps || (!tour.on && store.get(TOUR_DONE) === "1");
-  b.textContent = tour.on ? t("tourSkip") : t("tourOffer");
+  $("tourBanner").hidden = !tour.steps || (!tour.on && store.get(TOUR_DONE) === "1");
+  b.textContent = tour.on ? t("tourSkip") : t("tourStart");
   b.setAttribute("aria-pressed", String(tour.on));
 }
 
@@ -1397,6 +1467,7 @@ function loop() { drawPitch(); drawPanel(); drawTimeline(); requestAnimationFram
 /* ---------------- wiring ---------------- */
 $("playBtn").addEventListener("click", () => { endTour(); live.ws ? stopListening() : connect(); });
 $("tourBtn").addEventListener("click", () => tour.on ? endTour() : runTour());
+$("tourClose").addEventListener("click", () => { if (tour.on) endTour(); store.set(TOUR_DONE, "1"); renderTourBtn(); });
 loadTour().then(steps => { tour.steps = steps && steps.length ? steps : null; renderTourBtn(); });
 $("blindBtn").addEventListener("click", e => {
   const on = e.currentTarget.getAttribute("aria-pressed") !== "true";
@@ -1433,6 +1504,7 @@ function fillClub() {
   sel.value = clubs.some(([id]) => id === favClub) ? favClub : "";
   club = ["HOME", "AWAY"].find(s => favClub && teamInfo(s) && teamInfo(s).club === favClub) || "";
   $("yoursHome").hidden = club !== "HOME"; $("yoursAway").hidden = club !== "AWAY";
+  renderSettingsSum();
 }
 // Match picker: the favourite club's matches first, marked "your team".
 function fillMatches() {
@@ -1448,11 +1520,13 @@ function applyWatch() { document.querySelectorAll("#watch button").forEach(b => 
 function applyMatch() {
   if (!live.ws) { live.teams = null; live.moments = null; live.dur = Infinity; live.windows = null; $("score").textContent = "0 – 0"; }
   setTeamNames(); fillClub(); fillMatches(); renderTimeline(); renderStats();
-  if (!live.ws) $("fav").replaceChildren(new Option(t("favNone"), ""));
+  if (!live.ws) fillFav(curMatch() ? curMatch().teams : null);
 }
 function sendClub() { if (live.ws && live.ws.readyState === 1) live.ws.send(JSON.stringify({ type: "set_favourite", team: club || null })); }
+// The two squads of the current match: from the session's hello, or before Start from the fixture list.
 function fillFav(teams) {
   const sel = $("fav"), keep = sel.value; sel.replaceChildren(new Option(t("favNone"), ""));
+  if (!teams || !teams.HOME.players) return;
   for (const side of ["HOME", "AWAY"]) {
     const g = document.createElement("optgroup"); g.label = teams[side]["name_" + lang()];
     teams[side].players.forEach(p => g.append(new Option(p.name, p.id))); sel.append(g);
@@ -1467,6 +1541,12 @@ function applyMode() {
   const eyes = mode === "eyes_free";  // eyes-free hides the pitch; the other modes leave the choice to the "Hide pitch" button
   $("blindBtn").setAttribute("aria-pressed", String(eyes)); $("blind").hidden = !eyes;
   $("L_callout").checked = calloutsWanted();
+  renderSettingsSum();
+}
+// The closed Settings box says what is chosen: "Casual · EN · ★ Northport" (or "No favourite club").
+function renderSettingsSum() {
+  const c = league && favClub && league.clubs[favClub];
+  $("settingsSum").textContent = [t("mode_" + mode), lang().toUpperCase(), c ? `★ ${c.name}` : t("sumNoClub")].join(" · ");
 }
 function applyI18n() {
   document.documentElement.lang = uiLang;
@@ -1481,7 +1561,7 @@ function applyI18n() {
   if (!live.ws) $("status").textContent = t("off");
   setTeamNames(); fillClub(); fillMatches();
   if (live.ws && live.teams) renderStatus();
-  if (live.teams) fillFav(live.teams); else $("fav").replaceChildren(new Option(t("favNone"), ""));
+  fillFav(live.teams || (curMatch() ? curMatch().teams : null));
   renderLog(); renderRecap(); pickVoices(); live.marks.forEach(renderMark); renderWhy(); renderStats(); renderTourBtn(); setRecapBusy(!!recapWait);
   renderTimeline(); renderFeed();
 }
@@ -1584,6 +1664,9 @@ if (location.protocol.startsWith("http")) {
     applyMatch();
   }).catch(() => {});
 }
+// Phones: the transport row is fixed to the bottom; its real height (font size, safe area, two-line labels) sets the page's bottom
+// padding, so the last panel (Settings) is never under it.
+if ("ResizeObserver" in window) new ResizeObserver(() => document.body.style.setProperty("--bar-h", $("controls").offsetHeight + "px")).observe($("controls"), { box: "border-box" });  // padding too: the safe area is padding
 applyMode(); applyWatch(); applyI18n(); syncLiveRegions(); renderFeed();
 requestAnimationFrame(loop);
 </script>

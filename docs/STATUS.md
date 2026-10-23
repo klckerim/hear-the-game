@@ -360,6 +360,25 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Commentary feed scrolls (2026-10-23, owner asked):** keeps the match's last 60 lines (was 6) in the same fixed box; the list
   scrolls (mouse, touch, arrow keys once focused; thin scrollbar), newest on top. A listener reading older lines keeps their place
   when a new line arrives; at the top the new line shows. One grid for the list, so "live · 12,4 sn" and "fallback" rows align.
+- **Layout redesign, "broadcast desk" (2026-10-23, owner's brief + 4 changes agreed in chat):** player bar = match picker,
+  Live / Highlights, score + clock, then Start / Next moment / Catch me up + status line; sticky on desktop, the transport row fixed
+  to the bottom on phones (same buttons). Desk: pitch (height capped to fit 800-900 px) + timeline + Why (only when a marker is
+  selected) left; listening column right: mode switch (kept visible: the jury must see Analyst), caption large, commentary feed
+  filling the height (Analyst: "Right now" + stats instead), recap list, Settings in a closed `<details>` with a summary ("Casual ·
+  EN · None"; commentary language, club, player, layers, voice note, install). Hide pitch sits on the pitch corner; the sound tour
+  is a first-visit banner (Take the tour / ×, same localStorage key). DOM order = phone order (mode, caption, pitch, timeline, Why,
+  feed, settings); desktop columns by grid areas on three wrappers (one flat grid would couple the two columns' row heights).
+  Breakpoint 860 px (not 720: a 768 px tablet would get a ~340 px pitch). Headless Chrome, screenshots in `out/layout/`:
+  1440x900 and 1280x800 show player bar, pitch, timeline and caption without scrolling; 390x844, 360x780, 320x640 show Start
+  without scrolling and the caption above the pitch; no horizontal scroll anywhere; no console errors; Casual, Analyst, TR checked.
+  After the owner's first look: Settings summary reads "Casual · Commentary EN · ★ Northport" / "No favourite club" (was "None");
+  Hide pitch readable while pressed; the phone page's bottom padding follows the fixed bar's measured height (ResizeObserver on the
+  border box, so the safe area counts), so "What did I miss?" and Settings never sit under it (checked with the bar 60 px taller).
+  Default commentary language already follows the browser (TR browser -> TR, else EN) until the listener picks one (remembered).
+  Second look: the longer Settings summary (no-wrap) made the listening column 405 px wide on a 390 px phone, so Chrome zoomed the
+  page out and the fixed bar covered the closed Settings; columns are now `minmax(0, 1fr)` (checked desktop -> 390/360/320, TR and
+  EN: width = screen, scale 1, Settings visible above the bar). `/matches.json` teams carry the outfield players, so the favourite
+  player list is filled before Start (it waited for the session's hello).
 - **Checks:** 99 tests pass. Headless Chrome: all six matches start in Live and Highlights, timeline click (45') works, favourite
   club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
 - **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout

@@ -83,14 +83,19 @@ fallback):
   20 s delay"; the caption tag shows **live · 2.8 s** (time from the end of the play to the line being ready) or **fallback**. One
   voice at a time: a goal line cuts in, otherwise narration and recaps come first and a commentator line that cannot start within
   3 s is dropped. Analyst keeps the 300 ms buffer and no commentator.
-- **Commentary feed**: under the caption, the commentator's last six lines with their minute and the live / fallback tag, newest
-  on top, shown as they are spoken (never before). It makes "live" visible to anyone watching without sound.
+- **Commentary feed**: under the caption, the commentator's lines of the match (the last 60, scrollable) with their minute and the
+  live / fallback tag, newest on top, shown as they are spoken (never before). It makes "live" visible to anyone watching without sound.
 - **Cards**: fouls can carry a yellow or red card (booking whistle and callout).
 
-**Pick a match, watch live or as highlights.** The match bar above the pitch lists six matches between fictional clubs and offers
-two ways to watch, both at normal speed (speech cannot be sped up, and sound at 2x loses its meaning):
+**Layout: a broadcast desk.** A player bar on top holds the match, the score and the transport (Start / Stop, Next moment, Catch me
+up); on a desktop it stays in view, on a phone the transport row is fixed to the bottom of the screen. Below it the pitch and timeline
+sit left and the listening column right: the sentence being spoken, then the commentary feed (Analyst: the stats table and event log
+instead). Listening mode stays visible; the other settings fold into one box whose summary shows the current choice.
+
+**Pick a match, watch live or as highlights.** The player bar lists six matches between fictional clubs and offers two ways to
+watch, both at normal speed (speech cannot be sped up, and sound at 2x loses its meaning):
 - **Live**: the whole match from the chosen minute (kick-off by default, a timeline click, or a moment) to full time.
-  **Next moment** (button at the timeline, key N) starts 30 s before the next goal, saved shot or card.
+  **Next moment** (key N) starts 30 s before the next goal, saved shot or card.
 - **Highlights**: every moment of the match back to back, TV-style: each clip runs from 30 s before the moment to 15 s after it
   (overlapping clips merge), with a short transition (soft whoosh, the next minute shown on the pitch and read in the status line)
   and the half-time and full-time recaps in between. 10.7-12.3 minutes per match.

@@ -99,8 +99,9 @@ class Match:
 
     def info(self) -> dict:
         """One entry of /matches.json."""
-        teams = {side: {"club": t.get("club"), "name_en": t["name"]["en"], "name_tr": t["name"]["tr"], "color": t["color"]}
-                 for side, t in self.meta["teams"].items()}
+        teams = {side: {"club": t.get("club"), "name_en": t["name"]["en"], "name_tr": t["name"]["tr"], "color": t["color"],
+                        "players": [{"id": p["player_id"], "name": p["name"]} for p in t["players"] if p["role"] != "GK"]}
+                 for side, t in self.meta["teams"].items()}  # players as in `hello`: the favourite-player list before Start
         return {"id": self.id, "seed": self.meta["seed"], "teams": teams, "duration_s": self.meta["duration_s"], "moments": self.moments,
                 "windows": highlight_windows(self.moments, self.meta["duration_s"])}
 
