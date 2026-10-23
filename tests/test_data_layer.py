@@ -48,6 +48,18 @@ def test_seed_1_events_are_pinned(tmp_path, cal):
     assert digest == "bfafb118d6d420bdc29cb9cb3db8072b0c3bda8b2c4e2b70afef181a0f27944a"
 
 
+def test_clubs_never_change_the_events(tmp_path, cal):
+    """Seed 7 (the demo, with its caches) is pinned as it was before the league; a fixture seed is the same match with any clubs."""
+    sha = lambda d: hashlib.sha256((d / "events.jsonl").read_bytes()).hexdigest()  # noqa: E731
+    assert sha(generate(7, cal, tmp_path / "7")) == "1e09b4903225ccc6ecae52bdcd732634aa0661ca0bc52bf6fb4c648752f7594c"
+    a = generate(31, cal, tmp_path / "a", home="northport", away="valemont")
+    b = generate(31, cal, tmp_path / "b", home="zekteris", away="kingsmoor")
+    assert sha(a) == sha(b)
+    teams = json.loads((b / "meta.json").read_text())["teams"]
+    home, away = teams["HOME"], teams["AWAY"]
+    assert (home["club"], away["name"]["en"], away["players"][9]["name"]) == ("zekteris", "Kingsmoor", "Lindgren")
+
+
 def test_different_seeds_differ(cal):
     a, b = Match(1, cal).run(), Match(2, cal).run()
     assert [e["t"] for e in a.events[:50]] != [e["t"] for e in b.events[:50]]

@@ -18,7 +18,7 @@ Outputs, per match, in data/synthetic/match_<seed>/:
     physical.jsonl  per-player, per-minute physical output (distance, HSR, sprints, top speed)
     truth.json      injected scenarios (never shown to the detectors)
 
-Run: python -m htg.generate --seeds 1 2 3
+Run: python -m htg.generate --seeds 1 2 3      (or --league: the fixture list's matches with their clubs)
 """
 from __future__ import annotations
 
@@ -462,10 +462,14 @@ def generate(seed: int, cal: Cal | None = None, out_dir: Path = OUT_DIR, home: s
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--seeds", type=int, nargs="+", default=[1, 2, 3])
+    ap.add_argument("--league", action="store_true", help="every fixture of htg/league.py, with its clubs (instead of --seeds)")
     args = ap.parse_args()
     cal = Cal()
-    for s in args.seeds:
-        d = generate(s, cal)
+    from htg.league import FIXTURES
+
+    runs = [(f["seed"], f["home"], f["away"]) for f in FIXTURES] if args.league else [(s, "northport", "valemont") for s in args.seeds]
+    for s, home, away in runs:
+        d = generate(s, cal, home=home, away=away)
         ev = [json.loads(line) for line in (d / "events.jsonl").open()]
         goals = {t: sum(1 for e in ev if e["type"] == "goal" and e["team"] == t) for t in ("HOME", "AWAY")}
         print(f"{d.name}: {len(ev)} events, passes {sum(e['type'] == 'pass' for e in ev)}, "
