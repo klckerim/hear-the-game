@@ -348,6 +348,12 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   broadcast has its commentator ready before kick-off. Measured locally: warm-up 2.5 s, then the first listener's first live line
   1.84 s (the first call after a start used to take 7-12 s). **Not done, by the owner's rule:** pre-filling the fallback cache before
   deploy (demo-only; a real match has no pre-made lines). The v4 cache starts empty and fills as people listen.
+- **Timeline history + clean match switch (2026-10-23, owner noticed):** a start at minute 60 showed no Insights (detection takes
+  minutes; those found during the warm-up were never sent), so the Why card was hard to reach in Live. `warm_up` now keeps the
+  Insights and shot / goal cues before the start in `pipe.history`; `hello` (and each Highlights `cut`, for the stretch between clips)
+  carries them, and the client draws them at once, selectable for the Why card. Seed 7 from 60': 10 Insights, 22 shots, 1 goal.
+  Switching match now clears the old match's caption, feed, log, markers and Why card; the commentary feed stays across jumps
+  within the same match (Next moment, timeline click, mode switch). Checked in headless Chrome; tests for `history` in hello and cut.
 - **Checks:** 99 tests pass. Headless Chrome: all six matches start in Live and Highlights, timeline click (45') works, favourite
   club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
 - **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout

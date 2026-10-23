@@ -9,7 +9,8 @@ match; unknown match -> the default). WS /ws?match=<id>&mode=highlights[&from=] 
 window [moment - 30 s, moment + 15 s] (overlapping windows merged); between windows a `cut` message {t_from, t_to, score} (score
 from the server's warm-up), and the half-time and full-time recaps in between.
 `hello` adds `match` (the fixture id), `watch` (live | highlights), `windows` [[start, end], ...] (match seconds the session
-plays) and `moments` ({t, kind: goal|save|yellow|red, team} for every goal, saved shot and card).
+plays), `moments` ({t, kind: goal|save|yellow|red, team} for every goal, saved shot and card) and `history`: the `insight` and
+shot / goal `event_cue` messages from before the start, so the timeline shows the match so far (a `cut` carries those between clips).
 GET /tour/tour.json, /tour/<step>_<lang>.mp3 -> the sound tour's text table and pre-generated voice lines.
 GET /callouts/callouts.json, /callouts/<lang>_<tone>_<id>.mp3 -> the callout clip table and clips (`htg/speech/callouts.py`).
 Each listener gets its own pipeline and replay clock; the Director mode and favourite club are set per listener with `set_mode` and
@@ -184,6 +185,10 @@ def highlight_windows(moments: list[dict], duration_s: float) -> list[list[float
     return out
 
 
+def t_of(msg: dict) -> float:
+    return msg["insight"]["t"] if msg["type"] == "insight" else msg["t"]
+
+
 def warmed(meta: dict, match_dir: Path, start_s: float, speed: float) -> LivePipeline:
     """Every listener who starts a match at the same second replays the same thing, so the warm-up is computed once and each
     session gets a copy.
@@ -295,7 +300,7 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
             if k == 0:
                 pipe = warm
                 await send({**pipe.hello(), "match": match.id, "watch": mode, "windows": windows, "moments": match.moments,
-                            "delay_s": delay_s, "commentary": stream is not None})
+                            "delay_s": delay_s, "commentary": stream is not None, "history": pipe.history})
                 if stream:
                     spawn(stream.run())
             else:  # Highlights: the listener reaches the end of the clip, then the next one starts with its own delay buffer
@@ -303,7 +308,8 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
                 if windows[k - 1][1] <= HALF_S <= t0:
                     await pause_for(await recap("half_time", HALF_S, play_t=windows[k - 1][1]))
                 pipe = warm
-                await send({"type": "cut", "t_from": windows[k - 1][1], "t_to": t0, "score": pipe.detectors.score})
+                await send({"type": "cut", "t_from": windows[k - 1][1], "t_to": t0, "score": pipe.detectors.score,
+                            "history": [h for h in pipe.history if t_of(h) > windows[k - 1][1]]})  # what happened between the clips
             async for item in FileEventSource(match_dir, speed, t0 / 60.0, delay_s):
                 if item.t > t1:
                     break

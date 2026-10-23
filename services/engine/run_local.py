@@ -69,6 +69,7 @@ class LivePipeline:
         self.engine, self.detectors = StateEngine.from_calibration(), Detectors(meta)
         self.segmenter = Segmenter(meta)
         self.queue: list[dict] = []
+        self.history: list[dict] = []  # filled by warm_up: what the timeline shows for the match before the start
         self.spoken: list[tuple[float, str, str | None]] = []
         self._batch: list[dict] = []
         self._last_pan = 0.0
@@ -173,12 +174,16 @@ def apply_listener_message(pipe: LivePipeline, msg: dict) -> None:
 
 
 def warm_up(pipe: LivePipeline, match_dir: Path, start_minute: float) -> None:
-    """Feed everything before `start_minute` through the pipeline unpaced and unpublished, so windows and baselines are filled."""
+    """Feed everything before `start_minute` through the pipeline unpaced and unpublished, so windows and baselines are filled.
+    The Insights and the shot / goal cues of that stretch are kept in `pipe.history`: a listener who joins at minute 60 still sees
+    what the match has had so far on the timeline (and can open its evidence), as anyone joining a live match would."""
     t0 = start_minute * 60.0
     for item in iter_items(match_dir):
         if item.t >= t0:
             break
-        pipe.feed(item)
+        for msg in pipe.feed(item):
+            if msg["type"] == "insight" or (msg["type"] == "event_cue" and msg["kind"] in ("shot", "goal")):
+                pipe.history.append(msg)
 
 
 def make_resolver(meta: dict) -> SpeechResolver:

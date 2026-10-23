@@ -51,9 +51,9 @@ come from the same facts and pass the same Verifier.
 
 **Evidence timeline (what you see).** Under the pitch, a strip covers the whole match (0'-90', half-time tick). The match's known
 moments (goals, saved shots, cards) show from the start as hollow markers; selecting one (click or Enter) starts Live 30 s before it,
-and a click anywhere on the strip starts Live from that minute. A band marks what the session plays. As the match plays, goals
-(large ringed dot), shots (small dot) and Insights (diamond, filled once spoken) appear in club colour, with a playhead on the match
-clock. A new Insight's marker
+and a click anywhere on the strip starts Live from that minute. A band marks what the session plays. Goals (large ringed dot),
+shots (small dot) and Insights (diamond, filled once spoken) appear in club colour as the match plays, with a playhead on the match
+clock; those from before your start minute (or between Highlights clips) are drawn at once, as for anyone joining a live match. A new Insight's marker
 flashes when it is detected. Every marker is a button with a screen-reader label ("Insight, 21:25, Northport slowing the tempo"). Selecting
 one lights up its evidence on the pitch for six seconds: the events (by `seq`) the Insight rests on, the flank band a flank overload
 counted, or a shot's position with a line to goal. The **Why** card shows the sentence (verified or template, and whether it was
@@ -270,8 +270,8 @@ Every message carries match time `t` (seconds); schemas for the payloads are in 
 
 | message | content |
 |---|---|
-| `hello` | `match` (fixture id), seed, teams (club id, names EN/TR, colour, outfield players), score at the start, `watch` (`live` or `highlights`), match length `duration_s`, `windows` (the match seconds the session plays), `moments` (`{t, kind, team}` for every goal, saved shot and card) |
-| `cut` | Highlights only: the clip ends at `t_from`, the next starts at `t_to`, with the `score` at `t_to` (from the server's warm-up) |
+| `hello` | `match` (fixture id), seed, teams (club id, names EN/TR, colour, outfield players), score at the start, `watch` (`live` or `highlights`), match length `duration_s`, `windows` (the match seconds the session plays), `moments` (`{t, kind, team}` for every goal, saved shot and card), `history` (the `insight` and shot / goal `event_cue` messages before the start) |
+| `cut` | Highlights only: the clip ends at `t_from`, the next starts at `t_to`, with the `score` at `t_to` (from the server's warm-up) and the `history` between the clips |
 | `state` | 10 Hz state packets: ball position, team, danger (xT), pressure, pan, tempo ([`state.schema.json`](schemas/state.schema.json)) |
 | `event_cue` | pass, shot, save, goal, whistle, half-time and full time (`period_end`), with team, player, period and event `seq`; shots and goals add `x`, `y` (where the shot was taken), events that have them `speed_mps` and `outcome`, passes `length_m` |
 | `insight` | a detected tactical story: `claim_facts` (every number in it) and `evidence` (event `seq`s) ([`insight.schema.json`](schemas/insight.schema.json)), plus the template `text`, `evidence_points` (`{seq, t, type, team, x, y}` per evidence event, max 30, pitch frame x 0-105, y 0-68) and `zone` (the flank band for a flank overload, else null) |

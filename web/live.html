@@ -639,9 +639,13 @@ function renderStatus() {
   if (live.delay_s) s += ` · ${live.commentary ? t("liveDelay") + " · " : ""}${live.delay_s} ${t("secs")} ${t("delayWord")}`;
   $("status").textContent = s;
 }
+// A new session (any start) resets what belongs to its window. The commentary feed is what the listener has heard of this match: it
+// stays across jumps within the match (Next moment, a timeline click, a mode switch) and goes when the match changes.
 function resetLive() {
+  const feed = live.feedMatch === matchId ? live.feed : [];
   Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false,
-    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, windows: null, stats: null, delay_s: 0, commentary: false, feed: [], cutShow: null, trail: [] });
+    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, windows: null, stats: null, delay_s: 0, commentary: false, feed, feedMatch: matchId,
+    cutShow: null, trail: [] });
   $("tlInner").querySelectorAll(".mk:not(.mo)").forEach(e => e.remove()); renderTimeline(); renderWhy(); renderStats(); renderFeed();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
@@ -659,6 +663,7 @@ function onMessage(m) {
     if (m.score) { live.score = [m.score.HOME || 0, m.score.AWAY || 0]; $("score").textContent = live.score.join(" – "); }
     Object.assign(live, { delay_s: m.delay_s || 0, commentary: !!m.commentary }); renderStatus();
     fillFav(m.teams); setTeamNames(); fillClub(); sendMode(); sendClub();
+    addHistory(m.history);
   } else if (m.type === "state") {
     if (live.clock0 === null) live.clock0 = ctx.currentTime + JITTER_S - m.packets[0].t / live.speed;
     if (!live.windows) { live.windows = [[m.packets[0].t, matchLen()]]; renderTimeline(); }  // run_local sends no windows
@@ -715,6 +720,7 @@ function cutTo(m) {
   live.clock0 = now + CUT_GAP_S - m.t_to / live.speed;
   Object.assign(live, { lastTickSlot: -1, nextBeat: 0, trail: [], cutShow: { text: `${Math.floor(m.t_to / 60)}'`, at: performance.now() } });
   if (m.score) { live.score = [m.score.HOME || 0, m.score.AWAY || 0]; $("score").textContent = live.score.join(" – "); }
+  addHistory(m.history);
   const f = sndNoise(session.L.cue, now, 0.9, "bandpass", 350, 0.8, 0.22, 0, 0.45);
   f.frequency.exponentialRampToValueAtTime(2400, now + 0.8);
   $("status").textContent = `${t("cutTo")} ${Math.floor(m.t_to / 60)}'`;
@@ -887,7 +893,15 @@ function renderMoments() {
   const g = moments().find(mo => mo.kind === "goal");  // a hint, not a button: where the first goal is
   $("tlHint").textContent = g && !live.ws ? t("tlHint").replace("{m}", Math.floor(g.t / 60) + 1) : "";
 }
-function addInsight(m) {
+// The match before the session's start (or between Highlights clips): its Insights and shots / goals, drawn at once and selectable
+// for their evidence, without the "new" flash.
+function addHistory(items) {
+  for (const h of items || []) {
+    if (h.type === "insight") addInsight(h, true);
+    else if ((h.kind === "shot" && h.outcome !== "goal") || h.kind === "goal") addEventMark(h);
+  }
+}
+function addInsight(m, quiet = false) {
   const ins = m.insight;
   if (ins.claim_facts.source === "danger") return;
   if (ins.type === "goal" || ins.type === "chance") {  // belongs to its shot or goal marker, whichever exists first
@@ -896,7 +910,7 @@ function addInsight(m) {
     return;
   }
   const mk = addMark({ kind: "ins", t: ins.t, team: ins.team, ins: m });
-  mk.el.classList.add("new"); setTimeout(() => mk.el.classList.remove("new"), 2800);  // the system "noticing" something
+  if (!quiet) { mk.el.classList.add("new"); setTimeout(() => mk.el.classList.remove("new"), 2800); }  // the system "noticing" something
 }
 function addEventMark(m) {
   addMark({ kind: m.kind, t: m.t, team: m.team, seq: m.seq, x: m.x, y: m.y, player_id: m.player_id, outcome: m.outcome,
@@ -1485,7 +1499,8 @@ function readyFor() {
 $("matchSel").addEventListener("change", e => {
   matchId = e.target.value; store.set("htg.match", matchId); startT = 0;
   if (live.ws) stopListening();
-  applyMatch(); readyFor();
+  resetLive(); applyMatch(); readyFor();  // nothing of the old match stays: caption, feed, log, markers, Why
+  setCaption({ [uiLang]: t("captionIdle") }, false); $("captionTag").textContent = t("tagIdle"); $("captionMine").hidden = true;
 });
 document.querySelectorAll("#watch button").forEach(b => b.addEventListener("click", () => {
   if (watch === b.dataset.watch) return;

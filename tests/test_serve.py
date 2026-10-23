@@ -143,6 +143,10 @@ def test_live_from_minute_76_starts_with_its_score_and_runs_to_full_time(monkeyp
     hello = run_session(match_dir, [[76 * 60.0, 5400.0]], 50.0, "hello")[0]
     assert hello["score"] == expected and hello["windows"] == [[4560.0, 5400.0]] and hello["watch"] == "live"
     assert hello["match"] == "synth_0007" and {m["kind"] for m in hello["moments"]} >= {"goal", "save", "yellow"}
+    # the match so far, for the timeline: Insights and shot / goal cues before 76', the first goal among them
+    hist = hello["history"]
+    assert {h["type"] for h in hist} == {"insight", "event_cue"} and all(serve.t_of(h) < 4560.0 for h in hist)
+    assert [round(h["t"]) for h in hist if h["type"] == "event_cue" and h["kind"] == "goal"] == [1358]
 
 
 def test_moments_and_highlight_windows():
@@ -170,7 +174,10 @@ def test_highlights_cut_to_the_next_clip_with_the_warm_up_score(monkeypatch):
     msgs = run_session(match_dir, windows, 100.0, "cut", mode="highlights")
     hello, cut = msgs[0], msgs[-1]
     assert hello["watch"] == "highlights" and hello["windows"] == windows
+    hist = cut.pop("history")
     assert cut == {"type": "cut", "t_from": 1310.0, "t_to": 4740.0, "score": {"HOME": 0, "AWAY": 1}}
+    assert hist and all(1310.0 < serve.t_of(h) < 4740.0 for h in hist)  # what happened between the two clips, goal included
+    assert any(h["type"] == "event_cue" and h["kind"] == "goal" for h in hist)
     played = [p["t"] for m in msgs if m["type"] == "state" for p in m["packets"]]
     assert played and 1300.0 <= min(played) and max(played) <= 1310.0  # nothing from outside the clip
 
