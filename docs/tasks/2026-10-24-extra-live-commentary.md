@@ -96,8 +96,9 @@ card and "Catch me up" history must reset or carry over consistently (no markers
 1. **Broadcast delay.** In Casual and Audio-only the client plays everything (sound, callouts, narration, commentary) 20 s behind
    the server stream; Analyst keeps today's 300 ms. Chosen at start, shown as "Live commentary · 20 s delay". This is what lets the
    commentator be late without being out of sync. Everything drawn (ball, timeline playhead, markers, Why card, stats, clock)
-   follows the same delayed play clock, so picture, sound and words stay together. A mode change mid-session keeps the delay
-   chosen at start.
+   follows the same delayed play clock, so picture, sound and words stay together. A mode change mid-session between Analyst
+   and a fan mode restarts the same window in the new mode (owner, 2026-10-23; before, a session started in Analyst never got
+   the commentator); a change between the fan modes keeps the session.
    **No visible wait at start:** the server sends the first 20 s of match data at once (burst), then continues in real time, so the
    client's buffer is full immediately and playback starts as soon as the listener presses Start (same for chapters and jumps).
    Pre-generate the commentator lines (and clips) for the three chapter windows of seed 7 with a pregen command, like the narration

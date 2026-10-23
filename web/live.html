@@ -543,7 +543,9 @@ const live = { ws: null, clock0: null, speed: 1, teams: null, frames: [], due: [
 const matchNow = () => (ctx.currentTime - live.clock0) * live.speed;
 const audioAt = t => Math.max(ctx.currentTime, live.clock0 + t / live.speed);
 
+let lastQuery = "";  // the session's start (chapter or jump), so a mode change can restart the same window
 function connect(query = "") {
+  lastQuery = query;
   initAudio(); ctx.resume();
   primeVoice(); preloadCallouts();
   resetLive();
@@ -575,9 +577,16 @@ function nextMoment() {
   if (live.ws) stopListening();
   connect("&next=1" + (after === null ? "" : "&after=" + after.toFixed(1))); live.jumped = true;
 }
+// The status is read aloud: match, a jump, and in the fan modes "Live commentary · 20 s delay". Redrawn on a language change.
+function renderStatus() {
+  let s = `${t("live")} ${live.seed}`;
+  if (live.jumped && live.win) s += ` · ${t("jumpedTo")} ${Math.floor(live.win[0] / 60)}'`;
+  if (live.delay_s) s += ` · ${live.commentary ? t("liveDelay") + " · " : ""}${live.delay_s} ${t("secs")} ${t("delayWord")}`;
+  $("status").textContent = s;
+}
 function resetLive() {
   Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false,
-    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, win: null, stats: null, jumped: false });
+    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, win: null, stats: null, jumped: false, delay_s: 0, commentary: false });
   $("tlInner").querySelectorAll(".mk").forEach(e => e.remove()); renderAxis(); renderWhy(); renderStats();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
   $("score").textContent = "0 – 0"; renderLog(); live.recap = []; renderRecap(); live.favT = -99;
@@ -593,9 +602,7 @@ function onMessage(m) {
       $("dot" + id).style.background = COLOR[m.teams[side].color] || "#ccc";
     }
     if (m.score) { live.score = [m.score.HOME || 0, m.score.AWAY || 0]; $("score").textContent = live.score.join(" – "); }
-    live.seed = m.seed; $("status").textContent = `${t("live")} ${m.seed ?? m.match_id}`;
-    if (live.jumped && live.win) $("status").textContent += ` · ${t("jumpedTo")} ${Math.floor(live.win[0] / 60)}'`;  // the status is read aloud
-    if (m.delay_s) $("status").textContent += ` · ${m.commentary ? t("liveDelay") + " · " : ""}${m.delay_s} ${t("secs")} ${t("delayWord")}`;
+    Object.assign(live, { seed: m.seed ?? m.match_id, delay_s: m.delay_s || 0, commentary: !!m.commentary }); renderStatus();
     fillFav(m.teams); setTeamNames(); fillClub(); sendMode(); sendClub();
   } else if (m.type === "state") {
     if (live.clock0 === null) live.clock0 = ctx.currentTime + JITTER_S - m.packets[0].t / live.speed;
@@ -1285,7 +1292,7 @@ function applyI18n() {
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
   if (!live.ws) $("status").textContent = t("off");
   setTeamNames(); fillClub();
-  if (live.ws && live.seed !== undefined) $("status").textContent = `${t("live")} ${live.seed}`;
+  if (live.ws && live.seed !== undefined) renderStatus();
   if (live.teams) fillFav(live.teams); else $("fav").replaceChildren(new Option(t("favNone"), ""));
   renderLog(); renderRecap(); pickVoices(); live.marks.forEach(renderMark); renderWhy(); renderStats(); renderTourBtn(); setRecapBusy(!!recapWait);
 }
@@ -1294,8 +1301,15 @@ $("uiLangSel").addEventListener("change", e => { uiLang = e.target.value; store.
 document.querySelectorAll("#commLang button").forEach(b => b.addEventListener("click", () => {
   commLang = b.dataset.lang; store.set("htg.commentary", commLang); applyI18n(); preloadCallouts();
 }));
+// The delay is fixed per session (20 s in the fan modes, none in Analyst), so crossing between Analyst and a fan mode while listening
+// restarts the same window in the new mode; otherwise a session started in Analyst would stay without the live commentator.
 document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
+  const was = mode;
   mode = b.dataset.mode; store.set("htg.mode", mode); applyMode(); sendMode();
+  if (live.ws && (was === "analyst") !== (mode === "analyst")) {
+    const jumped = live.jumped;
+    stopListening(); connect(lastQuery); live.jumped = jumped;
+  }
 }));
 $("club").addEventListener("change", e => { club = e.target.value; store.set("htg.club", club); fillClub(); sendClub(); });
 document.querySelectorAll("#chapters button").forEach(b => b.addEventListener("click", () => {

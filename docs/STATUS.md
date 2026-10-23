@@ -281,6 +281,12 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   timeout), so the commentator's client now has `timeout=20` (not deployed yet; rides along with the next deploy, no extra one needed).
   README: "Live commentary" in What you hear, numbers in Evidence, MAI-Voice in the stack table, diagram, limitation, eval command.
   Owner's choice: no list of invented/odd details in the results (only the 10 verbatim lines the task asks for).
+- **Fix (2026-10-23): owner saw no live commentary in Casual.** Server fine (local `HTG_ENV=azure`: hello.commentary true, delay 20,
+  10 live lines in 3 min, 0 errors; deployed the same). Cause in the client: the page opens in the last mode (Analyst, stored), Start
+  connects without the delay, and switching to Casual kept that session's no-delay start, so no commentator for the whole session;
+  a language change also wiped "Live commentary · 20 s delay" from the status line. Now crossing Analyst <-> fan mode while listening
+  restarts the same window (chapter or jump) in the new mode, and the status line is redrawn with the delay. Checked in headless
+  Chrome (Analyst -> Start -> Casual: "canlı · x sn" lines; Casual -> Analyst: no delay). Needs a deploy (rides along with the next).
   Left: owner listens to all three chapters; then move the task file to `docs/tasks/done/`.
 
 ## Plan (simplified, 2026-10-21)
