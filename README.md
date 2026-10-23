@@ -336,8 +336,9 @@ More languages than English and Turkish are not built: each one needs its own Ve
 - **Live recaps take seconds** (p50 6 s without TTS) and Turkish recap sentences pass the Verifier less often than English ones
   (88% vs 98% after the revision); a dropped sentence makes the recap shorter, not wrong.
 - **Detection delay** is minutes, not seconds (median 264-589 s): tactical trends need a window of play before they are real.
-- **A tab hidden for 2 minutes stops listening** (so a forgotten tab does not call Foundry for 90 minutes); Start picks up where it
-  stopped. This also stops a listener whose phone screen locks.
+- **A hidden tab stops listening** 2 minutes after the browser suspends its sound (nobody can hear it), and after 45 minutes even if
+  the sound still plays, so a forgotten tab does not call Foundry for a whole match. Listening with the screen locked keeps going as
+  long as the browser keeps playing; Start picks up where it stopped.
 - **iOS background audio** is untested. The layout was checked in headless Chrome at phone and desktop widths, not on many real phones.
 - **Accessibility** was checked by the author with VoiceOver. It has **not been validated with blind users**. A listening-test
   protocol with an answer key is in [`docs/listening-test.md`](docs/listening-test.md); it has not been run yet.

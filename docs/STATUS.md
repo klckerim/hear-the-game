@@ -301,8 +301,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   language by caption rules, added when spoken; `aria-live="off"`; hidden in Analyst.
 - **Server** (`serve.py`): `/ws?match=&mode=live|highlights&from=`; `from` clamped, whole seconds; warm-up per (match, second) in a
   thread, LRU of 64 (~2 MB each; worst warm-up 0.4 s at 79', copy 8 ms). Live runs to full time (no 15-minute cap; `MAX_SESSIONS`
-  kept). Client closes the socket after the tab is hidden 2 min (Start resumes there). **Trade-off to know:** this also stops a
-  listener whose phone screen locks; say if you want a longer limit. Mode switch Analyst <-> fan restarts **where the listener is**
+  kept). A hidden tab closes the socket 2 min after the browser suspends its audio, or after 45 min hidden even if the sound plays
+  (owner's choice, 2026-10-23: a locked-screen listener must not be cut off; the task's flat 2 min did that). Start resumes there.
+  Checked in headless Chrome by faking `document.hidden`: audio running -> still connected after 135 s; suspended -> stopped,
+  "Start picks up at 2:17". Mode switch Analyst <-> fan restarts **where the listener is**
   (Highlights: the clip under way, `from` filters clips), not the session start.
 - **Highlights:** windows [moment - 30 s, moment + 15 s], merged; between clips the server waits the delay (the listener reaches the
   clip end), sends `cut {t_from, t_to, score}` and starts the next clip with its own 20 s burst; client re-anchors the play clock

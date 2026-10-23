@@ -403,7 +403,7 @@ const T = {
     layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lCallout: "Kısa anonslar (isim, şut, taç…)", lVoice: "Anlatım",
     matchBar: "Maç ve izleme biçimi", matchLabel: "Maç seç", watchLabel: "İzleme biçimi", watchLive: "Canlı", watchHl: "Önemli anlar",
     liveFrom: "Canlı, başlangıç", hlCount: "an", cutTo: "Sıradaki an:", halfTimeRecap: "Devre arası özeti",
-    pausedHidden: "Sekme 2 dakika gizli kaldı, dinleme durdu. Başlat'a basınca şuradan sürer:",
+    pausedHidden: "Sekme gizliyken dinleme durdu. Başlat'a basınca şuradan sürer:",
     feedTitle: "Canlı anlatım", feedEmpty: "Anlatıcının son cümleleri, söylendikçe burada görünür.",
     mo_goal: "Gol", mo_save: "Kurtarış", mo_yellow: "Sarı kart", mo_red: "Kırmızı kart", startBefore: "30 saniye önceden başla",
     tlHint: "İlk gol {m}. dakikada · 30 saniye önceden başlamak için işaretini seç.",
@@ -436,7 +436,7 @@ const T = {
     layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lCallout: "Callouts (names, shots, throw-ins…)", lVoice: "Narration",
     matchBar: "Match and how to watch", matchLabel: "Pick a match", watchLabel: "How to watch", watchLive: "Live", watchHl: "Highlights",
     liveFrom: "Live from", hlCount: "moments", cutTo: "Next highlight:", halfTimeRecap: "Half-time recap",
-    pausedHidden: "The tab was hidden for 2 minutes, so listening stopped. Start picks up at",
+    pausedHidden: "Listening stopped while the tab was hidden. Start picks up at",
     feedTitle: "Live commentary", feedEmpty: "The commentator's latest lines show here as they are spoken.",
     mo_goal: "Goal", mo_save: "Save", mo_yellow: "Yellow card", mo_red: "Red card", startBefore: "start 30 seconds before",
     tlHint: "First goal at {m}' · select its marker to start 30 s before.",
@@ -1501,19 +1501,30 @@ if ("onbeforeinstallprompt" in window) {
     e.prompt(); await e.userChoice.catch(() => null);
   });
 }
-// A tab left hidden for 2 minutes stops listening (the client closes the socket, the server stops the session and its commentator),
-// so a forgotten tab does not call Foundry for 90 minutes. Start picks up where it stopped.
-const HIDDEN_STOP_MS = 120000;
-let hiddenTimer = null;
+// A hidden tab stops listening (the client closes the socket, the server stops the session and its commentator) once nobody can hear
+// it: 2 minutes after the browser suspended its audio (iOS lock screen, a frozen background tab). Listening with the screen locked is
+// the point of the app, so a hidden tab whose sound still plays keeps going, up to 45 minutes, so a forgotten tab does not call
+// Foundry for a whole match. Start picks up where it stopped. Checked every 10 s (hidden tabs may run timers less often).
+const SILENT_STOP_MS = 2 * 60000, HIDDEN_STOP_MS = 45 * 60000;
+let hiddenCheck = null;
+function stopHidden() {
+  const at = playT();
+  stopListening(at === null ? undefined : `${t("pausedHidden")} ${clock(at)}.`);
+  if (at !== null) startT = Math.floor(at);
+}
 document.addEventListener("visibilitychange", () => {
-  clearTimeout(hiddenTimer);
+  clearInterval(hiddenCheck); hiddenCheck = null;
   if (!document.hidden || !live.ws) return;
-  hiddenTimer = setTimeout(() => {
-    if (!document.hidden || !live.ws) return;
-    const at = playT();
-    stopListening(at === null ? undefined : `${t("pausedHidden")} ${clock(at)}.`);
-    if (at !== null) startT = Math.floor(at);
-  }, HIDDEN_STOP_MS);
+  const hiddenAt = Date.now();
+  let silentAt = null;
+  hiddenCheck = setInterval(() => {
+    if (!document.hidden || !live.ws) { clearInterval(hiddenCheck); hiddenCheck = null; return; }
+    const now = Date.now();
+    silentAt = ctx && ctx.state === "running" ? null : silentAt ?? now;
+    if ((silentAt !== null && now - silentAt >= SILENT_STOP_MS) || now - hiddenAt >= HIDDEN_STOP_MS) {
+      clearInterval(hiddenCheck); hiddenCheck = null; stopHidden();
+    }
+  }, 10000);
 });
 if (location.protocol.startsWith("http")) {
   fetch("matches.json").then(r => r.ok ? r.json() : null).then(j => {
