@@ -109,7 +109,7 @@ h1 .accent { color: var(--amber); }
 .blind p { font-family: var(--display); font-size: clamp(22px, 4vw, 34px); text-transform: uppercase; letter-spacing: 0.06em; margin: 0; }
 .blind small { display: block; font-family: var(--body); font-size: 14px; color: var(--muted); text-transform: none; letter-spacing: 0; margin-top: 6px; }
 .caption { min-width: 0; height: calc(4 * 1.5em + 22px); overflow-y: auto;  /* fixed height: TR and EN sentences differ in length, and the layout must not jump */ background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; display: flex; gap: 12px; align-items: flex-start; }
-.caption .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 2px 6px; border-radius: 3px; flex: none; margin-top: 2px; }
+.caption .tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 2px 6px; border-radius: 3px; flex: none; margin-top: 2px; max-width: 18ch; }  /* a long tag (HALF-TIME RECAP · VERIFIED) wraps instead of squeezing the text */
 .caption .tag.idle { background: var(--line); color: var(--muted); }
 .caption .tag.mine { background: var(--chalk); }
 .caption .tags { display: grid; gap: 4px; flex: none; justify-items: start; }
