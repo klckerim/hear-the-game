@@ -333,7 +333,9 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Fix (2026-10-23, owner noticed):** switching match while listening could let a sentence of the old match play over the new one
   (timers checked only the socket; a clip still decoding started after the switch). Narration, recaps, log lines and the full-time
   flag are now bound to the session (`live.gen`). Checked in headless Chrome: a slow old clip is dropped, a same-session clip plays.
-  Switching match (or Live / Highlights) keeps listening and starts the new choice, as the task asks; owner can ask for a stop instead.
+  **Changed by the owner (2026-10-23), unlike task 1.4:** switching match or Live / Highlights now stops listening and waits for
+  Start (status line, read aloud: "Ready: Zekteris – Thornfield · Highlights. Press Start listening"), so browsing the list or an
+  arrow key on the picker never starts a match. Timeline click, a moment and Next moment still start at once. Checked in headless Chrome.
 - **Fix (2026-10-23, owner heard it):** on seed 7's 79' equaliser (1-1) the commentator said "Goal! Arda smashes it in — Northport
   lead!" (facts were right; the model inferred a lead, the Verifier does not check meaning, and the line was cached and replayed as
   fallback). Now: segment fact `goal_effect` (takes_lead / extends_lead / equaliser / pulls_one_back, from the score); prompt v4 says

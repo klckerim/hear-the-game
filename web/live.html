@@ -402,7 +402,7 @@ const T = {
     left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
     layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lCallout: "Kısa anonslar (isim, şut, taç…)", lVoice: "Anlatım",
     matchBar: "Maç ve izleme biçimi", matchLabel: "Maç seç", watchLabel: "İzleme biçimi", watchLive: "Canlı", watchHl: "Önemli anlar",
-    liveFrom: "Canlı, başlangıç", hlCount: "an", cutTo: "Sıradaki an:", halfTimeRecap: "Devre arası özeti",
+    liveFrom: "Canlı, başlangıç", ready: "Hazır:", pressStart: "Başlamak için \"Dinlemeye başla\"ya bas.", hlCount: "an", cutTo: "Sıradaki an:", halfTimeRecap: "Devre arası özeti",
     pausedHidden: "Sekme gizliyken dinleme durdu. Başlat'a basınca şuradan sürer:",
     feedTitle: "Canlı anlatım", feedEmpty: "Anlatıcının son cümleleri, söylendikçe burada görünür.",
     mo_goal: "Gol", mo_save: "Kurtarış", mo_yellow: "Sarı kart", mo_red: "Kırmızı kart", startBefore: "30 saniye önceden başla",
@@ -435,7 +435,7 @@ const T = {
     left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
     layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lCallout: "Callouts (names, shots, throw-ins…)", lVoice: "Narration",
     matchBar: "Match and how to watch", matchLabel: "Pick a match", watchLabel: "How to watch", watchLive: "Live", watchHl: "Highlights",
-    liveFrom: "Live from", hlCount: "moments", cutTo: "Next highlight:", halfTimeRecap: "Half-time recap",
+    liveFrom: "Live from", ready: "Ready:", pressStart: "Press \"Start listening\" to begin.", hlCount: "moments", cutTo: "Next highlight:", halfTimeRecap: "Half-time recap",
     pausedHidden: "Listening stopped while the tab was hidden. Start picks up at",
     feedTitle: "Live commentary", feedEmpty: "The commentator's latest lines show here as they are spoken.",
     mo_goal: "Goal", mo_save: "Save", mo_yellow: "Yellow card", mo_red: "Red card", startBefore: "start 30 seconds before",
@@ -1470,15 +1470,21 @@ document.querySelectorAll("#modes button").forEach(b => b.addEventListener("clic
   if (live.ws && (was === "analyst") !== (mode === "analyst")) { const at = playT(); stopListening(); connect(at ?? startT); }
 }));
 $("club").addEventListener("change", e => { favClub = e.target.value; store.set("htg.club", favClub); fillClub(); fillMatches(); sendClub(); });
-// A new match or a new way to watch starts over (from kick-off / the first clip); while listening, the session restarts at once.
+// A new match or a new way to watch stops listening and waits for Start (from kick-off / the first clip): looking through the
+// list, or an arrow key on the focused picker, must not start a match. The status line (read aloud) says what is ready. A timeline
+// click, a moment and Next moment do start at once: they say "listen from here".
+function readyFor() {
+  if (live.ws) stopListening();
+  $("status").textContent = `${t("ready")} ${uiTeam("HOME")} – ${uiTeam("AWAY")} · ${watch === "live" ? t("watchLive") : t("watchHl")}. ${t("pressStart")}`;
+}
 $("matchSel").addEventListener("change", e => {
   matchId = e.target.value; store.set("htg.match", matchId); startT = 0;
-  if (live.ws) { stopListening(); applyMatch(); connect(0); } else applyMatch();
+  if (live.ws) stopListening();
+  applyMatch(); readyFor();
 });
 document.querySelectorAll("#watch button").forEach(b => b.addEventListener("click", () => {
   if (watch === b.dataset.watch) return;
-  watch = b.dataset.watch; store.set("htg.watch", watch); startT = 0; applyWatch();
-  if (live.ws) { stopListening(); connect(0); }
+  watch = b.dataset.watch; store.set("htg.watch", watch); startT = 0; applyWatch(); readyFor();
 }));
 $("tlTrack").addEventListener("click", e => {
   if (e.target.closest(".mk")) return;
