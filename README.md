@@ -62,6 +62,24 @@ longer than 30 m with their length. Casual and Audio only stay simple: no table.
 
 <!-- Screenshots: docs/img/timeline.png (Why card after selecting an Insight), docs/img/analyst.png (stats table). Owner to add. -->
 
+**Live commentary (Casual and Audio only).** Tactical narration alone speaks about once every few minutes, so the fan modes add
+two layers in a male commentary voice (MAI-Voice-2.1 (preview) in English, MAI-Voice-2 in Turkish; Azure neural voices as the
+fallback):
+- **Callouts**: short pre-recorded clips strung together per event, no model involved: "Okafor... shot... saved!", "Foul... yellow
+  card, Silva", "Throw-in, Northport", and a name now and then when the ball is in the final third. At most one every 2 s.
+- **The live commentator**: play is cut into segments (a dead ball, or 10 s), and each finished segment's facts (who passed to
+  whom, how far up the pitch, how it ended, score, card, shot speed) go to Foundry, which writes 0-2 radio lines in EN and TR in one
+  call. The same Verifier checks them against the segment's facts, plus a list of details no fact can carry (headers, volleys,
+  crosses, the box, posts, penalties...); a failing line is dropped, never replaced. The lines are **generated live for every
+  session**; a verified line is also cached, and plays as a "fallback" for a later session if its own live line is late.
+- **20 s broadcast delay**, as on TV: the server sends the first 20 s at once and stays 20 s ahead of what you hear, so the
+  commentator has time to write and voice its line and still speak in sync with the sound. The status line says "Live commentary ·
+  20 s delay"; the caption tag shows **live · 2.8 s** (time from the end of the play to the line being ready) or **fallback**. One
+  voice at a time: a goal line cuts in, otherwise narration and recaps come first and a commentator line that cannot start within
+  3 s is dropped. Analyst keeps the 300 ms buffer and no commentator.
+- **Cards and Next moment**: fouls can carry a yellow or red card (booking whistle and callout). **Next moment** (key N) jumps to
+  30 s before the next goal, saved shot or card.
+
 **Chapters.** The demo match (seed 7) starts where you choose: **Kick-off** (0'), **First goal** (19', the goal comes at 22:38) or
 **Late drama** (76', goals at 79' and 87'). Each session plays 15 match-minutes; the detectors are warmed up on everything before
 the start, so the score and the tactical baselines are already right. **Space** starts and stops listening.
@@ -85,6 +103,9 @@ flowchart LR
     WS -- What did I miss? --> RA[Recap agent<br/>Foundry Agent Service,<br/>4 deterministic tools]
     RA --> RV[Verifier<br/>tool results = facts]
     RV --> SP
+    S --> SEG[Segments of play<br/>facts per dead ball / 10 s]
+    SEG --> CM[Foundry commentator<br/>0-2 lines EN+TR]
+    CM --> CV[Verifier<br/>segment facts] --> SP
   end
   WS --> B[Browser<br/>Web Audio makes the sound,<br/>plays the clip]
   Server -. traces, metrics .-> AI[Application Insights<br/>+ Foundry tracing]
@@ -182,6 +203,25 @@ not the correctness of the numbers in it: each sentence still states shares that
 - Narration latency per Insight (EN + TR in one call): **p50 1.58 s / p95 3.60 s**, down from 10.73 s / 17.42 s before setting
   the reasoning effort to `minimal` (both measured, dated history in the file). Azure TTS per clip: p50 0.56 s / p95 2.13 s.
 
+**Live commentary** (8 windows of up to 15 minutes, 119 match minutes: the three chapters of seed 7 and seeds 11-15 from 19';
+every line generated live, English listener, [`eval/results/commentary.md`](eval/results/commentary.md))
+
+| | Narration only | + callouts | + callouts + commentator |
+|---|---|---|---|
+| 30-s windows with any speech | 21% | 90% | **97%** |
+| Longest silence, median per window / worst | 390 s / 605 s | 59 s / 84 s | **45 s / 64 s** |
+| Share of time with speech | 4% | 9% | 36% |
+
+- Commentator latency (model + Verifier + voice, from the end of the play): **p50 3.09 s / p95 4.77 s** against a 17 s budget
+  (20 s delay minus a 3 s margin). 1 of 469 calls hung and went over; the stream gave up on it at the budget and moved on (the
+  Foundry call now times out at 20 s). 0 lines arrived late.
+- 3.1 commentator lines heard per match minute; the model chose silence for 4% of segments.
+- Verifier: 12 of 464 lines dropped in both languages; 48 failed in English only and 41 in Turkish only (that language stays
+  silent for the line). 35 lines were dropped in the client because another voice held the slot for more than 3 s.
+- Measured offline: the server's commentator stream on a simulated clock and the client's one-voice rules, simplified; narration
+  and callout durations are estimates (see the file). The Verifier checks names, numbers and a list of invented details, not every
+  adjective.
+
 **Microsoft Foundry evaluation** (built-in evaluators, judge gpt-5-mini, 100 Insights × EN/TR, prompt-3 sentences,
 [`eval/results/foundry_eval.md`](eval/results/foundry_eval.md))
 
@@ -245,11 +285,11 @@ The listener sends three messages back: `{"type": "set_mode", "mode": "analyst"}
 
 | Service | What it does here | Where |
 |---|---|---|
-| **Microsoft Foundry** (model deployment, gpt-5-mini) | Writes the EN + TR sentence from `claim_facts` | [`htg/narration/foundry.py`](htg/narration/foundry.py) |
+| **Microsoft Foundry** (model deployment, gpt-5-mini) | Writes the EN + TR sentence from `claim_facts`; the live commentator's 0-2 lines per segment of play | [`htg/narration/foundry.py`](htg/narration/foundry.py), [`htg/commentary/commentator.py`](htg/commentary/commentator.py) |
 | **Foundry Agent Service** (prompt agent, function tools, Responses API) | The Recap agent: chooses which match tools to call, writes the EN + TR recap | [`htg/recap/agent.py`](htg/recap/agent.py) |
 | **Foundry tracing** via Application Insights | One `htg.narrate_insight` span per Insight with Verifier attempts and reasons; the model call as a child span (prompt and output content configured on the span). One `htg.recap` span per recap with tools used, Verifier reasons and source (seen in Application Insights on the deployed app) | [`htg/telemetry.py`](htg/telemetry.py), [`htg/narration/service.py`](htg/narration/service.py) |
 | **Foundry evaluations** | Groundedness and fluency of the shipped sentences | [`eval/foundry_eval.py`](eval/foundry_eval.py) |
-| **Azure AI Speech** | Neural voices (en-GB, tr-TR), SSML: faster and higher for goals, Turkish numbers spoken from words | [`htg/speech/azure.py`](htg/speech/azure.py) |
+| **Azure AI Speech** | Neural voices (en-GB, tr-TR) for narration, SSML: faster and higher for goals, Turkish numbers spoken from words. MAI-Voice-2.1 (preview, `en-US-Ethan`) and MAI-Voice-2 (`tr-TR-Aydın`) with speaking styles (shouting, excited, ...) for the commentator and the callouts, retried once with a neural voice on an error | [`htg/speech/azure.py`](htg/speech/azure.py), [`htg/speech/callouts.py`](htg/speech/callouts.py) |
 | **Azure Container Apps** | One app: static client, health check, one replay session per listener over WebSocket | [`services/engine/serve.py`](services/engine/serve.py), [`Dockerfile`](Dockerfile) |
 | **Application Insights + Log Analytics** | Metrics `htg.speech.resolved` (cache / llm / template), `htg.speech.resolve_ms`, `htg.speech.dropped_stale`, `htg.sessions.active` | [`infra/app.bicep`](infra/app.bicep) |
 | **Container Registry, managed identity** | Image pull and all Azure calls without keys (user-assigned identity) | [`infra/app.bicep`](infra/app.bicep) |
@@ -275,6 +315,8 @@ More languages than English and Turkish are not built: each one needs its own Ve
 - **The demo narration is pre-generated** for the three chapters, both personas and every favourite club. Changing mode in the
   middle of a session can make the Director pick an Insight outside that set. A live cache miss calls Foundry and Speech within a 4 s
   deadline; at the measured p95 of 3.60 s for the text plus TTS, the slowest misses fall back to the template sentence.
+- **Live commentary depends on the 20 s delay.** MAI-Voice is in public preview (no SLA). When a live line is late or fails, the
+  listener hears the line an earlier session cached for that segment, or only the callouts; the sound never waits.
 - **The flank detector** has 11% precision (see above).
 - **Live recaps take seconds** (p50 6 s without TTS) and Turkish recap sentences pass the Verifier less often than English ones
   (88% vs 98% after the revision); a dropped sentence makes the recap shorter, not wrong.
@@ -304,6 +346,8 @@ HTG_ENV=azure python -m htg.speech.tour                                      # s
 HTG_ENV=azure python -m eval.recap --seeds 11-30 --n 20                      # Recap agent: Verifier, fallback, tools, latency
 HTG_ENV=azure python -m eval.narration --limit 50 --persona fan --out /tmp/fan.md # one narration persona
 HTG_ENV=azure python -m eval.narration --seeds 11-30 --limit 100 --samples eval/results/narration_samples.jsonl
+HTG_ENV=azure python -m eval.commentary                                     # live commentary: speech coverage, latency, drops
+HTG_ENV=azure python -m htg.speech.callouts                                  # callout clips (commentary voice)
 python -m eval.foundry_eval                                                    # Foundry evaluation of those samples
 python -m eval.latency --url wss://<your-app>/ws --sessions 10 --minutes 3      # deployed latency
 python -m eval.scenarios                                                       # detectors vs. hidden truth

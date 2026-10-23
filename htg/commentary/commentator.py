@@ -99,7 +99,8 @@ class FoundryCommentator:
 
         endpoint = os.environ["FOUNDRY_PROJECT_ENDPOINT"].rstrip("/") + "/openai/v1"
         token = get_bearer_token_provider(DefaultAzureCredential(), "https://ai.azure.com/.default")
-        self.client = OpenAI(base_url=endpoint, api_key=token)
+        # The stream gives up after its budget (~17 s) anyway; without a timeout one hung call held a thread for 10 minutes (eval).
+        self.client = OpenAI(base_url=endpoint, api_key=token, timeout=20.0)
         self.model = os.environ.get("FOUNDRY_COMMENTARY_MODEL") or os.environ["FOUNDRY_MODEL"]
         self.name = f"foundry:{self.model}"
         self.effort = os.environ.get("FOUNDRY_REASONING_EFFORT", "").strip()

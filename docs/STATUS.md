@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-23 (live-commentary part 4 built; deploy 2 next). Before: 2026-10-22 night (Features C closed: evidence timeline + Analyst stats deployed and checked; screenshots open). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-23 (live-commentary part 5 done: `eval/results/commentary.md`, README; deploy 2 checked from outside; owner's listening check of the three chapters open). Before: 2026-10-22 night (Features C closed: evidence timeline + Analyst stats deployed and checked; screenshots open). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -271,7 +271,17 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   lines play on the delayed clock, narration takes over, TR works, no console errors. Seen in trials and left to the honesty note:
   the Verifier checks names and numbers, not every adjective ("low delivery", "Rossi held" got through before prompt v3).
   Tests: `tests/test_commentary.py` (fake model; segmenting, unknown name / invented detail, late drop + fallback, backlog, cache
-  key, burst). Next: deploy 2 (owner), listen to all three chapters, then part 5 (`eval/commentary.py`, README, numbers).
+  key, burst). Deploy 2 done by the owner; checked from outside (2026-10-23): live lines arrive with `source: live`, 1.3-3.0 s, and the
+  caption tag shows "live · x s" in headless Chrome (Casual). The tag only appears in Casual / Audio only (Analyst has no commentator).
+- **Part 5, measured (2026-10-23):** `eval/commentary.py` replays 8 windows (seed 7 chapters + seeds 11-15 from 19', 119 match
+  minutes) with the real commentator (Foundry + Verifier + MAI-Voice EN, no cache) on a simulated clock and the client's one-voice
+  rules (simplified; narration and callout durations estimated). 30-s windows with speech 21% -> 90% (callouts) -> 97% (+ commentator);
+  worst silence 605 s -> 84 s -> 64 s; latency p50 3.09 s / p95 4.77 s vs 17 s budget; 3.1 lines heard per minute; Verifier dropped
+  12 lines in both languages (48 EN-only, 41 TR-only); 35 client drops (voice taken); 0 late. One call hung ~10 min (OpenAI default
+  timeout), so the commentator's client now has `timeout=20` (not deployed yet; rides along with the next deploy, no extra one needed).
+  README: "Live commentary" in What you hear, numbers in Evidence, MAI-Voice in the stack table, diagram, limitation, eval command.
+  Owner's choice: no list of invented/odd details in the results (only the 10 verbatim lines the task asks for).
+  Left: owner listens to all three chapters; then move the task file to `docs/tasks/done/`.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
