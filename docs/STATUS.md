@@ -334,6 +334,14 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   (timers checked only the socket; a clip still decoding started after the switch). Narration, recaps, log lines and the full-time
   flag are now bound to the session (`live.gen`). Checked in headless Chrome: a slow old clip is dropped, a same-session clip plays.
   Switching match (or Live / Highlights) keeps listening and starts the new choice, as the task asks; owner can ask for a stop instead.
+- **Fix (2026-10-23, owner heard it):** on seed 7's 79' equaliser (1-1) the commentator said "Goal! Arda smashes it in — Northport
+  lead!" (facts were right; the model inferred a lead, the Verifier does not check meaning, and the line was cached and replayed as
+  fallback). Now: segment fact `goal_effect` (takes_lead / extends_lead / equaliser / pulls_one_back, from the score); prompt v4 says
+  to use it; Verifier rule: lead words (lead, ahead, in front, öne geç…, önde) only with a lead (after a goal: takes/extends_lead),
+  level words (level, equalis…, all square, berabere…, eşit…) only at a level score; "restored", "yeniden öne", "edge of the …",
+  "the area" join the invented details. Prompt v4 changes the cache key, so every v3 fallback line is retired (cache refills live).
+  Tried on Foundry: all 7 goals of seeds 7 and 33, twice each: 14/14 lines say the right effect, EN and TR, 0 dropped.
+  `eval/results/commentary.md` and its README numbers are still prompt v3 (not rerun).
 - **Checks:** 99 tests pass. Headless Chrome: all six matches start in Live and Highlights, timeline click (45') works, favourite
   club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
 - **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout

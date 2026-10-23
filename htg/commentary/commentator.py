@@ -2,7 +2,7 @@
 
 `commentate()` verifies each line per language with the narration Verifier (football terms such as "first half" allowed, invented
 details such as "header" or "top corner" rejected) and drops what fails: there is no template, the callouts cover the gap.
-Verified lines are cached per (seed, start minute, segment, prompt version, model) as the fallback for a later session whose live
+Verified lines are cached per (seed, segment, prompt version, model) as the fallback for a later session whose live
 line is late or fails.
 """
 from __future__ import annotations
@@ -18,7 +18,7 @@ from typing import Any, Protocol
 from htg.commentary.segments import Segment
 from htg.narration.verifier import verify
 
-COMMENTARY_PROMPT_VERSION = 3
+COMMENTARY_PROMPT_VERSION = 4  # part of the cache key: v3 lines (one called an equaliser a lead) are never played again
 LANGS = ("en", "tr")
 STYLES = ("calm", "lively", "excited", "explosive")
 WORDS_PER_S = 2.5
@@ -34,7 +34,11 @@ FOOTBALL_TERMS = re.compile(r"first half|second half|own half|half-time|half tim
 # Not "var" (Turkish for "there is") and not "orta" ("orta saha" is midfield, a fact).
 INVENTED = re.compile(r"\b(volley\w*|header|headed|top corner|bottom corner|top bin|crossbar|the bar|the post|woodwork|penalt\w*"
                       r"|offside|cross(?:es|ed)?|dribbl\w*|tackl\w*|vole\w*|kafa\w*|köşe\w*|direk\w*|penaltı\w*|ofsayt\w*"
-                      r"|çalım\w*|ortala\w*|(?:in|into|the) box|clip\w*|ceza saha\w*|ceza alan\w*)\b", re.IGNORECASE)
+                      r"|çalım\w*|ortala\w*|(?:in|into|the) box|clip\w*|ceza saha\w*|ceza alan\w*"
+                      r"|restor\w*|yeniden öne\w*|edge of the \w+|the area)\b", re.IGNORECASE)  # also history ("lead restored")
+# Who is ahead is a fact (the score, and goal_effect after a goal), not the model's inference: "lead" words only when the score says so.
+LEAD = re.compile(r"\b(lead\w*|ahead|in front|öne geç\w*|önde)\b", re.IGNORECASE)
+LEVEL = re.compile(r"\b(level\w*|equali[sz]\w*|all square|parity|berabere\w*|beraberli\w*|eşit\w*)\b", re.IGNORECASE)
 # Pressing is a measured pattern (pressure_shift), not a word for "attacking": only when the facts carry that Insight.
 PRESSING = re.compile(r"\b(press\w*|baskı\w*|bastır\w*)\b", re.IGNORECASE)
 
@@ -72,6 +76,9 @@ SYSTEM = (
     "being free, on the ground or looking up, unless a fact says it. "
     "Never write a fact key or a code value such as final_third or off_target; say it in words.\n"
     "- Do not say the minute, except at half-time or full-time. Say the score only after a goal or at the end of a half.\n"
+    "- A goal: say what it did exactly as goal_effect says: takes_lead = they go ahead, extends_lead = they extend the lead, "
+    "equaliser = it is level, pulls_one_back = they pull one back and still trail. Never 'lead' or 'öne geçti' for an equaliser, "
+    "never 'restored' or 'again' (you do not know the earlier score). Outside a goal, say a team leads only when the score shows it.\n"
     "- style: explosive only for a goal; excited for shots, saves and cards; lively for an attack in the final third; calm otherwise.\n"
     "- offset_s: seconds after the segment ends when the line starts, 0 to 3; a second line starts after the first has finished.\n"
     "- Turkish: no number with a suffix (not 89'luk, 1-0'a); rephrase. Natural Turkish radio jargon (şut, kurtardı, taç, korner, "
@@ -81,8 +88,10 @@ SYSTEM = (
     "pass_count = their passes in this stretch; progression = how far up the pitch they got (own_half, midfield, final_third); "
     "started_with = the restart this stretch began with; ended_by = what stopped play (play_on = play goes on); shot_outcome: "
     "saved = the keeper saves, off_target = wide, blocked = blocked, goal = goal; shot_speed_kmh = ball speed of the shot; "
-    "put_out_by = the team that put the ball out; fouling_team committed the foul; booked_player got the card; tactical_insight = "
-    "a pattern the analysts just spotted (pressure_shift, tempo_change, flank_overload, physical_drop, chance), by tactical_team."
+    "scoring_team / scorer = who scored; home_score / away_score = the score now (after this play); goal_effect = what the goal did "
+    "(takes_lead, extends_lead, equaliser, pulls_one_back); put_out_by = the team that put the ball out; fouling_team committed "
+    "the foul; booked_player got the card; tactical_insight = a pattern the analysts just spotted (pressure_shift, tempo_change, "
+    "flank_overload, physical_drop, chance), by tactical_team."
 )
 
 
@@ -135,9 +144,21 @@ def verify_line(text: str, lang: str, facts: dict, names: list[str], max_words: 
     reasons += [f"invented detail '{m}'" for m in INVENTED.findall(text)]
     if facts.get("tactical_insight") != "pressure_shift":
         reasons += [f"'{m}' without a pressure Insight" for m in PRESSING.findall(text)]
+    reasons += score_state_reasons(text, facts)
     if len(text.split()) > max_words:
         reasons.append(f"longer than {max_words} words")
     return reasons
+
+
+def score_state_reasons(text: str, facts: dict) -> list[str]:
+    """A lead word needs a lead (after a goal: the scoring team's, goal_effect takes_lead / extends_lead); a level word needs a level
+    score. The Verifier checks numbers and names; this is the one piece of meaning cheap enough to check from the facts."""
+    if "home_score" not in facts:
+        return []
+    level = facts["home_score"] == facts["away_score"]
+    lead_ok = facts["goal_effect"] in ("takes_lead", "extends_lead") if "goal_effect" in facts else not level
+    out = [f"'{m}' but the score does not show that lead" for m in LEAD.findall(text) if not lead_ok]
+    return out + [f"'{m}' but the score is not level" for m in LEVEL.findall(text) if not level]
 
 
 def commentate(seg: Segment, model: Model, names: list[str], recent: list[str]) -> dict:

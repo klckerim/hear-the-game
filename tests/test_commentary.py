@@ -63,6 +63,37 @@ def test_a_line_with_an_unknown_name_or_invented_detail_is_dropped():
     assert verify_line("Okafor's shot at 93 km/h", "en", SEG.facts, NAMES, 20)  # a number not in the facts
 
 
+def test_goal_effect_comes_from_the_score_and_seed_7s_equaliser_is_one():
+    from htg.commentary.segments import goal_effect
+    from htg.generate import OUT_DIR, generate
+
+    assert [goal_effect(1, 0), goal_effect(2, 0), goal_effect(1, 1), goal_effect(1, 2), goal_effect(3, 2)] == [
+        "takes_lead", "extends_lead", "equaliser", "pulls_one_back", "takes_lead"]
+    match_dir = OUT_DIR / "match_0007"
+    goals = [s.facts for s in segments_of(match_dir if match_dir.exists() else generate(7)) if s.goal]
+    assert [(g["scoring_team"], g["home_score"], g["away_score"], g["goal_effect"]) for g in goals] == [
+        ("Valemont", 0, 1, "takes_lead"), ("Northport", 1, 1, "equaliser"), ("Valemont", 1, 2, "takes_lead")]
+
+
+def test_a_lead_or_level_word_must_match_the_score():
+    eq = {**SEG.facts, "ended_by": "goal", "scorer": "Okafor", "scoring_team": "Valemont", "home_score": 1, "away_score": 1,
+          "goal_effect": "equaliser"}
+    ahead = {**eq, "home_score": 0, "away_score": 1, "goal_effect": "takes_lead"}
+    back = {**eq, "home_score": 2, "away_score": 1, "goal_effect": "pulls_one_back"}
+    ok = lambda text, lang, facts: not verify_line(text, lang, facts, NAMES, 20)  # noqa: E731
+    assert not ok("Goal! Okafor smashes it in, Valemont lead!", "en", eq)  # the seed-7 line, on an equaliser
+    assert not ok("Gol! Okafor vurdu, Valemont öne geçti!", "tr", eq)
+    assert ok("Goal! Okafor levels it, 1-1!", "en", eq) and ok("Gol! Okafor eşitledi!", "tr", eq)
+    assert ok("Goal! Okafor puts Valemont ahead!", "en", ahead) and ok("Gol! Valemont öne geçti!", "tr", ahead)
+    assert not ok("Goal! Okafor, and it's all square!", "en", ahead)
+    assert not ok("Goal! Valemont in front again!", "en", back) and ok("Goal! Okafor pulls one back!", "en", back)
+    assert not ok("Goal! Valemont's lead restored!", "en", ahead)  # history no fact carries
+    assert not ok("Okafor fires in from the edge of the area!", "en", ahead)  # a place no fact carries
+    assert not ok("Okafor vurdu, Valemont eşitliği sağladı!", "tr", ahead) and ok("Okafor vurdu, Valemont eşitliği sağladı!", "tr", eq)
+    assert not ok("Valemont still lead as Okafor shoots.", "en", {**SEG.facts, "home_score": 1, "away_score": 1})
+    assert ok("Valemont lead as Okafor shoots.", "en", {**SEG.facts, "home_score": 0, "away_score": 1})
+
+
 def test_cache_key_depends_on_match_segment_and_model(tmp_path):
     p = cache_path(7, "1-10", "fake", tmp_path)
     assert p == cache_path(7, "1-10", "fake", tmp_path)

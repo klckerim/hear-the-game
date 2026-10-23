@@ -74,7 +74,9 @@ fallback):
 - **The live commentator**: play is cut into segments (a dead ball, or 10 s), and each finished segment's facts (who passed to
   whom, how far up the pitch, how it ended, score, card, shot speed) go to Foundry, which writes 0-2 radio lines in EN and TR in one
   call. The same Verifier checks them against the segment's facts, plus a list of details no fact can carry (headers, volleys,
-  crosses, the box, posts, penalties...); a failing line is dropped, never replaced. The lines are **generated live for every
+  crosses, the box, posts, penalties, "lead restored"...), and one piece of meaning: a "lead" word needs a lead and a "level" word
+  a level score. A goal's effect (takes the lead, extends it, equaliser, pulls one back) is computed from the score and given as a
+  fact, after an equaliser once came out as "Northport lead!". A failing line is dropped, never replaced. The lines are **generated live for every
   session**; a verified line is also cached, and plays as a "fallback" for a later session if its own live line is late.
 - **20 s broadcast delay**, as on TV: the server sends the first 20 s at once and stays 20 s ahead of what you hear, so the
   commentator has time to write and voice its line and still speak in sync with the sound. The status line says "Live commentary ·
@@ -217,7 +219,7 @@ not the correctness of the numbers in it: each sentence still states shares that
   the reasoning effort to `minimal` (both measured, dated history in the file). Azure TTS per clip: p50 0.56 s / p95 2.13 s.
 
 **Live commentary** (8 windows of up to 15 minutes, 119 match minutes: seed 7 from 0', 19' and 76' and seeds 11-15 from 19';
-every line generated live, English listener, [`eval/results/commentary.md`](eval/results/commentary.md))
+every line generated live, English listener, commentary prompt v3, [`eval/results/commentary.md`](eval/results/commentary.md))
 
 | | Narration only | + callouts | + callouts + commentator |
 |---|---|---|---|

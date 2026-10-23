@@ -31,6 +31,16 @@ def _zone(team: str, x: float) -> str:
     return "own_half" if ax < LENGTH / 2 else "midfield" if ax < LENGTH * 2 / 3 else "final_third"
 
 
+def goal_effect(scorers: int, others: int) -> str:
+    """What a goal did, from the score after it (the scoring team's goals first): computed here, so the model never has to work out
+    whether 1-1 is a lead (it once called an equaliser "Northport lead!")."""
+    if scorers == others:
+        return "equaliser"
+    if scorers < others:
+        return "pulls_one_back"
+    return "takes_lead" if scorers - 1 == others else "extends_lead"
+
+
 class Segmenter:
     def __init__(self, meta: dict):
         self.teams = {k: v["name"] for k, v in meta["teams"].items()}
@@ -84,6 +94,7 @@ class Segmenter:
         if ended_by == "goal":
             facts["scorer"] = self.names.get(last.get("player_id")) or facts.get("shooter", "")
             facts["scoring_team"] = self.teams[last["team"]]["en"]
+            facts["goal_effect"] = goal_effect(score[last["team"]], score["AWAY" if last["team"] == "HOME" else "HOME"])
         if ended_by == "foul":
             facts["fouling_team"] = self.teams[last["team"]]["en"]
             if last.get("card"):
