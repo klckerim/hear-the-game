@@ -357,6 +357,9 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   carries them, and the client draws them at once, selectable for the Why card. Seed 7 from 60': 10 Insights, 22 shots, 1 goal.
   Switching match now clears the old match's caption, feed, log, markers and Why card; the commentary feed stays across jumps
   within the same match (Next moment, timeline click, mode switch). Checked in headless Chrome; tests for `history` in hello and cut.
+- **Commentary feed scrolls (2026-10-23, owner asked):** keeps the match's last 60 lines (was 6) in the same fixed box; the list
+  scrolls (mouse, touch, arrow keys once focused; thin scrollbar), newest on top. A listener reading older lines keeps their place
+  when a new line arrives; at the top the new line shows. One grid for the list, so "live · 12,4 sn" and "fallback" rows align.
 - **Checks:** 99 tests pass. Headless Chrome: all six matches start in Live and Highlights, timeline click (45') works, favourite
   club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
 - **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout

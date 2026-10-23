@@ -163,12 +163,19 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
 .why dd { margin: 0; }
 body[data-mode="eyes_free"] .tl-only { display: none; }
 /* Live commentary feed (fan modes): the commentator's last lines, newest on top, as they are spoken. Fixed height: no layout jump. */
-.feed { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 8px 14px; display: grid; gap: 6px; align-content: start; height: calc(6 * 1.45em + 46px); overflow: hidden; font-size: 13px; min-width: 0; }
+.feed { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 8px 4px 8px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 6px; height: calc(6 * 1.45em + 46px); font-size: 13px; min-width: 0; }
 .feed h2 { font-family: var(--display); font-weight: 500; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin: 0; }
-.feed ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
-.feed li { display: grid; grid-template-columns: 30px auto minmax(0, 1fr); gap: 8px; align-items: baseline; line-height: 1.45; }
+/* The list scrolls inside the fixed box (the page never jumps); thin scrollbar in the desk colours. */
+.feed ol { list-style: none; margin: 0; padding: 0 8px 0 0; display: grid; grid-template-columns: 30px auto minmax(0, 1fr); gap: 3px 8px;
+  align-items: baseline; align-content: start; overflow-y: auto; min-height: 0;
+  scrollbar-width: thin; scrollbar-color: var(--line) transparent; overscroll-behavior: contain; }
+.feed ol::-webkit-scrollbar { width: 6px; }
+.feed ol::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+.feed ol:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.feed li { display: contents; }  /* one grid for the whole list: the tag column is as wide as its widest tag, every row aligned */
+.feed li.empty { display: block; grid-column: 1 / -1; }
 .feed time { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-.feed .tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 0 5px; border-radius: 3px; white-space: nowrap; }
+.feed .tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--night); background: var(--amber); padding: 0 5px; border-radius: 3px; white-space: nowrap; text-align: center; }
 .feed .tag.dim { background: var(--line); color: var(--muted); }
 .feed small { display: block; color: var(--muted); font-size: 12px; }
 .feed .empty { color: var(--muted); }
@@ -293,7 +300,7 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
         <span class="tags"><span class="tag idle" id="captionTag" data-i18n="tagIdle"></span><span class="tag mine" id="captionMine" data-i18n="yourTeam" hidden></span></span>
         <p id="captionText"><span id="captionMain" data-i18n="captionIdle"></span><small id="captionSub" hidden></small></p>
       </div>
-      <div class="feed" id="feed" aria-live="off"><h2 data-i18n="feedTitle"></h2><ol id="feedList"></ol></div>
+      <div class="feed" id="feed" aria-live="off"><h2 data-i18n="feedTitle" id="feedTitle"></h2><ol id="feedList" tabindex="0" aria-labelledby="feedTitle"></ol></div>
       <div class="why tl-only" id="why" aria-live="polite">
         <div class="why-head"><b id="whyTitle"></b><span class="tag" id="whyTag" hidden></span></div>
         <p><span id="whyMain"></span><small id="whySub" hidden></small></p>
@@ -1193,13 +1200,15 @@ function commentaryLine(m, a) {
 }
 function stopComm() { const c = comm; comm = null; if (c) { c.src.onended = null; try { c.src.stop(); } catch (e) {} } }
 const commTag = m => m.source === "live" ? `${t("liveTag")} · ${(m.latency_s ?? 0).toFixed(1).replace(".", uiLang === "tr" ? "," : ".")} ${t("secs")}` : t("fallbackTag");
-// The feed: the last FEED_N lines as they were spoken (never before), newest on top, by the caption's dual-language rules. Not a live
-// region: the caption already speaks.
-const FEED_N = 6;
+// The feed: the match's last FEED_N lines as they were spoken (never before), newest on top, by the caption's dual-language rules;
+// the list scrolls (mouse, touch, or arrow keys once focused). Not a live region: the caption already speaks.
+const FEED_N = 60;
 function addFeed(m) { live.feed.unshift(m); live.feed.length = Math.min(live.feed.length, FEED_N); renderFeed(); }
 function renderFeed() {
-  const ol = $("feedList"); ol.replaceChildren();
-  if (!live.feed.length) { const li = document.createElement("li"); li.className = "empty"; li.style.display = "block"; li.textContent = t("feedEmpty"); ol.append(li); return; }
+  // A listener scrolled down to older lines keeps their place when a new line arrives on top; at the top, the new line shows.
+  const ol = $("feedList"), keep = ol.scrollTop > 0 ? ol.scrollHeight - ol.scrollTop : null;
+  ol.replaceChildren();
+  if (!live.feed.length) { const li = document.createElement("li"); li.className = "empty"; li.textContent = t("feedEmpty"); ol.append(li); return; }
   for (const m of live.feed) {
     const li = document.createElement("li"), tm = document.createElement("time"), tag = document.createElement("span"), p = document.createElement("span");
     const main = m.text[lang()] !== undefined ? lang() : uiLang, sub = main !== uiLang ? m.text[uiLang] : undefined;
@@ -1208,6 +1217,7 @@ function renderFeed() {
     if (sub) { const sm = document.createElement("small"); sm.lang = uiLang; sm.textContent = sub; p.append(sm); }
     li.append(tm, tag, p); ol.append(li);
   }
+  if (keep !== null) ol.scrollTop = ol.scrollHeight - keep;
 }
 
 /* ---------------- sound tour ---------------- */
