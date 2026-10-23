@@ -204,3 +204,15 @@ def test_shot_and_goal_cues_carry_where_the_shot_was_taken(synth_dir):
             assert scorer["outcome"] == "goal" and (c["x"], c["y"]) == (scorer["start"]["x"], scorer["start"]["y"])
         elif c["kind"] == "pass" and "length_m" in c:
             assert 0 < c["length_m"] < 130
+
+
+def test_an_insight_still_queued_after_the_warm_up_is_in_its_history(synth_dir):
+    """serve.py finds a spoken Insight by its id; one held by the Director over the start must come with the warm-up history."""
+    meta, held = json.loads((synth_dir / "meta.json").read_text()), 0
+    for start_minute in range(5, 90, 5):
+        pipe = LivePipeline(meta)
+        warm_up(pipe, synth_dir, start_minute)
+        known = {h["insight"]["insight_id"] for h in pipe.history if h["type"] == "insight"}
+        assert {i["insight_id"] for i in pipe.queue} <= known
+        held += len(pipe.queue)
+    assert held  # the case that broke: some start second has a held Insight

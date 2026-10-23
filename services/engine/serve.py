@@ -298,6 +298,8 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
             warm = await asyncio.to_thread(warmed, meta, match_dir, t0, speed)  # off the loop; computed once per start second
             for msg in prefs:
                 apply_listener_message(warm, msg)
+            # an Insight found in the warm-up can still be in the Director's queue and be spoken after the start
+            insights.update({h["insight"]["insight_id"]: h["insight"] for h in warm.history if h["type"] == "insight"})
             if k == 0:
                 pipe = warm
                 await send({**pipe.hello(), "match": match.id, "watch": mode, "windows": windows, "moments": match.moments,
