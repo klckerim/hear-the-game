@@ -485,13 +485,13 @@ const T = {
     liveFrom: "Canlı, başlangıç", ready: "Hazır:", pressStart: "Başlamak için \"Dinlemeye başla\"ya bas.", hlCount: "an", cutTo: "Sıradaki an:", halfTimeRecap: "Devre arası özeti",
     pausedHidden: "Sekme gizliyken dinleme durdu. Başlat'a basınca şuradan sürer:",
     feedTitle: "Canlı anlatım", feedEmpty: "Anlatıcının son cümleleri, söylendikçe burada görünür.",
-    mo_goal: "Gol", mo_save: "Kurtarış", mo_yellow: "Sarı kart", mo_red: "Kırmızı kart", startBefore: "30 saniye önceden başla",
+    mo_goal: "Gol", mo_save: "Kurtarış", mo_yellow: "Sarı kart", mo_red: "Kırmızı kart", startBefore: "30 saniye önceden başla", playClip: "bu anın klibini oynat",
     tlHint: "İlk gol {m}. dakikada · 30 saniye önceden başlamak için işaretini seç.",
     spaceKey: "Boşluk", nextBtn: "Sonraki an", liveDelay: "Canlı anlatım", delayWord: "gecikme", secs: "sn", liveTag: "canlı", fallbackTag: "yedek", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
     off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", lost: "Bağlantı koptu.",
     fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
     voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili", install: "Uygulamayı yükle",
-    tlTitle: "Zaman çizelgesi · bir yere ya da ana dokun, oradan başla; oynanmış işaret kanıtını gösterir", tlLegendIns: "Tespit (dolu = anlatıldı)", tlInsight: "Tespit", tlShot: "Şut", tlGoal: "Gol", tlMoment: "An (seç: 30 sn önceden başla)",
+    tlTitle: "Zaman çizelgesi · bir yere ya da ana dokun, oradan başla; oynanmış işaret kanıtını gösterir", tlLegendIns: "Tespit (dolu = anlatıldı)", tlInsight: "Tespit", tlShot: "Şut", tlGoal: "Gol", tlMoment: "An (seç: oradan dinle)",
     whyTitle: "Neden?", whyIdle: "Zaman çizelgesinde bir işaret seç: dayandığı olaylar sahada parlar, sayıları burada görünür.",
     evidence: "Kanıt", events: "olay", event: "olay", speed: "hız", spoken: "anlatıldı", notSpoken: "anlatılmadı", kmh: "km/s",
     ins_pressure_shift: "{team} baskıyı artırdı", ins_tempo_change: "{team} oyunu yavaşlattı", ins_flank_overload: "{team} {side} kanada yüklendi",
@@ -518,13 +518,13 @@ const T = {
     liveFrom: "Live from", ready: "Ready:", pressStart: "Press \"Start listening\" to begin.", hlCount: "moments", cutTo: "Next highlight:", halfTimeRecap: "Half-time recap",
     pausedHidden: "Listening stopped while the tab was hidden. Start picks up at",
     feedTitle: "Live commentary", feedEmpty: "The commentator's latest lines show here as they are spoken.",
-    mo_goal: "Goal", mo_save: "Save", mo_yellow: "Yellow card", mo_red: "Red card", startBefore: "start 30 seconds before",
+    mo_goal: "Goal", mo_save: "Save", mo_yellow: "Yellow card", mo_red: "Red card", startBefore: "start 30 seconds before", playClip: "play this moment's clip",
     tlHint: "First goal at {m}' · select its marker to start 30 s before.",
     spaceKey: "Space", nextBtn: "Next moment", liveDelay: "Live commentary", delayWord: "delay", secs: "s", liveTag: "live", fallbackTag: "fallback", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
     off: "Not connected.", wait: "Connected, waiting for the match.", lost: "Connection lost.",
     fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
     voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language", install: "Install the app",
-    tlTitle: "Timeline · select a minute or a moment to start there; a played marker shows its evidence", tlLegendIns: "Insight (filled = spoken)", tlInsight: "Insight", tlShot: "Shot", tlGoal: "Goal", tlMoment: "Moment (select: start 30 s before)",
+    tlTitle: "Timeline · select a minute or a moment to start there; a played marker shows its evidence", tlLegendIns: "Insight (filled = spoken)", tlInsight: "Insight", tlShot: "Shot", tlGoal: "Goal", tlMoment: "Moment (select to listen from there)",
     whyTitle: "Why?", whyIdle: "Select a marker on the timeline: the events behind it light up on the pitch and its numbers show here.",
     evidence: "Evidence", events: "events", event: "event", speed: "speed", spoken: "spoken", notSpoken: "not spoken", kmh: "km/h",
     ins_pressure_shift: "{team} pressing", ins_tempo_change: "{team} slowing the tempo", ins_flank_overload: "{team} overloading the {side} flank",
@@ -692,18 +692,26 @@ function stopListening(msg) {
   clearInterval(live.timer); endSession(session); session = null; stopSpeech();
   $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off"); renderTimeline();
 }
-// "Next moment" (Live): a new session 30 s before the next goal, saved shot or card more than 30 s after the play clock (stopped: after
-// the chosen start). The client resets exactly as for any new start. Highlights already go from moment to moment: disabled there.
+// A timeline click, a moment marker and Next moment start listening at once, in the way to watch the listener chose. Live: from that
+// match second (Next moment: 30 s before the next goal, saved shot or card more than 30 s after the play clock, or after the chosen
+// start when stopped). Highlights: the clip at or after that second (the last clip if none is left); Next moment = the next clip.
+// The server plays Highlights from `from` as the clips not over yet, so a clip always starts at its beginning.
 const playT = () => live.ws && live.cur ? live.cur.t : null;
 const moments = () => live.moments || (curMatch() ? curMatch().moments : []);
+const allClips = () => (curMatch() && curMatch().windows) || live.windows || [];
 function nextMomentT() { const from = playT() ?? startT, m = moments().find(mo => mo.t > from + 30); return m ? m.t : null; }
-function renderNextBtn() { $("nextBtn").disabled = watch === "highlights" || nextMomentT() === null; }
-function nextMoment() { const tm = watch === "live" ? nextMomentT() : null; if (tm !== null) startLive(tm - 30); }
-function startLive(from) {  // a timeline click, a moment marker or Next moment: Live from there, listening at once
+function clipFrom(t) { const c = allClips(), w = c.find(w => w[1] > t) || c[c.length - 1]; return w ? w[0] : t; }
+function nextTarget() {
+  if (watch === "highlights") { const from = playT() ?? startT - 1, w = allClips().find(w => w[0] > from + 1); return w ? w[0] : null; }
+  const tm = nextMomentT();
+  return tm === null ? null : tm - 30;
+}
+function renderNextBtn() { $("nextBtn").disabled = nextTarget() === null; }
+function nextMoment() { const t = nextTarget(); if (t !== null) jumpTo(t); }
+function jumpTo(t) {
   endTour();
-  if (watch !== "live") { watch = "live"; store.set("htg.watch", watch); applyWatch(); }
   if (live.ws) stopListening();
-  connect(from);
+  connect(watch === "highlights" ? clipFrom(t) : t);
 }
 // The status is read aloud: match, Live from a minute or Highlights, and in the fan modes "Live commentary · 20 s delay". Redrawn on
 // a language change.
@@ -944,10 +952,9 @@ function renderAxis() {
     s.textContent = k * 15 + "'"; s.style.left = pct(k * 900) + "%"; s.className = k === 3 ? "ht" : ""; ax.append(s);
   }
 }
-function plannedWindows() {
-  if (live.ws && live.windows) return live.windows;
-  const m = curMatch();
-  return watch === "highlights" ? (m ? m.windows : []) : [[startT, matchLen()]];
+function plannedWindows() {  // Highlights: every clip of the match (also the ones before the clip under way)
+  if (watch === "highlights") return allClips();
+  return live.ws && live.windows ? live.windows : [[startT, matchLen()]];
 }
 function renderBands() {
   const inner = $("tlInner"); inner.querySelectorAll(".tl-band").forEach(e => e.remove());
@@ -959,10 +966,10 @@ function renderBands() {
 function renderMoments() {
   const inner = $("tlInner"); inner.querySelectorAll(".mk.mo").forEach(e => e.remove());
   for (const mo of moments()) {
-    const b = document.createElement("button"), parts = [t("mo_" + mo.kind), clock(mo.t), uiTeam(mo.team), t("startBefore")];
+    const b = document.createElement("button"), parts = [t("mo_" + mo.kind), clock(mo.t), uiTeam(mo.team), t(watch === "highlights" ? "playClip" : "startBefore")];
     b.type = "button"; b.className = "mk mo " + mo.kind; b.style.left = pct(mo.t) + "%"; b.style.setProperty("--c", teamColor(mo.team));
     b.setAttribute("aria-label", parts.join(", ")); b.title = parts.join(" · ");
-    b.addEventListener("click", () => startLive(mo.t - 30));
+    b.addEventListener("click", () => jumpTo(mo.t - 30));
     inner.append(b);
   }
   const g = moments().find(mo => mo.kind === "goal");  // a hint, not a button: where the first goal is
@@ -1599,7 +1606,7 @@ document.querySelectorAll("#watch button").forEach(b => b.addEventListener("clic
 $("tlTrack").addEventListener("click", e => {
   if (e.target.closest(".mk")) return;
   const r = $("tlInner").getBoundingClientRect();
-  startLive(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * matchLen());
+  jumpTo(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * matchLen());
 });
 $("nextBtn").addEventListener("click", nextMoment);
 $("recapBtn").addEventListener("click", askRecap);

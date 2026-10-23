@@ -50,8 +50,8 @@ comparison ("Northport press harder: 39% of Valemont's play is under pressure in
 come from the same facts and pass the same Verifier.
 
 **Evidence timeline (what you see).** Under the pitch, a strip covers the whole match (0'-90', half-time tick). The match's known
-moments (goals, saved shots, cards) show from the start as hollow markers; selecting one (click or Enter) starts Live 30 s before it,
-and a click anywhere on the strip starts Live from that minute. A band marks what the session plays. Goals (large ringed dot),
+moments (goals, saved shots, cards) show from the start as hollow markers; selecting one (click or Enter) starts 30 s before it,
+and a click anywhere on the strip starts from that minute; in Highlights both play the clip at that point and stay in Highlights. A band marks what the session plays. Goals (large ringed dot),
 shots (small dot) and Insights (diamond, filled once spoken) appear in club colour as the match plays, with a playhead on the match
 clock; those from before your start minute (or between Highlights clips) are drawn at once, as for anyone joining a live match. A new Insight's marker
 flashes when it is detected. Every marker is a button with a screen-reader label ("Insight, 21:25, Northport slowing the tempo"). Selecting
@@ -98,7 +98,7 @@ watch, both at normal speed (speech cannot be sped up, and sound at 2x loses its
   **Next moment** (key N) starts 30 s before the next goal, saved shot or card.
 - **Highlights**: every moment of the match back to back, TV-style: each clip runs from 30 s before the moment to 15 s after it
   (overlapping clips merge), with a short transition (soft whoosh, the next minute shown on the pitch and read in the status line)
-  and the half-time and full-time recaps in between. 10.7-12.3 minutes per match.
+  and the half-time and full-time recaps in between. 10.7-12.3 minutes per match. **Next moment** skips to the next clip.
 
 Every start is warmed up on everything before it, so the score and the tactical baselines are already right. Only the default
 match's narration and recaps are pre-generated; the other matches are narrated, commented and voiced live (the cache fills as
