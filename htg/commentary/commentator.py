@@ -138,6 +138,20 @@ def get_commentator() -> Model | None:
         return None
 
 
+def warm(model: Model) -> float | None:
+    """One throwaway call when the server starts, as a broadcast would have its commentator ready before kick-off: the first call
+    after a start took 7-12 s (credential, connection), later ones 2-3 s, so the first listener's opening lines came late. The
+    answer is discarded (not verified, not cached). Returns the seconds it took, None on an error (the server starts anyway)."""
+    facts = {"minute": 1, "home_team": "Northport", "away_team": "Valemont", "home_score": 0, "away_score": 0,
+             "team_in_possession": "Northport", "pass_count": 0, "ended_by": "play_on", "seconds_available": 3.0}
+    t0 = time.perf_counter()
+    try:
+        model.write(facts, [])
+    except Exception:
+        return None
+    return round(time.perf_counter() - t0, 2)
+
+
 def verify_line(text: str, lang: str, facts: dict, names: list[str], max_words: int) -> list[str]:
     """The narration Verifier on the segment facts, plus: no invented detail, no longer than the segment allows."""
     reasons = verify(FOOTBALL_TERMS.sub("x", text), lang, {"claim_facts": facts}, names)

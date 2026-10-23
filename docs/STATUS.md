@@ -344,6 +344,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   "the area" join the invented details. Prompt v4 changes the cache key, so every v3 fallback line is retired (cache refills live).
   Tried on Foundry: all 7 goals of seeds 7 and 33, twice each: 14/14 lines say the right effect, EN and TR, 0 dropped.
   `eval/results/commentary.md` and its README numbers are still prompt v3 (not rerun).
+- **Commentator warm-up (2026-10-23):** one throwaway model call when the server starts (`warm()`, not verified, not cached), as a
+  broadcast has its commentator ready before kick-off. Measured locally: warm-up 2.5 s, then the first listener's first live line
+  1.84 s (the first call after a start used to take 7-12 s). **Not done, by the owner's rule:** pre-filling the fallback cache before
+  deploy (demo-only; a real match has no pre-made lines). The v4 cache starts empty and fills as people listen.
 - **Checks:** 99 tests pass. Headless Chrome: all six matches start in Live and Highlights, timeline click (45') works, favourite
   club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
 - **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout

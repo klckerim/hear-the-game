@@ -47,7 +47,7 @@ from websockets.http11 import Response
 from htg import telemetry
 from htg.adapters.base import Speech
 from htg.adapters.local import FileEventSource
-from htg.commentary.commentator import Model, get_commentator
+from htg.commentary.commentator import Model, get_commentator, warm
 from htg.env import load_env
 from htg.generate import OUT_DIR, generate
 from htg.league import CLUBS, DEFAULT_MATCH, FIXTURES, fixture
@@ -373,6 +373,8 @@ async def main(speed: float, host: str, port: int) -> None:
     global _recap_model, _recap_speech, _commentator
     _recap_model = await asyncio.to_thread(get_recap_model)
     _commentator = await asyncio.to_thread(get_commentator)
+    if _commentator:  # ready before the first listener, as a broadcast is before kick-off
+        print(f"commentator warm-up call: {await asyncio.to_thread(warm, _commentator)} s")
     if _recap_model is not None:
         try:
             from htg.speech.azure import AzureSpeech

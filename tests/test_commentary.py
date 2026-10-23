@@ -94,6 +94,19 @@ def test_a_lead_or_level_word_must_match_the_score():
     assert ok("Valemont lead as Okafor shoots.", "en", {**SEG.facts, "home_score": 0, "away_score": 1})
 
 
+def test_warm_up_call_is_discarded_and_never_raises():
+    from htg.commentary.commentator import warm
+
+    fake = Fake([LINE])
+    assert warm(fake) is not None and fake.calls == 1
+
+    class Broken(Fake):
+        def write(self, facts: dict, recent: list[str]) -> dict:
+            raise RuntimeError("no model")
+
+    assert warm(Broken([])) is None
+
+
 def test_cache_key_depends_on_match_segment_and_model(tmp_path):
     p = cache_path(7, "1-10", "fake", tmp_path)
     assert p == cache_path(7, "1-10", "fake", tmp_path)
