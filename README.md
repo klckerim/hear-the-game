@@ -219,20 +219,22 @@ not the correctness of the numbers in it: each sentence still states shares that
   the reasoning effort to `minimal` (both measured, dated history in the file). Azure TTS per clip: p50 0.56 s / p95 2.13 s.
 
 **Live commentary** (8 windows of up to 15 minutes, 119 match minutes: seed 7 from 0', 19' and 76' and seeds 11-15 from 19';
-every line generated live, English listener, commentary prompt v3, [`eval/results/commentary.md`](eval/results/commentary.md))
+every line generated live, English listener, commentary prompt v4, [`eval/results/commentary.md`](eval/results/commentary.md))
 
 | | Narration only | + callouts | + callouts + commentator |
 |---|---|---|---|
 | 30-s windows with any speech | 21% | 90% | **97%** |
-| Longest silence, median per window / worst | 390 s / 605 s | 59 s / 84 s | **45 s / 64 s** |
-| Share of time with speech | 4% | 9% | 36% |
+| Longest silence, median per window / worst | 390 s / 605 s | 59 s / 84 s | **44 s / 66 s** |
+| Share of time with speech | 4% | 9% | 33% |
 
-- Commentator latency (model + Verifier + voice, from the end of the play): **p50 3.09 s / p95 4.77 s** against a 17 s budget
-  (20 s delay minus a 3 s margin). 1 of 469 calls hung and went over; the stream gave up on it at the budget and moved on (the
-  Foundry call now times out at 20 s). 0 lines arrived late.
-- 3.1 commentator lines heard per match minute; the model chose silence for 4% of segments.
-- Verifier: 12 of 464 lines dropped in both languages; 48 failed in English only and 41 in Turkish only (that language stays
-  silent for the line). 35 lines were dropped in the client because another voice held the slot for more than 3 s.
+- Commentator latency (model + Verifier + voice, from the end of the play): **p50 2.71 s / p95 3.91 s** (max 10.05 s) against a
+  17 s budget (20 s delay minus a 3 s margin). 0 of 469 calls went over; 0 lines arrived late.
+- 2.8 commentator lines heard per match minute; the model chose silence for 16% of segments.
+- Verifier: 22 lines dropped in both languages; 36 failed in English only and 30 in Turkish only (that language stays silent for
+  the line). 30 lines were dropped in the client because another voice held the slot for more than 3 s.
+- Prompt v4 (2026-10-23) gives goals a computed effect (takes the lead, equaliser...) and the Verifier a lead / level rule, after an
+  equaliser came out as "Northport lead!". Against v3 it is a little quieter (v3: 3.1 lines a minute, silence chosen for 4% of
+  segments, 12 lines dropped) with the same 97% of windows talking; both runs are in the file.
 - Measured offline: the server's commentator stream on a simulated clock and the client's one-voice rules, simplified; narration
   and callout durations are estimates (see the file). The Verifier checks names, numbers and a list of invented details, not every
   adjective.

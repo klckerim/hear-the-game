@@ -343,7 +343,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   level words (level, equalis…, all square, berabere…, eşit…) only at a level score; "restored", "yeniden öne", "edge of the …",
   "the area" join the invented details. Prompt v4 changes the cache key, so every v3 fallback line is retired (cache refills live).
   Tried on Foundry: all 7 goals of seeds 7 and 33, twice each: 14/14 lines say the right effect, EN and TR, 0 dropped.
-  `eval/results/commentary.md` and its README numbers are still prompt v3 (not rerun).
+  **Re-measured with v4** (`eval.commentary`, same 8 windows, 119 match minutes): windows with speech 97% (same), worst silence
+  66 s (v3 64 s), latency p50 2.71 s / p95 3.91 s / max 10.05 s (v3 3.09 / 4.77 / 604 with one hung call), model chose silence 16%
+  (v3 4%), 2.8 lines heard a minute (v3 3.1), Verifier dropped 22 lines in both languages (v3 12). Results file keeps both runs;
+  README updated.
 - **Commentator warm-up (2026-10-23):** one throwaway model call when the server starts (`warm()`, not verified, not cached), as a
   broadcast has its commentator ready before kick-off. Measured locally: warm-up 2.5 s, then the first listener's first live line
   1.84 s (the first call after a start used to take 7-12 s). **Not done, by the owner's rule:** pre-filling the fallback cache before
