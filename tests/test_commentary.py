@@ -63,11 +63,27 @@ def test_a_line_with_an_unknown_name_or_invented_detail_is_dropped():
     assert verify_line("Okafor's shot at 93 km/h", "en", SEG.facts, NAMES, 20)  # a number not in the facts
 
 
-def test_cache_key_depends_on_stretch_segment_and_model(tmp_path):
-    p = cache_path(7, 19.0, "1-10", "fake", tmp_path)
-    assert p == cache_path(7, 19.0, "1-10", "fake", tmp_path)
-    assert len({p, cache_path(7, 76.0, "1-10", "fake", tmp_path), cache_path(7, 19.0, "1-11", "fake", tmp_path),
-                cache_path(8, 19.0, "1-10", "fake", tmp_path), cache_path(7, 19.0, "1-10", "other", tmp_path)}) == 5
+def test_cache_key_depends_on_match_segment_and_model(tmp_path):
+    p = cache_path(7, "1-10", "fake", tmp_path)
+    assert p == cache_path(7, "1-10", "fake", tmp_path)
+    assert len({p, cache_path(7, "1-11", "fake", tmp_path), cache_path(8, "1-10", "fake", tmp_path),
+                cache_path(7, "1-10", "other", tmp_path)}) == 4
+
+
+def test_segment_ids_do_not_depend_on_where_the_session_started(synth_dir):
+    """A session warmed up to minute 30 cuts the same segments from there on as a run from kick-off, so the cache key can drop the start."""
+    from services.engine.run_local import LivePipeline, warm_up
+
+    meta = json.loads((synth_dir / "meta.json").read_text())
+
+    def run(start_minute: float) -> list[tuple]:
+        pipe = LivePipeline(meta)
+        warm_up(pipe, synth_dir, start_minute)
+        return [(m["segment"].segment_id, m["segment"].t1, m["segment"].facts)
+                for item in iter_items(synth_dir, start_minute) for m in pipe.feed(item) if m["type"] == "segment"]
+
+    late = run(30.0)
+    assert late and late == [s for s in run(0.0) if s[1] >= 30 * 60]
 
 
 LINE = {"en": "Okafor... saved!", "tr": "Okafor... kurtardı!", "style": "excited", "offset_s": 0.0}
@@ -80,7 +96,7 @@ def run_stream(fake: Fake, clock_t: float, delay_s: float = 20.0) -> tuple[list[
         async def send(m: dict) -> None:
             sent.append(m)
 
-        s = CommentaryStream(fake, None, NAMES, 7, 1.0, delay_s, 1.0, "en", send, lambda: clock_t)
+        s = CommentaryStream(fake, None, NAMES, 7, delay_s, 1.0, "en", send, lambda: clock_t)
         s.push(SEG)
         s.close()
         await s.run()
@@ -101,7 +117,7 @@ def test_a_live_line_is_sent_at_its_match_time_and_cached(cache_dir):
     sent, s = run_stream(Fake([LINE]), clock_t=SEG.t1 + 1)
     assert [(m["t"], m["source"], m["text"]["en"]) for m in sent] == [(104.0, "live", "Okafor... saved!")]
     assert s.counts.live == 1 and s.recent == ["Okafor... saved!"]
-    assert load_cached(cache_path(7, 1.0, "1-10", "fake", cache_dir))
+    assert load_cached(cache_path(7, "1-10", "fake", cache_dir))
 
 
 def test_a_late_line_is_dropped_and_a_cached_one_falls_back(cache_dir):
@@ -120,7 +136,7 @@ def test_a_backlog_skips_to_the_newest_segment(cache_dir):
         async def send(m: dict) -> None:
             sent.append(m)
 
-        s = CommentaryStream(Fake([LINE]), None, NAMES, 7, 1.0, 20.0, 1.0, "en", send, lambda: 100.0)
+        s = CommentaryStream(Fake([LINE]), None, NAMES, 7, 20.0, 1.0, "en", send, lambda: 100.0)
         for i in range(3):
             s.push(Segment(f"1-{i}", 90.0 + i, 95.0 + i, False, SEG.facts))
         s.close()

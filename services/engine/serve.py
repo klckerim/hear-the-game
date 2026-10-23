@@ -231,7 +231,7 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
     insights: dict[str, dict] = {}
     tasks: set[asyncio.Task] = set()
     now = windows[0][0]  # server match time: `delay_s` ahead of what the listener hears
-    stream = CommentaryStream(commentator, resolver.speech, known_names(meta), meta.get("seed"), now / 60.0, delay_s, speed, lang,
+    stream = CommentaryStream(commentator, resolver.speech, known_names(meta), meta.get("seed"), delay_s, speed, lang,
                               lambda m: send(m), lambda: now) if commentator and delay_s > 0 else None
     sent_full_time = False
 

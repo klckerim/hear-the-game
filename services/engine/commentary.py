@@ -52,9 +52,9 @@ def shared_call(key: str, make: Callable[[], Awaitable[dict]]) -> asyncio.Future
 
 
 class CommentaryStream:
-    def __init__(self, model: Model, speech: Speech, names: list[str], seed: object, start_minute: float, delay_s: float,
+    def __init__(self, model: Model, speech: Speech, names: list[str], seed: object, delay_s: float,
                  speed: float, lang: str, send: Callable[[dict], Awaitable[None]], clock: Callable[[], float]):
-        self.model, self.speech, self.names, self.seed, self.start_minute = model, speech, names, seed, start_minute
+        self.model, self.speech, self.names, self.seed = model, speech, names, seed
         self.delay_s, self.speed, self.lang, self.send, self.clock = delay_s, speed, lang, send, clock  # clock: server match time
         self.recent: list[str] = []
         self.counts = Counts()
@@ -94,7 +94,7 @@ class CommentaryStream:
 
     async def _one(self, seg: Segment, t_closed: float) -> None:
         self.counts.segments += 1
-        path = cache_path(self.seed, self.start_minute, seg.segment_id, self.model.name)
+        path = cache_path(self.seed, seg.segment_id, self.model.name)
         budget = (self._deadline(seg.t1) - self.clock()) / self.speed
         with telemetry.tracer.start_as_current_span("htg.commentary.segment") as span:
             span.set_attribute("segment.id", seg.segment_id)

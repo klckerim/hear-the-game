@@ -165,8 +165,10 @@ def commentate(seg: Segment, model: Model, names: list[str], recent: list[str]) 
     return {"lines": lines, "dropped": dropped, "reasons": reasons, "latency_s": round(time.perf_counter() - t0, 3)}
 
 
-def cache_path(seed: object, start_minute: float, segment_id: str, model_name: str, cache_dir: Path = CACHE_DIR) -> Path:
-    key = json.dumps([seed, round(start_minute, 2), segment_id, COMMENTARY_PROMPT_VERSION, model_name])
+def cache_path(seed: object, segment_id: str, model_name: str, cache_dir: Path = CACHE_DIR) -> Path:
+    """Segments are cut the same way over the whole match wherever a session starts (the warm-up feeds the segmenter), so the key is
+    the match and the segment: a Live start at any minute and a Highlights clip share the same fallback lines."""
+    key = json.dumps([seed, segment_id, COMMENTARY_PROMPT_VERSION, model_name])
     return cache_dir / f"{hashlib.sha256(key.encode()).hexdigest()[:32]}.json"
 
 
