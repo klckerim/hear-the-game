@@ -330,6 +330,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Live on a new match** (local -> Foundry/MAI-Voice, Zekteris v Thornfield from 13', 3 min, Casual EN): 12 live lines, latency
   p50 2.48 s, max 6.99 s (the first, cold call), 0 fallback; narration `llm` for two of three Insights, the goal sentence fell back
   to the template (4 s deadline). Seen once: "Zekteris lead restored!" on 1-0 (invented word; the Verifier does not check meaning).
+- **Fix (2026-10-23, owner noticed):** switching match while listening could let a sentence of the old match play over the new one
+  (timers checked only the socket; a clip still decoding started after the switch). Narration, recaps, log lines and the full-time
+  flag are now bound to the session (`live.gen`). Checked in headless Chrome: a slow old clip is dropped, a same-session clip plays.
+  Switching match (or Live / Highlights) keeps listening and starts the new choice, as the task asks; owner can ask for a stop instead.
 - **Checks:** 99 tests pass. Headless Chrome: all six matches start in Live and Highlights, timeline click (45') works, favourite
   club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
 - **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout
