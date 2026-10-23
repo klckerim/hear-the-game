@@ -393,7 +393,7 @@ const LABEL = { tr: { shot: "Şut", save: "Kurtarış", goal: "GOL", out: "Top d
   en: { shot: "Shot", save: "Save", goal: "GOAL", out: "Ball out", foul: "Foul", kickoff: "Kick-off", yellow: "Yellow card", red: "Red card" } };
 // One dictionary for every UI string, in the interface language. The commentary language (what is spoken) is set apart.
 const T = {
-  tr: { sub: "Maçı gözlerin kapalı takip et.", headphones: "Kulaklıkla dinle", matchView: "Maç görünümü",
+  tr: { sub: "Maçı sesle takip et.", headphones: "Kulaklıkla dinle", matchView: "Maç görünümü",
     pitchAria: "Topun saha üzerindeki konumu", home: "Ev sahibi", away: "Deplasman", blindTitle: "Saha gizli",
     blindSub: "Maçı yalnızca sesle takip ediyorsun.", tagIdle: "Anlatım",
     captionIdle: "\"Dinlemeye başla\"ya bas. Anlatıcı yalnızca top oyun dışındayken ya da tehlike düşükken konuşur.",
@@ -426,7 +426,7 @@ const T = {
     st_possession_pct: "Topla oynama", st_shots: "Şut (isabetli)", st_pass_completion_pct: "Pas isabeti", st_pressing_pct: "Pres",
     st_corners: "Korner", st_fouls: "Faul", statsWait: "İlk sayılar maç başlayınca gelir.",
     statsNote: "Pres: rakibin topla yaptığı hareketlerin bu takımın baskısı altında yapılan payı. Her 10 saniyede güncellenir." },
-  en: { sub: "Follow the match with your eyes closed.", headphones: "Best with headphones", matchView: "Match view",
+  en: { sub: "Follow the match by sound.", headphones: "Best with headphones", matchView: "Match view",
     pitchAria: "Ball position on the pitch", home: "Home", away: "Away", blindTitle: "Pitch hidden",
     blindSub: "You follow the match by sound alone.", tagIdle: "Narration",
     captionIdle: "Press \"Start listening\". The narrator only speaks when the ball is dead or danger is low.",
@@ -1440,7 +1440,7 @@ function sendMode() { if (live.ws && live.ws.readyState === 1) live.ws.send(JSON
 function applyMode() {
   document.body.dataset.mode = mode;
   document.querySelectorAll("#modes button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
-  const eyes = mode === "eyes_free";  // eyes-free hides the pitch; the other modes leave the choice to the "close my eyes" button
+  const eyes = mode === "eyes_free";  // eyes-free hides the pitch; the other modes leave the choice to the "Hide pitch" button
   $("blindBtn").setAttribute("aria-pressed", String(eyes)); $("blind").hidden = !eyes;
   $("L_callout").checked = calloutsWanted();
 }

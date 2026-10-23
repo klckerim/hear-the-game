@@ -1,6 +1,6 @@
 # Hear the Game
 
-**Follow a football match with your eyes closed.** Hear the Game turns a live stream of match events into spatial sound made on
+**Follow a football match by sound.** Hear the Game turns a live stream of match events into spatial sound made on
 your own device, plus short, verified narration in English or Turkish, so blind and partially sighted fans (and anyone who can't
 look at a screen) can follow the shape of a match as it happens.
 
