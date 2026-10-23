@@ -696,7 +696,7 @@ function schedule() {
     const a = audioAt(m.t);
     if (d.kind === "cue") cue(m, a);
     else if (d.kind === "insight") at(a, () => addInsight(m));
-    else if (d.kind === "recap") setTimeout(() => { if (live.ws) playRecap(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
+    else if (d.kind === "recap") at(a, () => { if (live.ws) playRecap(m); });
     else if (d.kind === "stats") at(a, () => { live.stats = m; renderStats(); renderNextBtn(); });
     else if (d.kind === "comm") commentaryLine(m, a);
     else speech(m, a);
@@ -726,7 +726,7 @@ function cue(m, a) {
     sndWhistle(L, a, 0.3, 0.05); sndWhistle(L, a + 0.45, 0.3, 0.05);
     if (m.period === 2) {
       sndWhistle(L, a + 0.9, 1.1, 0.05);
-      setTimeout(() => { live.ended = true; }, Math.max(0, (a - ctx.currentTime) * 1000));
+      at(a, () => { live.ended = true; });
     }
     addLog(Math.ceil(m.t), null, m.period === 2 ? t("fullTimeLog") : t("halfTimeLog"), a);
   }
@@ -751,9 +751,9 @@ function logLabel(m) {
 }
 function speech(m, a) {
   const text = m.text[lang()];
-  live.recap.unshift({ t: m.t, text: m.text }); live.recap.length = Math.min(live.recap.length, 5); setTimeout(renderRecap, Math.max(0, (a - ctx.currentTime) * 1000));
+  live.recap.unshift({ t: m.t, text: m.text }); live.recap.length = Math.min(live.recap.length, 5); at(a, renderRecap);
   m.buf = { [lang()]: decodeClip(m, lang()) };  // decode ahead; the clip plays when its match time arrives
-  setTimeout(() => { if (live.ws) say(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
+  at(a, () => { if (live.ws) say(m); });  // at(): dropped if the session changed meanwhile (new match, mode, jump)
   at(a, () => markSpoken(m));
   addLog(m.t, null, "🎙 " + text, a);
 }
@@ -765,7 +765,7 @@ function decodeClip(m, l) {
   return ctx.decodeAudioData(bytes.buffer).catch(() => null);
 }
 function addLog(t, team, label, a) {
-  setTimeout(() => { live.log.unshift({ t, team, label }); live.log.length = Math.min(live.log.length, 6); renderLog(); }, Math.max(0, (a - ctx.currentTime) * 1000));
+  at(a, () => { live.log.unshift({ t, team, label }); live.log.length = Math.min(live.log.length, 6); renderLog(); });
 }
 function renderLog() {
   const ol = $("log"); ol.replaceChildren();
@@ -1028,15 +1028,16 @@ async function say(m, prefix) {
   const wait = callouts.cur ? Math.min(3, callouts.cur.end - ctx.currentTime) : 0, gen = live.gen;
   if (wait > 0) {
     callouts.held++; await new Promise(r => setTimeout(r, wait * 1000 + 150)); callouts.held = Math.max(0, callouts.held - 1);
-    if (live.gen !== gen && !prefix) return;  // the session ended or jumped meanwhile (recaps still play)
+    if (live.gen !== gen) return;  // a new session (match, mode, jump) started meanwhile: this sentence or recap belongs to the old one
   }
   if (comm && comm.goal) {  // a goal line is never cut off; the sentence follows it (max 8 s)
     const end = Date.now() + 8000;
     while (comm && comm.goal && Date.now() < end) await new Promise(r => setTimeout(r, 150));
-    if (live.gen !== gen && !prefix) return;
+    if (live.gen !== gen) return;
   }
   stopCallout(); stopComm(); duckTo(0.3);
   const buf = await ((m.buf && m.buf[l]) || decodeClip(m, l));
+  if (live.gen !== gen) { duckTo(1); return; }  // decoding took long enough for the listener to switch
   if (buf && ctx) {  // Azure clip from the server
     stopClip();
     const src = ctx.createBufferSource(); src.buffer = buf; src.connect(voiceBus);
