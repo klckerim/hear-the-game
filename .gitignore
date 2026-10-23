@@ -40,6 +40,9 @@ data/synthetic/match_*/
 !data/synthetic/match_0002/
 !data/synthetic/match_0003/
 
+# Live commentator lines, cached at runtime as the fallback for later sessions (generated live, never committed)
+data/cache/commentary/
+
 # Generated audio
 prototype/out/
 out/
