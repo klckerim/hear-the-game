@@ -379,6 +379,9 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   page out and the fixed bar covered the closed Settings; columns are now `minmax(0, 1fr)` (checked desktop -> 390/360/320, TR and
   EN: width = screen, scale 1, Settings visible above the bar). `/matches.json` teams carry the outfield players, so the favourite
   player list is filled before Start (it waited for the session's hello).
+  Start / Stop changed the button's width, so Next moment and Catch me up moved on every press (desktop), and Start's min width could
+  push Catch me up off a 320 px screen: Start has one width on desktop (11em, the longest label), the phone row is
+  `minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr)`. Checked at 1280 / 390 / 320, TR and EN, idle and playing: positions identical.
 - **Checks:** 99 tests pass. Headless Chrome: all six matches start in Live and Highlights, timeline click (45') works, favourite
   club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
 - **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout
