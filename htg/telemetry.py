@@ -16,6 +16,9 @@ speech_resolved = _meter.create_counter("htg.speech.resolved", description="Spee
 resolve_ms = _meter.create_histogram("htg.speech.resolve_ms", unit="ms", description="Time to resolve one speech message")
 voice_fallback = _meter.create_counter("htg.speech.voice_fallback", description="Commentary clips retried with the fallback voice")
 dropped_stale = _meter.create_counter("htg.speech.dropped_stale", description="Non-goal speech dropped because it resolved too late")
+commentary_lines = _meter.create_counter("htg.commentary.lines", description="Commentator lines sent, by source (live / fallback)")
+commentary_dropped = _meter.create_counter("htg.commentary.dropped", description="Commentator lines dropped, by reason")
+commentary_ms = _meter.create_histogram("htg.commentary.latency_ms", unit="ms", description="Segment end to live line ready")
 
 
 def setup() -> bool:

@@ -345,6 +345,10 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
 const WS_URL = new URLSearchParams(location.search).get("ws")
   || (location.protocol.startsWith("http") ? `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws` : "ws://localhost:8765");
 const JITTER_S = 0.3;  // how far behind the server clock we play, so packets arrive before they are due
+// Broadcast delay of the fan modes: the server sends the first DELAY_S of match data at once and stays that far ahead, which is the
+// live commentator's time budget. Everything (sound, callouts, narration, commentary, pitch, timeline, stats) follows the same play
+// clock, so it stays together. Analyst plays at JITTER_S. Chosen at Start; a mode change mid-session keeps it.
+const DELAY_S = 20;
 const PENTA = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22, 24].map(s => 220 * Math.pow(2, s / 12));
 const $ = id => document.getElementById(id);
 const COLOR = { red: "#f06a4f", blue: "#5b9cf5" };
@@ -366,7 +370,7 @@ const T = {
     left: "sol", right: "sağ", mid: "orta", logEmpty: "Olaylar burada akacak.",
     layersTitle: "Katmanlar", lBall: "Top sesi (tehlike, kanat, takım)", lPress: "Baskı nabzı", lCrowd: "Tribün", lCue: "Olay sesleri", lCallout: "Kısa anonslar (isim, şut, taç…)", lVoice: "Anlatım",
     chapterLabel: "Nereden başlasın?", ch_kickoff: "Başlangıç\u00a0·\u00a00'", ch_first_goal: "İlk gol\u00a0·\u00a019'", ch_late: "Son dakikalar\u00a0·\u00a076'",
-    spaceKey: "Boşluk", nextBtn: "Sonraki an", jumpedTo: "sonraki an:", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
+    spaceKey: "Boşluk", nextBtn: "Sonraki an", jumpedTo: "sonraki an:", liveDelay: "Canlı anlatım", delayWord: "gecikme", secs: "sn", liveTag: "canlı", fallbackTag: "yedek", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
     off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", live: "Demo maçı · seed", lost: "Bağlantı koptu.",
     fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
     voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Arayüz dili", commLabel: "Anlatım dili", install: "Uygulamayı yükle",
@@ -394,7 +398,7 @@ const T = {
     left: "left", right: "right", mid: "centre", logEmpty: "Events will flow here.",
     layersTitle: "Layers", lBall: "Ball sound (danger, wing, team)", lPress: "Pressure pulse", lCrowd: "Crowd", lCue: "Event sounds", lCallout: "Callouts (names, shots, throw-ins…)", lVoice: "Narration",
     chapterLabel: "Start from", ch_kickoff: "Kick-off\u00a0·\u00a00'", ch_first_goal: "First goal\u00a0·\u00a019'", ch_late: "Late drama\u00a0·\u00a076'",
-    spaceKey: "Space", nextBtn: "Next moment", jumpedTo: "next moment from", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
+    spaceKey: "Space", nextBtn: "Next moment", jumpedTo: "next moment from", liveDelay: "Live commentary", delayWord: "delay", secs: "s", liveTag: "live", fallbackTag: "fallback", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
     off: "Not connected.", wait: "Connected, waiting for the match.", live: "Demo match · seed", lost: "Connection lost.",
     fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
     voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Interface language", commLabel: "Commentary language", install: "Install the app",
@@ -546,7 +550,8 @@ function connect(query = "") {
   session = newSession(); applyLayers();
   $("playBtn").textContent = t("stop");
   $("status").textContent = t("wait");
-  const ws = live.ws = new WebSocket(WS_URL + (WS_URL.includes("?") ? "&" : "?") + "chapter=" + chapter + query);
+  const delay = mode === "analyst" ? "" : `&delay=${DELAY_S}`;
+  const ws = live.ws = new WebSocket(WS_URL + (WS_URL.includes("?") ? "&" : "?") + "chapter=" + chapter + delay + "&lang=" + lang() + query);
   ws.onmessage = e => onMessage(JSON.parse(e.data));
   ws.onclose = () => { if (live.ws === ws) { stopListening(t("lost")); } };
   ws.onerror = () => { if (live.ws === ws) { stopListening(t("fail")); } };
@@ -590,6 +595,7 @@ function onMessage(m) {
     if (m.score) { live.score = [m.score.HOME || 0, m.score.AWAY || 0]; $("score").textContent = live.score.join(" – "); }
     live.seed = m.seed; $("status").textContent = `${t("live")} ${m.seed ?? m.match_id}`;
     if (live.jumped && live.win) $("status").textContent += ` · ${t("jumpedTo")} ${Math.floor(live.win[0] / 60)}'`;  // the status is read aloud
+    if (m.delay_s) $("status").textContent += ` · ${m.commentary ? t("liveDelay") + " · " : ""}${m.delay_s} ${t("secs")} ${t("delayWord")}`;
     fillFav(m.teams); setTeamNames(); fillClub(); sendMode(); sendClub();
   } else if (m.type === "state") {
     if (live.clock0 === null) live.clock0 = ctx.currentTime + JITTER_S - m.packets[0].t / live.speed;
@@ -598,7 +604,9 @@ function onMessage(m) {
   } else if (m.type === "event_cue") {
     live.due.push({ t: m.t, kind: "cue", m });
   } else if (m.type === "stats") {
-    live.stats = m; renderStats(); renderNextBtn();
+    live.due.push({ t: m.t, kind: "stats", m });
+  } else if (m.type === "commentary") {
+    live.due.push({ t: m.t, kind: "comm", m });
   } else if (m.type === "insight") {
     live.due.push({ t: m.insight.t, kind: "insight", m });
   } else if (m.type === "speech") {
@@ -628,6 +636,8 @@ function schedule() {
     if (d.kind === "cue") cue(m, a);
     else if (d.kind === "insight") at(a, () => addInsight(m));
     else if (d.kind === "recap") setTimeout(() => { if (live.ws) playRecap(m); }, Math.max(0, (a - ctx.currentTime) * 1000));
+    else if (d.kind === "stats") at(a, () => { live.stats = m; renderStats(); renderNextBtn(); });
+    else if (d.kind === "comm") commentaryLine(m, a);
     else speech(m, a);
   }
 }
@@ -917,13 +927,18 @@ async function say(m, prefix) {
     callouts.held++; await new Promise(r => setTimeout(r, wait * 1000 + 150)); callouts.held = Math.max(0, callouts.held - 1);
     if (live.gen !== gen && !prefix) return;  // the session ended or jumped meanwhile (recaps still play)
   }
-  stopCallout(); duckTo(0.3);
+  if (comm && comm.goal) {  // a goal line is never cut off; the sentence follows it (max 8 s)
+    const end = Date.now() + 8000;
+    while (comm && comm.goal && Date.now() < end) await new Promise(r => setTimeout(r, 150));
+    if (live.gen !== gen && !prefix) return;
+  }
+  stopCallout(); stopComm(); duckTo(0.3);
   const buf = await ((m.buf && m.buf[l]) || decodeClip(m, l));
   if (buf && ctx) {  // Azure clip from the server
     stopClip();
     const src = ctx.createBufferSource(); src.buffer = buf; src.connect(voiceBus);
     src.onended = () => { if (clip === src) { clip = null; finish(); } };
-    clip = src; src.start();
+    clip = src; clipGoal = m.priority >= 5; src.start();
     return;
   }
   const v = voiceFor[l];
@@ -934,7 +949,7 @@ async function say(m, prefix) {
   } else { clearTimeout(fallbackTimer); fallbackTimer = setTimeout(finish, text.length * 70); }
 }
 function stopClip() { const c = clip; clip = null; if (c) { c.onended = null; try { c.stop(); } catch (e) {} } }
-function stopSpeech() { stopClip(); stopCallout(); if ("speechSynthesis" in window) speechSynthesis.cancel(); clearTimeout(fallbackTimer); duckTo(1); }
+function stopSpeech() { stopClip(); stopCallout(); stopComm(); if ("speechSynthesis" in window) speechSynthesis.cancel(); clearTimeout(fallbackTimer); duckTo(1); }
 
 /* ---------------- callouts ---------------- */
 // Short clips in the commentary voice (htg/speech/callouts.py), strung together per event: "Okafor... shot... saved!", "Throw-in,
@@ -983,7 +998,7 @@ function calloutFor(m) {
   return null;
 }
 function callout(m, a) {
-  if (!$("L_callout").checked || !callouts.clips || !live.teams || tour.on || clip || callouts.held || ("speechSynthesis" in window && speechSynthesis.speaking)) return;
+  if (!$("L_callout").checked || !callouts.clips || !live.teams || tour.on || clip || comm || callouts.held || ("speechSynthesis" in window && speechSynthesis.speaking)) return;
   const c = calloutFor(m), cur = callouts.cur;
   if (!c) return;
   const busy = (cur && a < cur.end) || a - callouts.lastA < CALL_GAP_S;
@@ -1012,6 +1027,49 @@ function stopCallout() {
   c.srcs.forEach(s => { try { s.stop(); } catch (e) {} });
   duck.gain.cancelScheduledValues(ctx.currentTime); duck.gain.setTargetAtTime(1, ctx.currentTime, 0.08);
 }
+
+/* ---------------- live commentator ---------------- */
+// Lines from the server's live commentator (Foundry, verified, commentary voice), played when the play clock reaches their match time.
+// One voice at a time, by priority: a goal line cuts anything; otherwise recaps, narration and the tour come first, and a line whose
+// slot is taken waits up to COMM_WAIT_S, then is dropped as stale. Callouts yield: one under way finishes, no new one starts meanwhile.
+const COMM_WAIT_S = 3;
+let comm = null, clipGoal = false;  // the commentator line playing: { src, goal }; whether the narration clip playing is a goal
+function commentaryLine(m, a) {
+  const l = lang();
+  if (!m.text[l]) return;  // the Verifier passed only the other language
+  const buf = decodeClip(m, l), gen = live.gen, until = a + (m.goal ? 2 * COMM_WAIT_S : COMM_WAIT_S);
+  let holding = false;
+  const release = () => { if (holding) { holding = false; callouts.held = Math.max(0, callouts.held - 1); } };
+  const tryPlay = async () => {
+    if (live.gen !== gen || !live.ws) { release(); return; }
+    const voice = tour.on || clip || comm || ("speechSynthesis" in window && speechSynthesis.speaking);
+    const calling = callouts.cur && callouts.cur.end > ctx.currentTime;
+    // A goal line cuts anything except a goal sentence already under way (same goal, said once): then it waits like the others.
+    if ((!m.goal && (voice || calling)) || (m.goal && clip && clipGoal)) {
+      if (calling && !holding) { holding = true; callouts.held++; }
+      if (ctx.currentTime < until) setTimeout(tryPlay, 150); else release();
+      return;
+    }
+    release();
+    const b = await buf;
+    if (live.gen !== gen || !live.ws) return;
+    if (m.goal) { stopClip(); stopComm(); if ("speechSynthesis" in window) speechSynthesis.cancel(); }
+    stopCallout();
+    setCaption(m.text, true);
+    const secs = (m.latency_s ?? 0).toFixed(1).replace(".", uiLang === "tr" ? "," : ".");
+    $("captionTag").textContent = m.source === "live" ? `${t("liveTag")} · ${secs} ${t("secs")}` : t("fallbackTag");
+    $("captionMine").hidden = true;
+    const idle = () => setTimeout(() => { if (!comm && !clip) $("captionTag").classList.add("idle"); }, 400);
+    if (!$("L_voice").checked || !b) { idle(); return; }
+    duckTo(0.3);
+    const src = ctx.createBufferSource(); src.buffer = b; src.connect(voiceBus);
+    comm = { src, goal: !!m.goal };
+    src.onended = () => { if (comm && comm.src === src) { comm = null; duckTo(1); idle(); } };
+    src.start();
+  };
+  setTimeout(tryPlay, Math.max(0, (a - ctx.currentTime) * 1000));
+}
+function stopComm() { const c = comm; comm = null; if (c) { c.src.onended = null; try { c.src.stop(); } catch (e) {} } }
 
 /* ---------------- sound tour ---------------- */
 // Before the first start: each step shows a caption, plays its pre-generated voice line (device voice if the clip is missing), then
@@ -1217,6 +1275,7 @@ function applyMode() {
 }
 function applyI18n() {
   document.documentElement.lang = uiLang;
+  if (live.ws && live.ws.readyState === 1) live.ws.send(JSON.stringify({ type: "set_lang", lang: lang() }));  // the commentator's voice
   const busy = live.ws || tour.on;
   document.querySelectorAll("[data-i18n]").forEach(e => { if (!(e.id === "captionMain" && busy)) e.textContent = t(e.dataset.i18n); });
   if (!busy) { $("captionMain").lang = uiLang; $("captionSub").hidden = true; }

@@ -54,8 +54,9 @@ def iter_items(match_dir: Path, start_minute: float = 0) -> Iterator[Item]:
             yield item
 
 
-async def replay(match_dir: Path, speed: float = 1.0, start_minute: float = 0) -> AsyncIterator[Item]:
-    """Yield items paced at `speed` x real time; `speed=inf` yields as fast as possible (offline / eval).
+async def replay(match_dir: Path, speed: float = 1.0, start_minute: float = 0, lead_s: float = 0.0) -> AsyncIterator[Item]:
+    """Yield items paced at `speed` x real time; `speed=inf` yields as fast as possible (offline / eval). The first `lead_s` of match
+    time come at once (a listener's broadcast-delay buffer), then pacing continues `lead_s` ahead.
 
     Pacing only delays delivery; the sequence of items does not depend on it.
     """
@@ -66,7 +67,7 @@ async def replay(match_dir: Path, speed: float = 1.0, start_minute: float = 0) -
     started = time.monotonic()
     for item in iter_items(match_dir, start_minute):
         if realtime:
-            delay = started + (item.t - t0) / speed - time.monotonic()
+            delay = started + (item.t - t0 - lead_s) / speed - time.monotonic()
             await asyncio.sleep(max(delay, 0.0))
         else:
             await asyncio.sleep(0)

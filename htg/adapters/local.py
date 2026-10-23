@@ -15,11 +15,11 @@ from htg.replay import Item, replay
 
 
 class FileEventSource:
-    def __init__(self, match_dir: Path, speed: float = 1.0, start_minute: float = 0):
-        self.match_dir, self.speed, self.start_minute = Path(match_dir), speed, start_minute
+    def __init__(self, match_dir: Path, speed: float = 1.0, start_minute: float = 0, lead_s: float = 0.0):
+        self.match_dir, self.speed, self.start_minute, self.lead_s = Path(match_dir), speed, start_minute, lead_s
 
     def __aiter__(self) -> AsyncIterator[Item]:
-        return replay(self.match_dir, self.speed, self.start_minute)
+        return replay(self.match_dir, self.speed, self.start_minute, self.lead_s)
 
 
 class WebSocketBroadcaster:

@@ -13,6 +13,10 @@ the Director mode and favourite club are set per listener with `set_mode` and `s
 {"type": "recap_request", "since_min": optional} -> a `recap` message ("What did I miss?"; default the last 10 minutes), and at the
 end of period 2 the server sends a full-time `recap` by itself. Both come from the Recap agent (`htg/recap/agent.py`) with the
 template recap as fallback, and never block the replay.
+Broadcast delay: `&delay=20` (the fan modes) sends the first 20 s of match data at once and then stays 20 s ahead of what the
+client plays, which is the budget of the live commentator: with COMMENTARY on (default under HTG_ENV=azure) every finished
+segment of play becomes 0-2 verified `commentary` lines in the voice of `&lang=en|tr` (`services/engine/commentary.py`);
+{"type": "set_lang", "lang": "tr"} switches that voice. `hello` adds `delay_s` and `commentary`. No delay (Analyst): no commentator.
 Every STATS_EVERY_S of match time a `stats` message carries `get_stats` (the recap agent's own tool) for the match so far
 (`match`) and the last 10 minutes (`last10`): the Analyst table.
 """
@@ -36,11 +40,13 @@ from websockets.http11 import Response
 from htg import telemetry
 from htg.adapters.base import Speech
 from htg.adapters.local import FileEventSource
+from htg.commentary.commentator import Model, get_commentator
 from htg.env import load_env
 from htg.generate import OUT_DIR, generate
 from htg.narration.service import known_names, persona_for
 from htg.recap.agent import AUDIO_DIR, RecapModel, get_recap_model
 from htg.recap.tools import MatchRecord, get_stats
+from services.engine.commentary import CommentaryStream
 from services.engine.recap import recap_message, since_for
 from services.engine.resolve import is_stale
 from services.engine.run_local import LivePipeline, apply_listener_message, make_resolver, warm_up
@@ -62,11 +68,13 @@ STATS_EVERY_S = 10.0
 CHAPTERS = {"kickoff": 0.0, "first_goal": 19.0, "late": 76.0}
 DEFAULT_CHAPTER = "first_goal"
 JUMP_LEAD_S = 30.0  # "Next moment" starts this long before the moment
+MAX_DELAY_S = 30.0
 _warm: dict[tuple, LivePipeline] = {}
 _warm_lock = threading.Lock()  # a thread lock: callers wait in their worker thread, never on the event loop
 _records: dict[str, MatchRecord] = {}
 _recap_model: RecapModel | None = None  # set in main(); None -> the template recap
 _recap_speech: Speech | None = None  # Azure voice with the recap clip cache; None -> the session's (local: no audio)
+_commentator: Model | None = None  # set in main(); None -> no live commentary
 
 
 def http_response(status: HTTPStatus, body: bytes, content_type: str) -> Response:
@@ -98,6 +106,18 @@ def chapter_of(path: str) -> str:
     """`/ws?chapter=late` -> "late"; a missing or unknown chapter -> the default."""
     chapter = parse_qs(urlsplit(path).query).get("chapter", [""])[0]
     return chapter if chapter in CHAPTERS else DEFAULT_CHAPTER
+
+
+def delay_of(path: str) -> float:
+    """`&delay=20` -> 20.0 (clamped to 0..MAX_DELAY_S); missing or bad -> 0 (Analyst: play at once)."""
+    try:
+        return min(max(float(parse_qs(urlsplit(path).query).get("delay", ["0"])[0]), 0.0), MAX_DELAY_S)
+    except ValueError:
+        return 0.0
+
+
+def lang_of(path: str) -> str:
+    return "tr" if parse_qs(urlsplit(path).query).get("lang") == ["tr"] else "en"
 
 
 def moments_of(events: list[dict]) -> list[float]:
@@ -148,7 +168,8 @@ def record_for(match_dir: Path) -> MatchRecord:
         return _records[str(match_dir)]
 
 
-async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: float, sessions: set, moments: list[float] = ()) -> None:
+async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: float, sessions: set, moments: list[float] = (),
+                  delay_s: float = 0.0, lang: str = "en", commentator: Model | None = None) -> None:
     if len(sessions) >= MAX_SESSIONS:
         await ws.close(1013, "busy")
         return
@@ -159,7 +180,9 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
     prefs: list[dict] = []  # set_mode / set_favourite received before the warmed pipeline exists
     insights: dict[str, dict] = {}
     tasks: set[asyncio.Task] = set()
-    now = start_minute * 60.0
+    now = start_minute * 60.0  # server match time: `delay_s` ahead of what the listener hears
+    stream = CommentaryStream(commentator, resolver.speech, known_names(meta), meta.get("seed"), start_minute, delay_s, speed, lang,
+                              lambda m: send(m), lambda: now) if commentator and delay_s > 0 else None
 
     async def send(msg: dict) -> None:
         await ws.send(json.dumps(msg, separators=(",", ":")))
@@ -185,7 +208,11 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
             if not isinstance(msg, dict):
                 continue
             if msg.get("type") == "recap_request":
-                spawn(recap("missed", now, msg.get("since_min")))
+                spawn(recap("missed", now - delay_s, msg.get("since_min")))  # what the listener has heard
+                continue
+            if msg.get("type") == "set_lang" and msg.get("lang") in ("en", "tr"):
+                if stream:
+                    stream.lang = msg["lang"]
                 continue
             prefs.append(msg)
             if pipe:
@@ -193,7 +220,7 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
 
     async def deliver(msg: dict) -> None:
         final = await resolver.resolve(msg, insights[msg["insight_id"]])
-        if is_stale(final, now):
+        if is_stale(final, now - delay_s):
             telemetry.dropped_stale.add(1)
         else:
             await send(final)
@@ -205,9 +232,12 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
             apply_listener_message(warm, msg)
         pipe = warm
         end = min(start_minute * 60.0 + END_AFTER_S, meta.get("duration_s", float("inf")))  # Late drama ends at 90', not 91'
-        await send({**pipe.hello(), "window": [start_minute * 60.0, end], "moments": list(moments)})  # the session's match time
+        await send({**pipe.hello(), "window": [start_minute * 60.0, end], "moments": list(moments), "delay_s": delay_s,
+                    "commentary": stream is not None})  # the session's match time
         rec, next_stats = await asyncio.to_thread(record_for, match_dir), 0.0
-        async for item in FileEventSource(match_dir, speed, start_minute):
+        if stream:
+            spawn(stream.run())
+        async for item in FileEventSource(match_dir, speed, start_minute, delay_s):
             now = item.t
             if now - start_minute * 60.0 > END_AFTER_S:
                 break
@@ -220,9 +250,15 @@ async def session(ws, match_dir: Path, meta: dict, start_minute: float, speed: f
                 if msg["type"] == "speech":
                     spawn(deliver(msg))
                     continue
+                if msg["type"] == "segment":
+                    if stream:
+                        stream.push(msg["segment"])
+                    continue
                 if msg["type"] == "insight":
                     insights[msg["insight"]["insight_id"]] = msg["insight"]
                 await send(msg)
+        if stream:
+            stream.close()
         await asyncio.gather(*tasks, return_exceptions=True)
 
     runner = asyncio.gather(listen(), play())
@@ -249,8 +285,9 @@ async def main(seed: int, speed: float, host: str, port: int) -> None:
     moments = moments_of((await asyncio.to_thread(record_for, match_dir)).events)
     for minute in CHAPTERS.values():  # before the first listener arrives
         await asyncio.to_thread(warmed, meta, match_dir, minute, speed)
-    global _recap_model, _recap_speech
+    global _recap_model, _recap_speech, _commentator
     _recap_model = await asyncio.to_thread(get_recap_model)
+    _commentator = await asyncio.to_thread(get_commentator)
     if _recap_model is not None:
         try:
             from htg.speech.azure import AzureSpeech
@@ -260,11 +297,19 @@ async def main(seed: int, speed: float, host: str, port: int) -> None:
             print(f"Recap voice unavailable ({type(e).__name__}); recaps use the session voice.")
 
     async def handler(ws) -> None:  # noqa: ANN001
-        await session(ws, match_dir, meta, start_minute_of(ws.request.path, moments), speed, sessions, moments)
+        path = ws.request.path
+        await session(ws, match_dir, meta, start_minute_of(path, moments), speed, sessions, moments, delay_of(path), lang_of(path),
+                      _commentator)
 
     async with websockets.serve(handler, host, port, process_request=process_request, ping_interval=20):
         print(f"serving seed {seed}, chapters {CHAPTERS}, {len(moments)} moments,"
-              f" on {host}:{port} (HTG_ENV={os.environ.get('HTG_ENV', 'local')})")
+              f" on {host}:{port} (HTG_ENV={os.environ.get('HTG_ENV', 'local')},"
+              f" commentary {_commentator.name if _commentator else 'off'})")
+        if _commentator:
+            from htg.speech.azure import commentary_voices
+
+            primary, fallback = commentary_voices()
+            print(f"commentary voices: {primary}, fallback {fallback}")
         await asyncio.Future()
 
 

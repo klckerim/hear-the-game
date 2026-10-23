@@ -15,6 +15,7 @@ Messages (JSON, one per WebSocket frame):
                fouls with a card add card (yellow, red)
     insight    a detected Insight, its template text {en, tr}, evidence_points (one {seq, t, type, team, x, y} per evidence seq, max 30)
                and zone (flank overload: the flank band the detector counted, {x: [lo, hi], y: [lo, hi]} in the global frame; else null)
+    (segment   internal: a finished segment of play for the live commentator, `htg/commentary/segments.py`; never sent as is)
     speech     the Insight the Director decided to tell now: team, persona, text, source ("llm" verified / "template") and base64 MP3 audio
                per language, duration_s per language. Resolved in the background (cache first, 4 s deadline), never blocks the replay.
 """
@@ -29,6 +30,7 @@ from pathlib import Path
 from typing import Any
 
 from htg.adapters.local import FileEventSource, NoSpeech, TemplateNarrator, WebSocketBroadcaster
+from htg.commentary.segments import Segmenter
 from htg.engine.detectors import Detectors, Params
 from htg.engine.director import SILENCE_S, decide
 from htg.engine.state import StateEngine
@@ -64,6 +66,7 @@ class LivePipeline:
         self.meta, self.mode, self.speed = meta, mode, speed
         self.favourite: str | None = None  # "HOME" | "AWAY" | None
         self.engine, self.detectors = StateEngine.from_calibration(), Detectors(meta)
+        self.segmenter = Segmenter(meta)
         self.queue: list[dict] = []
         self.spoken: list[tuple[float, str, str | None]] = []
         self._batch: list[dict] = []
@@ -91,8 +94,11 @@ class LivePipeline:
                 out.append(self._cue(item.data))
         for ins in self.detectors.step(item, packets):
             self.queue.append(ins)
+            self.segmenter.note_insight(ins)
             out.append({"type": "insight", "insight": ins, "text": {"en": narrate(ins, "en"), "tr": narrate(ins, "tr")},
                         "evidence_points": self.evidence_points(ins), "zone": evidence_zone(ins, self.detectors.p)})
+        if item.kind == "event":  # after the detectors, so a goal's segment has the new score
+            out += [{"type": "segment", "segment": seg} for seg in self.segmenter.step(item.data, self.detectors.score)]
         if packets:
             out += self._direct(item.t, packets[-1])
             if len(self._batch) >= BATCH_FRAMES:
@@ -220,6 +226,8 @@ async def main(seed: int, speed: float, start_minute: float, mode: str, port: in
                 task = asyncio.create_task(deliver(msg))
                 tasks.add(task)
                 task.add_done_callback(tasks.discard)
+                continue
+            if msg["type"] == "segment":  # the live commentator is served by `serve` only
                 continue
             if msg["type"] == "insight":
                 insights[msg["insight"]["insight_id"]] = msg["insight"]

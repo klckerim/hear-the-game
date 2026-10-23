@@ -95,6 +95,7 @@ resource engine 'Microsoft.App/containerApps@2024-03-01' = {
           { name: 'SPEECH_VOICE_COMMENTARY_TR', value: commentaryVoiceTr }
           { name: 'SPEECH_VOICE_COMMENTARY_FALLBACK_EN', value: commentaryFallbackEn }
           { name: 'SPEECH_VOICE_COMMENTARY_FALLBACK_TR', value: commentaryFallbackTr }
+          { name: 'COMMENTARY', value: 'on' } // live commentator in the fan modes; 'off' = callouts + narration only
           { name: 'AZURE_CLIENT_ID', value: identity.properties.clientId }
           { name: 'APPLICATIONINSIGHTS_CONNECTION_STRING', value: insights.properties.ConnectionString }
         ]

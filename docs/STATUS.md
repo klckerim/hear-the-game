@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-22 night (Features C closed: evidence timeline + Analyst stats deployed and checked; screenshots open). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-23 (live-commentary part 4 built; deploy 2 next). Before: 2026-10-22 night (Features C closed: evidence timeline + Analyst stats deployed and checked; screenshots open). Features B closed (deployed, recap and tour checked by the owner). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -250,10 +250,28 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   console errors. **Deploy 1 done by the owner (2026-10-23):** smoke check on the deployed app: healthz ok, new client served,
   `next=1&after=1145` -> window starts 1328 s (22:08), 16 moments (cards included). Owner listened (cards, Next moment, Callouts toggle): parts 2-3 closed.
   Follow-up: the Callouts toggle keeps the listener's choice per group (fan modes / Analyst) instead of resetting on a mode change.
-- **Part 4, next:** not started. Decisions with the owner (2026-10-23) are at the top of part 4 in the task file: live generation
-  with a 20-30 s delay (cache only as fallback, no pre-generation), a match-time timeline instead of a FIFO, one sequential
-  generator per stretch that skips to the newest segment on a backlog, server-side late drop, client priority goal > recap >
-  narration > commentator > callout. Estimate 3-5 h; riskiest piece is the client delay.
+- **Part 4, live commentator (built, 2026-10-23; waiting for deploy 2 and the owner's listening check):**
+  `htg/commentary/segments.py` cuts play into segments (dead ball or 10 s; shot + goal are one; seed 7: 375 per match) with flat
+  facts (score, team on the ball, up to 4 players, passes, progression, how it ended, shot speed, card, tactical Insight,
+  `seconds_available`, 10 after a dead ball). `htg/commentary/commentator.py`: one Foundry call per segment, EN + TR in one call,
+  0-2 lines with style and offset, prompt v3; the narration Verifier on the segment facts plus football terms allowed ("first half",
+  "kendi yarı sahası"), invented details rejected (header, volley, box, penalty, chips, ...), "press"/"baskı" only with a
+  pressure Insight, a word budget of 2.5 per second; per language, a line is dropped only if both fail (no template).
+  `services/engine/commentary.py`: one sequential stream per session, backlog skips to the newest segment, a model call shared by
+  sessions of the same stretch within 60 s, budget = play time - 3 s, else the verified line an earlier session cached ("fallback"),
+  else silence; MAI-Voice in the listener's language only, styles mapped per language. Telemetry: span `htg.commentary.segment`,
+  `htg.commentary.lines` / `.dropped` / `.latency_ms`. Flag `COMMENTARY` (Bicep: on; local default off).
+  Delay: fan modes connect with `&delay=20&lang=..`; the server sends the first 20 s at once (`replay(lead_s=)`) and stays 20 s
+  ahead; stats now follow the play clock too; "What did I miss" and stale checks use the listener's time. Client: commentary on the
+  match-time timeline; a goal line cuts anything except a goal sentence under way, otherwise it waits up to 3 s for narration /
+  recap / tour / a callout, then is dropped; callouts never start over it; caption tag "live · 2.8 s" / "fallback"; status
+  "Live commentary · 20 s delay". Analyst: no delay, no commentator.
+  Checked locally against Foundry + MAI-Voice: 9 live lines in 150 s of the first-goal chapter, latency 2.6-4.1 s (cold first call
+  11.7 s), every line ready 6-17 s before it plays; headless Chrome: Start -> first packet 334 ms (chapter) / 339 ms (Next moment),
+  lines play on the delayed clock, narration takes over, TR works, no console errors. Seen in trials and left to the honesty note:
+  the Verifier checks names and numbers, not every adjective ("low delivery", "Rossi held" got through before prompt v3).
+  Tests: `tests/test_commentary.py` (fake model; segmenting, unknown name / invented detail, late drop + fallback, backlog, cache
+  key, burst). Next: deploy 2 (owner), listen to all three chapters, then part 5 (`eval/commentary.py`, README, numbers).
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
