@@ -346,14 +346,15 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
 
 
 def load_matches() -> dict[str, Match]:
-    """Every fixture's match, generated on first use (under a second each) and kept on disk; a match on disk with other clubs is
-    generated again (same events: club names never feed the RNG)."""
+    """Every fixture's match, generated on first use (under a second each) and kept on disk; a match on disk with other clubs or
+    squads is generated again (same events: club names never feed the RNG)."""
     out = {}
     for f in FIXTURES:
         match_dir = OUT_DIR / f"match_{f['seed']:04d}"
         try:
             teams = json.loads((match_dir / "meta.json").read_text())["teams"]
-            fresh = [teams["HOME"].get("club"), teams["AWAY"].get("club")] == [f["home"], f["away"]]
+            fresh = all(teams[side].get("club") == f[side.lower()]
+                        and [p["name"] for p in teams[side]["players"]] == CLUBS[f[side.lower()]]["players"] for side in ("HOME", "AWAY"))
         except (OSError, ValueError, KeyError):
             fresh = False
         if not fresh:

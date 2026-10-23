@@ -20,7 +20,7 @@ CLUBS = {
                    "players": ["Garrow", "Tanaka", "Rusu", "Kessler", "Doherty", "Nwosu", "Albrecht", "Quinlan", "Moretti", "Saidi",
                                "Holm"]},
     "zekteris": {"name": "Zekteris", "color": "white",
-                 "players": ["Arslan", "Karadağ", "Petrov", "Duval", "Ekström", "Bakari", "Yılmazer", "Castellano", "Oyelaran", "Nakamura",
+                 "players": ["Arslan", "Karadağ", "Petrov", "Duval", "Ekström", "Bakari", "Sevim", "Castellano", "Oyelaran", "Nakamura",
                              "Rinaldi"]},
     "thornfield": {"name": "Thornfield", "color": "purple",
                    "players": ["Ashby", "Kovač", "Delacroix", "Mwangi", "Lund", "Calloway", "Ibekwe", "Fontaine", "Szabo", "Achterberg",
