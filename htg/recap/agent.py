@@ -27,6 +27,10 @@ MAX_ROUNDS = 6  # model turns; a model that keeps asking for tools after the lim
 MAX_SENTENCES = 3
 MIN_SENTENCES = 1  # fewer surviving sentences in a language -> the template recap for it
 EVEN_PCT = 52  # the template calls possession "even" up to this share
+# a result said before the final whistle ("the match finished as a draw" at half-time)
+RESULT = {"en": re.compile(r"\b(won|drew|a draw|full[- ]time|final (score|whistle)|finished|(match|game) is over)\b", re.I),
+          "tr": re.compile(r"(berabere (bitti|kaldı|tamamla\w*)|maç\w* (bitti|sona erdi|kazan\w*|kaybet\w*)|maç sonu\w*|"
+                           r"takımın (kazandı|kaybetti)|galip)", re.I)}
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "cache" / "recap"
 AUDIO_DIR = CACHE_DIR / "audio"  # recap clips apart from the narration clips, which the narration pregen prunes
 
@@ -169,13 +173,17 @@ def _scalars(x: Any, out: dict[str, Any], key: str = "") -> dict[str, Any]:
     return out
 
 
-def verify_recap(sentences: list[str], lang: str, facts: dict[str, Any], names: list[str]) -> tuple[list[str], list[str]]:
-    """(kept, reasons): sentences that pass the narration Verifier against the tool facts; at most MAX_SENTENCES."""
+def verify_recap(sentences: list[str], lang: str, facts: dict[str, Any], names: list[str],
+                 full_time: bool = True) -> tuple[list[str], list[str]]:
+    """(kept, reasons): sentences that pass the narration Verifier against the tool facts; at most MAX_SENTENCES.
+    Before full time a sentence that calls the result (won, drew, the match finished) is rejected too."""
     kept, reasons = [], []
     pseudo = {"claim_facts": facts}
     for s in sentences:
         s = str(s).strip()
         bad = verify(s, lang, pseudo, names) if s else ["empty"]
+        if s and not full_time and RESULT[lang].search(s):
+            bad = [*bad, "result before full time"]
         if bad:
             reasons += [f"{s[:60]!r}: {', '.join(bad)}"]
         else:
@@ -228,16 +236,22 @@ def _request(rec: MatchRecord, t: float, since_min: float, favourite: str | None
     teams = {side.lower(): {"team_en": rec.team_name(side)["en"], "team_tr": rec.team_name(side)["tr"],
                             "players": [p["name"] for p in rec.meta["teams"][side]["players"]]} for side in ("HOME", "AWAY")}
     fav = {"team_en": rec.team_name(favourite)["en"], "team_tr": rec.team_name(favourite)["tr"]} if favourite else None
-    kind = "full-time recap of the whole match" if since_min <= 0 else f"what the listener missed since minute {int(since_min)}"
+    if since_min > 0:
+        kind = f"what the listener missed since minute {int(since_min)}"
+    elif get_score(rec, t)["full_time"]:
+        kind = "full-time recap of the whole match"
+    else:  # the half-time break: the match is not over, so no won/lost/drew
+        kind = ("half-time recap of the first 45 minutes: the match is NOT over and the second period is still to play; give the "
+                "score at the break ('at the break' / 'ilk devre sonunda'), never say who won, lost or drew or that the match finished")
     return json.dumps({"task": kind, "now_minute": int(t // 60), "recap_from_minute": int(since_min), "favourite_club": fav,
                        "persona": persona, "persona_style": PERSONA[persona], "teams": teams}, ensure_ascii=False)
 
 
-def _check(draft: dict, facts: dict[str, Any], names: list[str]) -> dict[str, tuple[list[str], list[str], int]]:
+def _check(draft: dict, facts: dict[str, Any], names: list[str], full_time: bool) -> dict[str, tuple[list[str], list[str], int]]:
     out = {}
     for lang in LANGS:
         sents = draft.get(lang) if isinstance(draft.get(lang), list) else []
-        kept, reasons = verify_recap(sents, lang, facts, names)
+        kept, reasons = verify_recap(sents, lang, facts, names, full_time)
         out[lang] = (kept, reasons, len(sents))
     return out
 
@@ -273,14 +287,15 @@ def run_agent(rec: MatchRecord, t: float, since_min: float, favourite: str | Non
             inp.append({"type": "function_call_output", "call_id": c["call_id"], "output": json.dumps(out, ensure_ascii=False)})
     else:
         text = ""  # still asking for tools after MAX_ROUNDS
-    first = _check(_parse(text), facts, names)
+    full_time = get_score(rec, t)["full_time"]
+    first = _check(_parse(text), facts, names, full_time)
     final, revised = dict(first), False
     problems = {lang: r for lang, (_, r, _) in first.items() if r}
     if text and problems:  # one revision: the agent sees why sentences were rejected
         revised = True
         _, _, text2 = model.respond(json.dumps({"fix_these_problems": problems, "instruction": "Rewrite the whole answer in the "
                                                 "same JSON format, with no tool calls, fixing these problems."}), prev)
-        second = _check(_parse(text2), facts, names)
+        second = _check(_parse(text2), facts, names, full_time)
         for lang in problems:
             if len(second[lang][0]) > len(first[lang][0]):  # more sentences survive (every kept sentence passed)
                 final[lang] = second[lang]

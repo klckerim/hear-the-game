@@ -96,6 +96,22 @@ def test_a_number_not_in_the_tool_results_is_dropped(rec, names):
     assert out["revised"] and "fix_these_problems" in model.inputs[-1]  # the agent got the Verifier's reasons once
 
 
+def test_half_time_recap_never_calls_the_result(rec, names):
+    t = 2700.0  # the half-time break: the request says so, and a "finished as a draw" sentence is dropped
+    sc = get_score(rec, t)
+    assert not sc["full_time"]
+    h, a, home, away = sc["home_score"], sc["away_score"], sc["home"], sc["away"]
+    score_en, score_tr = f"It is {home['team_en']} {h}, {away['team_en']} {a}.", f"Skor {home['team_tr']} {h}, {away['team_tr']} {a}."
+    over_en = f"It is {home['team_en']} {h}, {away['team_en']} {a} at full time, the match finished as a draw."
+    over_tr = f"Skor {home['team_tr']} {h}, {away['team_tr']} {a}, maç berabere bitti."
+    draft = answer([score_en, over_en], [score_tr, over_tr])
+    model = FakeModel([[("get_score", {})], draft, draft])
+    out = write_recap(rec, t, 0, None, "fan", model, names, cache_dir=None)
+    assert "half-time" in json.loads(model.inputs[0])["task"]
+    assert out["en"] == [score_en] and out["tr"] == [score_tr]
+    assert all("result before full time" in r for lang in ("en", "tr") for r in out["reasons"][lang])
+
+
 def test_template_when_no_sentence_survives_or_the_model_fails(rec, names):
     model = FakeModel([[("get_score", {})], answer(["Northport have 99 corners."], ["Valemont yüzde 99."]), "not json"])
     out = write_recap(rec, 60 * 60.0, 50, None, "fan", model, names, cache_dir=None)
