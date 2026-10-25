@@ -1,8 +1,7 @@
 # 2026-10-25: re-run the Foundry evaluation on the shipping prompt (small)
 
 Context: `eval/results/foundry_eval.md` is from 2026-10-21: prompt 3, the old team names ("the Reds"), and its note says
-"Prompt 4 (shipping)", which is no longer true (prompt 5 with fan / analyst personas ships). The portal screenshot for the README
-would show the old run. Samples with the current prompt and club names already exist and need no new model calls:
+"Prompt 4 (shipping)", which is no longer true (prompt 5 with fan / analyst personas ships). Samples with the current prompt and club names already exist and need no new model calls:
 `eval/results/narration_samples_prompt5_fan.jsonl` and `..._analyst.jsonl` (50 Insights each, seeds 11-30, Northport / Valemont).
 
 ## Token budget (strict)
@@ -27,7 +26,7 @@ Update the Foundry evaluation numbers in README (grep `4.99` and `fluency`) to t
 line under the newest section. If a number got worse, write it as it is.
 
 ## Owner (not Claude Code)
-Screenshot the newer run (fan, or the one the README cites) as `docs/img/foundry-eval.png`. No deploy needed (eval only).
+No deploy needed (eval only).
 
 ## Out of scope
 Commentator lines in the Foundry evaluation (possible later, separate task), prompt changes, new samples.

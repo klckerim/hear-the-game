@@ -98,8 +98,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - `azd up` done (warm-up fix + trace content). 10 sessions re-measured: hello p50 12.9 -> 3.8 s, longest state gap 15.8 -> 3.4 s. CPU stays 0.5.
 - Step 5: README rewritten for the jury (216 lines, Mermaid diagram, every number checked against a file; sound mappings checked against
   `web/live.html`); long data detail moved to `docs/data.md`.
-- **Owner, still open:** trace check in App Insights (content on the chat span) and screenshots `docs/img/trace.png`, `foundry-eval.png`,
-  `metrics.png` (README does not embed them yet: add when the files exist); `htg.speech.dropped_stale` count (both deferred to a later session);
+- **Owner, still open:** trace check in App Insights (content on the chat span); `htg.speech.dropped_stale` count (both deferred to a later session);
   listening test (README says not run). If the trace content shows, README may drop "configured" from the tracing row.
 
 ## Features A (2026-10-22 evening; task: `docs/tasks/2026-10-22-features-a.md`)
@@ -210,8 +209,6 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Deployed** by the owner (`azd deploy`, 2026-10-22); timeline and Why card checked on the deployed app by the owner. Features C
   is closed. **Owner, open:** screenshots `docs/img/timeline.png`, `docs/img/analyst.png` later (README has a placeholder comment).
 
-- Screenshots in `docs/img/`: one App Insights trace (htg.narrate_insight with verifier.* attributes + chat span with prompt/output),
-  the Foundry evaluation run, the App Insights metrics chart (htg.speech.resolved by source).
 - Demo start: chapters (0', 19', 76'). First goal (Baptiste, Valemont) at 22:38, 3.6 minutes into the default chapter; Late drama
   has two goals (79', 87').
 - Numbers to show: detector recall/precision (seeds 11-30, flank precision 11% stated), narration p50 1.58 s / p95 3.60 s (was 10.7 / 17.4),
@@ -424,8 +421,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   lane within 22 px, in match order, round again (`nextOverlap`; pointer clicks only, Enter keeps its marker). Needs a deploy.
 - **Open for tomorrow (owner heard it, not looked at yet):** at a big moment a commentator line was cut off just as it started by
   another voice (a female voice, likely the narration sentence or the device voice); the line still showed in the feed.
-- **Owner, later:** Azure portal screenshots `docs/img/trace.png`, `foundry-eval.png`, `metrics.png`.
-- Foundry eval refresh (2026-10-25, task `2026-10-25-foundry-eval-refresh.md`): prompt 5, 50 Insights per persona, runs `narration-prompt5-fan/analyst-2026-10-25`. Groundedness fan 4.72 EN / 4.66 TR, analyst 4.92 / 4.92 (was 4.99 on prompt 3: mostly two-exclamation chance lines and numberless fan lines; 3 rows of 200 scored 2, listed in the file); fluency 3.08-3.40. `eval/foundry_eval.py` got `--name`; items file now sits next to `--out`. Owner: screenshot the fan run as `docs/img/foundry-eval.png`.
+- Foundry eval refresh (2026-10-25, task `2026-10-25-foundry-eval-refresh.md`): prompt 5, 50 Insights per persona, runs `narration-prompt5-fan/analyst-2026-10-25`. Groundedness fan 4.72 EN / 4.66 TR, analyst 4.92 / 4.92 (was 4.99 on prompt 3: mostly two-exclamation chance lines and numberless fan lines; 3 rows of 200 scored 2, listed in the file); fluency 3.08-3.40. `eval/foundry_eval.py` got `--name`; items file now sits next to `--out`.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
