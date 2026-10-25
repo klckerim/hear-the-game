@@ -389,6 +389,8 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
 - **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout
   on the phone; listen to a few new callout names (TR and EN). Then move the task file to `docs/tasks/done/`.
+- **Client split (2026-10-25; task: `docs/tasks/2026-10-25-split-client.md`):** `web/live.html` split into `web/app.css` + `web/js/*.js`
+  (classic `defer` scripts, same order, code moved byte for byte), no behaviour change, served by an allow-list in `serve.py`. Headless Chrome: Start, `hello`, 0 console errors.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |

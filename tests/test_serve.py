@@ -26,6 +26,22 @@ def test_http_routes():
     assert process_request(None, Req("/ws")) is None
 
 
+def test_every_local_file_the_page_loads_is_served():
+    import re
+
+    from services.engine.serve import CLIENT
+
+    refs = [r for r in re.findall(r'(?:href|src)="([^"]+)"', CLIENT.read_text()) if not r.startswith(("http", "#", "data:"))]
+    kinds = {".css": "text/css", ".js": "text/javascript", ".svg": "image/svg+xml", ".png": "image/png"}
+    assert any(r.endswith(".js") for r in refs) and "app.css" in refs
+    for ref in refs:
+        res = process_request(None, Req("/" + ref))
+        assert res.status_code == 200, ref
+        assert res.headers["Content-Type"].startswith(kinds[ref[ref.rindex("."):]]), ref
+    assert process_request(None, Req("/js/../serve.py")).status_code == 404
+    assert process_request(None, Req("/js/nope.js")).status_code == 404
+
+
 def test_each_listener_gets_its_own_session_and_the_warm_up_runs_once(monkeypatch):
     from services.engine import serve
 

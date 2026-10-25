@@ -70,6 +70,9 @@ CALLOUT_FILE = re.compile(r"/callouts/((?:en|tr)_[a-z0-9_]+\.mp3|callouts\.json)
 # Home-screen icon (iOS asks for the PNG), favicon, and the manifest + icons Chrome needs for its install prompt
 ICONS = {"/apple-touch-icon.png": "image/png", "/icon.svg": "image/svg+xml", "/icon-192.png": "image/png", "/icon-512.png": "image/png",
          "/manifest.webmanifest": "application/manifest+json"}
+# The client's stylesheet and classic scripts: only files that exist in web/js/, no path from the request reaches the disk
+CLIENT_FILES = {"/app.css": "text/css; charset=utf-8"} | {f"/js/{f.name}": "text/javascript; charset=utf-8"
+                                                         for f in (ROOT / "web" / "js").glob("*.js")}
 MAX_SESSIONS = 20
 STATS_EVERY_S = 10.0
 MAX_DELAY_S = 30.0
@@ -127,6 +130,8 @@ def process_request(connection, request):  # noqa: ANN001 - websockets hook; ret
         return http_response(HTTPStatus.OK, TOUR_TEXT.read_bytes(), "application/json")
     if path in ICONS:
         return http_response(HTTPStatus.OK, (ROOT / "web" / path[1:]).read_bytes(), ICONS[path])
+    if path in CLIENT_FILES:
+        return http_response(HTTPStatus.OK, (ROOT / "web" / path[1:]).read_bytes(), CLIENT_FILES[path])
     if (m := TOUR_CLIP.fullmatch(path)) and (TOUR_AUDIO / m.group(1)).exists():
         return http_response(HTTPStatus.OK, (TOUR_AUDIO / m.group(1)).read_bytes(), "audio/mpeg")
     if (m := CALLOUT_FILE.fullmatch(path)) and (CALLOUT_AUDIO / m.group(1)).exists():

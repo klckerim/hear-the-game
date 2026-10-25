@@ -57,7 +57,7 @@ python -m htg.validate            # only after a generator change
 
 ## Layout
 - `schemas/` contracts · `htg/` Python package · `tests/` pytest · `prototype/` day-0 sound prototype (reference only)
-- Planned: `htg/engine/`, `htg/narration/`, `htg/speech/`, `htg/adapters/`, `services/engine`, `web/` (single-page client),
+- Planned: `htg/engine/`, `htg/narration/`, `htg/speech/`, `htg/adapters/`, `services/engine`, `web/` (single-page client: `live.html` markup, `app.css`, `js/*.js` classic scripts in load order),
   `eval/`, `infra/` (Bicep + azd)
 
 ## Conventions
