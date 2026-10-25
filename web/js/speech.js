@@ -16,6 +16,15 @@ function setCaption(text, liveNow) {
   $("captionMain").textContent = text[main] ?? ""; $("captionMain").lang = main;
   $("captionSub").textContent = sub ?? ""; $("captionSub").lang = uiLang; $("captionSub").hidden = !sub;
   $("captionTag").classList.toggle("idle", !liveNow);
+  captionWaiting = false;
+}
+// The caption before the first sentence: the idle text when stopped; after Start a listening state (fan modes: the commentator speaks
+// once the delay has filled; Analyst: notes only when something changes). Redrawn on a language change until a sentence replaces it.
+let captionWaiting = true;
+function idleCaption() {
+  const k = !live.ws ? "captionIdle" : mode === "analyst" ? "captionListenAnalyst" : "captionListen";
+  setCaption({ [uiLang]: t(k) }, false); $("captionTag").textContent = t("tagIdle"); $("captionMine").hidden = true;
+  captionWaiting = true;
 }
 function duckTo(v) { if (duck) duck.gain.setTargetAtTime(v, ctx.currentTime, 0.08); }
 const TAG = { tr: { llm: "doğrulandı", agent: "doğrulandı", template: "şablon" }, en: { llm: "verified", agent: "verified", template: "template" } };
@@ -162,25 +171,32 @@ function commentaryLine(m, a) {
     if (live.gen !== gen || !live.ws) return;
     if (m.goal) { stopClip(); stopComm(); if ("speechSynthesis" in window) speechSynthesis.cancel(); }
     stopCallout();
-    setCaption(m.text, true); addFeed(m);
+    setCaption(m.text, true);
     $("captionTag").textContent = commTag(m);
     $("captionMine").hidden = true;
     const idle = () => setTimeout(() => { if (!comm && !clip) $("captionTag").classList.add("idle"); }, 400);
-    if (!$("L_voice").checked || !b) { idle(); return; }
+    if (!$("L_voice").checked || !b) { addFeed(m); idle(); return; }
     duckTo(0.3);
     const src = ctx.createBufferSource(); src.buffer = b; src.connect(voiceBus);
-    comm = { src, goal: !!m.goal };
-    src.onended = () => { if (comm && comm.src === src) { comm = null; duckTo(1); idle(); } };
+    comm = { src, goal: !!m.goal, m };
+    src.onended = () => { if (comm && comm.src === src) { comm = null; addFeed(m); duckTo(1); idle(); } };
     src.start();
   };
   setTimeout(tryPlay, Math.max(0, (a - ctx.currentTime) * 1000));
 }
-function stopComm() { const c = comm; comm = null; if (c) { c.src.onended = null; try { c.src.stop(); } catch (e) {} } }
+function stopComm() { const c = comm; comm = null; if (c) { c.src.onended = null; try { c.src.stop(); } catch (e) {} addFeed(c.m); } }  // cut off, but heard
 const commTag = m => m.source === "live" ? `${t("liveTag")} · ${(m.latency_s ?? 0).toFixed(1).replace(".", uiLang === "tr" ? "," : ".")} ${t("secs")}` : t("fallbackTag");
-// The feed: the match's last FEED_N lines as they were spoken (never before), newest on top, by the caption's dual-language rules;
+// The feed: the match's last FEED_N lines once spoken (when the line ends or is cut off; the caption shows the line under way, so the
+// two never show the same line at once), newest on top, by the caption's dual-language rules;
 // the list scrolls (mouse, touch, or arrow keys once focused). Not a live region: the caption already speaks.
+// A line already in the feed (same segment and time; without a segment id, same second and text) is not added again: a session that
+// resumes a Highlights clip replays its start.
 const FEED_N = 60;
-function addFeed(m) { live.feed.unshift(m); live.feed.length = Math.min(live.feed.length, FEED_N); renderFeed(); }
+const feedKey = m => m.segment !== undefined ? `${m.segment}@${m.t}` : `${Math.floor(m.t)}|${m.text.en || m.text.tr}`;
+function addFeed(m) {
+  if (live.feed.some(f => feedKey(f) === feedKey(m))) return;
+  live.feed.unshift(m); live.feed.length = Math.min(live.feed.length, FEED_N); renderFeed();
+}
 function renderFeed() {
   // A listener scrolled down to older lines keeps their place when a new line arrives on top; at the top, the new line shows.
   const ol = $("feedList"), keep = ol.scrollTop > 0 ? ol.scrollHeight - ol.scrollTop : null;

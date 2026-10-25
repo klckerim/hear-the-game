@@ -18,16 +18,19 @@ function connect(from = startT) {
   const delay = mode === "analyst" ? "" : `&delay=${DELAY_S}`;
   const q = `match=${encodeURIComponent(matchId || "")}&mode=${watch}&from=${startT}`;
   const ws = live.ws = new WebSocket(WS_URL + (WS_URL.includes("?") ? "&" : "?") + q + delay + "&lang=" + lang());
+  if (captionWaiting) idleCaption();  // after live.ws is set: the listening state; a jump keeps the sentence on screen
   ws.onmessage = e => onMessage(JSON.parse(e.data));
   ws.onclose = () => { if (live.ws === ws) { stopListening(t("lost")); } };
   ws.onerror = () => { if (live.ws === ws) { stopListening(t("fail")); } };
   live.timer = setInterval(schedule, 25);
 }
-function stopListening(msg) {
+// resuming: a jump connects again at once in the same mode, so the caption keeps what was last said.
+function stopListening(msg, resuming = false) {
   const ws = live.ws; live.ws = null;
   if (ws) { ws.onclose = ws.onerror = null; ws.close(); }
   clearInterval(live.timer); endSession(session); session = null; stopSpeech();
   $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off"); renderTimeline();
+  if (!resuming) idleCaption();
 }
 // A timeline click, a moment marker and Next moment start listening at once, in the way to watch the listener chose. Live: from that
 // match second (Next moment: 30 s before the next goal, saved shot or card more than 30 s after the play clock, or after the chosen
@@ -47,7 +50,7 @@ function renderNextBtn() { $("nextBtn").disabled = nextTarget() === null; }
 function nextMoment() { const t = nextTarget(); if (t !== null) jumpTo(t); }
 function jumpTo(t) {
   endTour();
-  if (live.ws) stopListening();
+  if (live.ws) stopListening(undefined, true);
   connect(watch === "highlights" ? clipFrom(t) : t);
 }
 // The status is read aloud: match, Live from a minute or Highlights, and in the fan modes "Live commentary · 20 s delay". Redrawn on
@@ -59,12 +62,16 @@ function renderStatus() {
   if (live.delay_s) s += ` · ${live.commentary ? t("liveDelay") + " · " : ""}${live.delay_s} ${t("secs")} ${t("delayWord")}`;
   $("status").textContent = s;
 }
-// A new session (any start) resets what belongs to its window. The commentary feed is what the listener has heard of this match: it
-// stays across jumps within the match (Next moment, a timeline click, a mode switch) and goes when the match changes.
+// The commentary feed stays only when the new session continues it: the same match, the same way to watch, starting at or after its
+// newest line (Next moment, a forward timeline click, a mode switch that resumes where the listener is). A match switch, Live <->
+// Highlights, a jump back, or Start after Stop that replays a stretch already heard clears it, so its lines stay in match order.
+const continuesFeed = (feed, was, now) => !!was && was.match === now.match && was.watch === now.watch
+  && (!feed.length || now.from >= Math.floor(feed[0].t));
+// A new session (any start) resets what belongs to its window.
 function resetLive() {
-  const feed = live.feedMatch === matchId ? live.feed : [];
+  const feedFor = { match: matchId, watch }, feed = continuesFeed(live.feed, live.feedFor, { ...feedFor, from: startT }) ? live.feed : [];
   Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false,
-    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, windows: null, stats: null, delay_s: 0, commentary: false, feed, feedMatch: matchId,
+    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, windows: null, stats: null, delay_s: 0, commentary: false, feed, feedFor,
     cutShow: null, trail: [] });
   $("tlInner").querySelectorAll(".mk:not(.mo)").forEach(e => e.remove()); renderTimeline(); renderWhy(); renderStats(); renderFeed();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);

@@ -62,7 +62,9 @@ h1 .accent { color: var(--amber); }
   .d-pitch { grid-area: pitch; }
   .d-listen { grid-area: listen; grid-template-rows: minmax(220px, 1fr); align-content: stretch; }
   .d-listen > :not(.feed) { align-self: start; }
-  .d-listen .feed { height: auto; }  /* fills the column beside the pitch and scrolls inside */
+  /* Fills the column beside the pitch and scrolls inside. Size containment: its lines add nothing to the column's own height, so the
+     pitch column (and the 220 px floor) sets the row height; without it every new line made the row, and the page, taller. */
+  .d-listen .feed { height: auto; contain: size; }
   body[data-mode="analyst"] .d-listen { grid-template-rows: none; }  /* no feed in Analyst: the panels stack at their own height */
   /* pitch + timeline fit under the header and the player bar at 800-900 px; a narrower pitch is centred */
   .pitch-box { justify-self: center; width: min(100%, max(460px, calc((100vh - 420px) * 110 / 73))); }

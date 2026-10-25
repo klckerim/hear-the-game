@@ -92,7 +92,7 @@ function endTour() {
   if (tour.bus) { const b = tour.bus; tour.bus = null; b.gain.setTargetAtTime(0, ctx.currentTime, 0.01); setTimeout(() => b.disconnect(), 200); }
   duckTo(1);
   if (tour.wake) { const w = tour.wake; tour.wake = null; w(); }  // lets the running step return at once
-  setCaption({ [uiLang]: t("captionIdle") }, false); $("captionTag").textContent = t("tagIdle");
+  idleCaption();
   renderTourBtn();
 }
 // The tour offer is a first-visit banner: shown until the tour is done, skipped or dismissed (same localStorage key), then gone.

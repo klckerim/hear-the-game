@@ -89,6 +89,7 @@ function applyI18n() {
   const busy = live.ws || tour.on;
   document.querySelectorAll("[data-i18n]").forEach(e => { if (!(e.id === "captionMain" && busy)) e.textContent = t(e.dataset.i18n); });
   if (!busy) { $("captionMain").lang = uiLang; $("captionSub").hidden = true; }
+  if (captionWaiting && !tour.on) idleCaption();
   document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
   $("uiLangSel").value = uiLang;
   document.querySelectorAll("#commLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang())));
@@ -111,7 +112,7 @@ document.querySelectorAll("#commLang button").forEach(b => b.addEventListener("c
 document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
   const was = mode;
   mode = b.dataset.mode; store.set("htg.mode", mode); applyMode(); sendMode();
-  if (live.ws && (was === "analyst") !== (mode === "analyst")) { const at = playT(); stopListening(); connect(at ?? startT); }
+  if (live.ws && (was === "analyst") !== (mode === "analyst")) { const at = playT(); stopListening(); connect(at ?? startT); }  // the caption starts over: the old line belongs to the other delay
 }));
 $("club").addEventListener("change", e => { favClub = e.target.value; store.set("htg.club", favClub); fillClub(); fillMatches(); sendClub(); });
 // A new match or a new way to watch stops listening and waits for Start (from kick-off / the first clip): looking through the
@@ -125,11 +126,13 @@ $("matchSel").addEventListener("change", e => {
   matchId = e.target.value; store.set("htg.match", matchId); startT = 0;
   if (live.ws) stopListening();
   resetLive(); applyMatch(); readyFor();  // nothing of the old match stays: caption, feed, log, markers, Why
-  setCaption({ [uiLang]: t("captionIdle") }, false); $("captionTag").textContent = t("tagIdle"); $("captionMine").hidden = true;
+  idleCaption();
 });
 document.querySelectorAll("#watch button").forEach(b => b.addEventListener("click", () => {
   if (watch === b.dataset.watch) return;
-  watch = b.dataset.watch; store.set("htg.watch", watch); startT = 0; applyWatch(); readyFor();
+  watch = b.dataset.watch; store.set("htg.watch", watch); startT = 0;
+  if (live.ws) stopListening();
+  resetLive(); applyWatch(); readyFor();  // the other way to watch starts a new feed (resetLive clears it)
 }));
 $("tlTrack").addEventListener("click", e => {
   if (e.target.closest(".mk")) return;

@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-23 (Features D built and committed: match choice, Live / Highlights, six-club league; waiting for the owner's deploy and check). Next: Day 7 video (owner brings the brief). Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-25 (Features D, the live commentator and the "broadcast desk" layout are deployed and checked by the owner, 2026-10-23; client split into css/js). Next: pre-freeze round (`docs/tasks/2026-10-24-pre-freeze.md`: listening caption, feed fixes, submission drafts), then the owner's start-screen decision, README final pass and the video. Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -290,7 +290,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   **Closed (2026-10-23):** owner deployed (includes the commentator's 20 s Foundry timeout and the mode-switch fix) and saw the
   "live" tag in all three chapters on the deployed app. Task file moved to `docs/tasks/done/`.
 
-## Features D (2026-10-23; task: `docs/tasks/2026-10-24-features-d.md`; built, waiting for deploy)
+## Features D (2026-10-23; task: `docs/tasks/done/2026-10-24-features-d.md`; deployed and checked by the owner, 2026-10-23)
 - **Layout:** match bar above the pitch (match picker, favourite club's matches first and marked "your team"; Live / Highlights).
   Right panel: listening settings only (chapters and Next moment removed from it). Timeline = whole match (0'-90', half-time tick,
   played part shaded, session band(s)); known moments (`hello.moments` / `/matches.json`: goals, saved shots, cards) show from the
@@ -355,8 +355,8 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   minutes; those found during the warm-up were never sent), so the Why card was hard to reach in Live. `warm_up` now keeps the
   Insights and shot / goal cues before the start in `pipe.history`; `hello` (and each Highlights `cut`, for the stretch between clips)
   carries them, and the client draws them at once, selectable for the Why card. Seed 7 from 60': 10 Insights, 22 shots, 1 goal.
-  Switching match now clears the old match's caption, feed, log, markers and Why card; the commentary feed stays across jumps
-  within the same match (Next moment, timeline click, mode switch). Checked in headless Chrome; tests for `history` in hello and cut.
+  Switching match now clears the old match's caption, feed, log, markers and Why card. Checked in headless Chrome; tests for
+  `history` in hello and cut. (Feed rule changed in the pre-freeze round, see below.)
 - **Commentary feed scrolls (2026-10-23, owner asked):** keeps the match's last 60 lines (was 6) in the same fixed box; the list
   scrolls (mouse, touch, arrow keys once focused; thin scrollbar), newest on top. A listener reading older lines keeps their place
   when a new line arrives; at the top the new line shows. One grid for the list, so "live · 12,4 sn" and "fallback" rows align.
@@ -387,10 +387,23 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   Highlights from `from`), Next moment = the next clip; Live unchanged. Bands show every clip. Checked in headless Chrome.
 - **Checks:** 99 tests pass. Headless Chrome: all six matches start in Live and Highlights, timeline click (45') works, favourite
   club marks the right side, no console errors, 375 / 320 px no horizontal scroll.
-- **Owner, open:** `azd deploy`; watch Highlights of the default match end to end, start one other match live, check the layout
-  on the phone; listen to a few new callout names (TR and EN). Then move the task file to `docs/tasks/done/`.
+- **Deployed and checked by the owner (2026-10-23).** Task file is in `docs/tasks/done/`.
 - **Client split (2026-10-25; task: `docs/tasks/2026-10-25-split-client.md`):** `web/live.html` split into `web/app.css` + `web/js/*.js`
   (classic `defer` scripts, same order, code moved byte for byte), no behaviour change, served by an allow-list in `serve.py`. Headless Chrome: Start, `hello`, 0 console errors.
+
+## Pre-freeze round (2026-10-25; task: `docs/tasks/2026-10-24-pre-freeze.md`)
+- **Listening caption:** after Start the caption says "Listening · the commentator speaks in a few seconds" (fan modes) or "Listening ·
+  tactical notes appear when something changes" (Analyst), TR and EN, until the first sentence; Stop, a match switch and the end of the
+  tour bring back the idle text (`idleCaption()`; redrawn on a language change while nothing has been said). A jump (Next moment,
+  timeline, moment marker) keeps the last sentence on screen (`stopListening(msg, resuming)`; owner noticed); an Analyst <-> fan
+  mode switch shows the new mode's listening text (the old line belonged to the other delay; owner noticed).
+- **Feed on desktop:** `.d-listen .feed { contain: size }` (>= 861 px), so the feed's lines no longer set the row height; the pitch
+  column and the 220 px floor do, and the list scrolls inside. Not checked visually by Claude (owner: 1440x900, 1280x800).
+- **Feed per session:** the feed stays only when the new session is the same match, same Live / Highlights, and starts at or after the
+  newest line (`continuesFeed` above `resetLive`): Next moment, a forward timeline click, a mode switch that resumes. A match switch,
+  Live <-> Highlights (cleared at once), a jump back, or Start after Stop clears it. `addFeed` skips a line already there (segment id
+  + time). A line joins the feed when it ends or is cut off (owner asked: the caption shows the line under way, the feed what was
+  said; with Narration off it joins at once). **Owner to check after deploy:** Highlights 76' -> Live 36'; Live -> Highlights; Stop -> Start; one forward Next moment.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
