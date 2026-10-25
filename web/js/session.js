@@ -19,14 +19,26 @@ function connect(from = startT) {
   const q = `match=${encodeURIComponent(matchId || "")}&mode=${watch}&from=${startT}`;
   const ws = live.ws = new WebSocket(WS_URL + (WS_URL.includes("?") ? "&" : "?") + q + delay + "&lang=" + lang());
   if (captionWaiting) idleCaption();  // after live.ws is set: the listening state; a jump keeps the sentence on screen
-  ws.onmessage = e => onMessage(JSON.parse(e.data));
-  ws.onclose = () => { if (live.ws === ws) { stopListening(t("lost")); } };
-  ws.onerror = () => { if (live.ws === ws) { stopListening(t("fail")); } };
+  ws.onmessage = e => { retries = 0; onMessage(JSON.parse(e.data)); };
+  ws.onclose = ws.onerror = () => { if (live.ws === ws) dropped(); };
   live.timer = setInterval(schedule, 25);
 }
+// A dropped connection (a deploy, a replica restart, a phone changing networks) connects again by itself from where the listener
+// was, a few times with growing waits; after that Start picks up there. Not after full time, nor once the listener picked another match.
+const RETRY_S = [2, 5, 10, 20];
+let retries = 0, retryTimer = null;
+function dropped() {
+  const retry = !live.ended && retries < RETRY_S.length, was = { matchId, watch };
+  stopListening(t(retry ? "reconnecting" : live.cur ? "lost" : "fail"), retry);
+  if (retry) retryTimer = setTimeout(() => { retryTimer = null; if (!live.ws && was.matchId === matchId && was.watch === watch) connect(); },
+    RETRY_S[retries++] * 1000);
+}
 // resuming: a jump connects again at once in the same mode, so the caption keeps what was last said.
+// Start then picks up where listening stopped (a stop, a dropped connection), not at the last moment clicked.
 function stopListening(msg, resuming = false) {
-  const ws = live.ws; live.ws = null;
+  const ws = live.ws, at = playT(); live.ws = null;
+  if (at !== null) startT = Math.floor(at);
+  if (!resuming) { clearTimeout(retryTimer); retryTimer = null; }
   if (ws) { ws.onclose = ws.onerror = null; ws.close(); }
   clearInterval(live.timer); endSession(session); session = null; stopSpeech();
   $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off"); renderTimeline();

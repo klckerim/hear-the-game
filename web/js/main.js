@@ -75,8 +75,8 @@ function openMatches(on) {
 function pickMatch(id) {
   openMatches(false); $("matchBtn").focus();
   if (id === curMatch().id) return;
-  matchId = id; store.set("htg.match", matchId); startT = 0;
   if (live.ws) stopListening();
+  matchId = id; store.set("htg.match", matchId); startT = 0;
   resetLive(); applyMatch(); readyFor();  // nothing of the old match stays: caption, feed, log, markers, Why
   idleCaption();
 }
@@ -158,8 +158,8 @@ $("mpick").addEventListener("keydown", e => { if (e.key === "Escape" && !$("matc
 document.addEventListener("click", e => { if (!$("matchList").hidden && !$("mpick").contains(e.target)) openMatches(false); });
 document.querySelectorAll("#watch button").forEach(b => b.addEventListener("click", () => {
   if (watch === b.dataset.watch) return;
-  watch = b.dataset.watch; store.set("htg.watch", watch); startT = 0;
   if (live.ws) stopListening();
+  watch = b.dataset.watch; store.set("htg.watch", watch); startT = 0;
   resetLive(); applyWatch(); readyFor();  // the other way to watch starts a new feed (resetLive clears it)
 }));
 $("tlTrack").addEventListener("click", e => {
@@ -207,7 +207,6 @@ let hiddenCheck = null;
 function stopHidden() {
   const at = playT();
   stopListening(at === null ? undefined : `${t("pausedHidden")} ${clock(at)}.`);
-  if (at !== null) startT = Math.floor(at);
 }
 document.addEventListener("visibilitychange", () => {
   clearInterval(hiddenCheck); hiddenCheck = null;
