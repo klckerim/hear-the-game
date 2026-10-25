@@ -3,6 +3,7 @@
     python -m eval.foundry_eval                       # reads eval/results/narration_samples.jsonl, writes eval/results/foundry_eval.md
     python -m eval.foundry_eval --resume              # wait for the latest run of this eval instead of starting a new one
     python -m eval.foundry_eval --resume EVAL_ID:RUN_ID
+    python -m eval.foundry_eval --samples X.jsonl --out Y.md --name run-name   # per-row items go to Y_items.jsonl
 
 Uses the project's OpenAI-compatible Evals API (`{FOUNDRY_PROJECT_ENDPOINT}/openai/v1/evals`) with the built-in evaluators
 `builtin.groundedness` (context = the Insight's claim_facts plus what each key means, as the narrator saw them) and
@@ -58,7 +59,7 @@ def latest_run(oc) -> tuple[str, object]:
     return ev.id, next(iter(oc.evals.runs.list(eval_id=ev.id, order="desc")))
 
 
-def run_eval(items: list[dict], judge: str, resume: str | None) -> tuple[object, list[dict]]:
+def run_eval(items: list[dict], judge: str, resume: str | None, name: str | None = None) -> tuple[object, list[dict]]:
     oc = client()
     if resume and ":" in resume:
         eval_id, run_id = resume.split(":", 1)
@@ -66,7 +67,7 @@ def run_eval(items: list[dict], judge: str, resume: str | None) -> tuple[object,
     elif resume:
         eval_id, run = latest_run(oc)
     else:
-        eval_id, run = start(oc, items, judge)
+        eval_id, run = start(oc, items, judge, name)
     print(f"eval {eval_id}, run {run.id}")
     while run.status not in ("completed", "failed", "canceled"):
         time.sleep(15)
@@ -76,7 +77,7 @@ def run_eval(items: list[dict], judge: str, resume: str | None) -> tuple[object,
     return run, [o.to_dict() for o in oc.evals.runs.output_items.list(run_id=run.id, eval_id=eval_id)]
 
 
-def start(oc, items: list[dict], judge: str) -> tuple[str, object]:
+def start(oc, items: list[dict], judge: str, name: str | None = None) -> tuple[str, object]:
     props = {k: {"type": "string"} for k in items[0]}
     ev = oc.evals.create(
         name=EVAL_NAME,
@@ -86,7 +87,7 @@ def start(oc, items: list[dict], judge: str) -> tuple[str, object]:
                            "initialization_parameters": {"model": judge}, "data_mapping": mapping}
                           for name, mapping in EVALUATORS.items()],
     )
-    run = oc.evals.runs.create(eval_id=ev.id, name=f"narration-samples-{datetime.date.today().isoformat()}",
+    run = oc.evals.runs.create(eval_id=ev.id, name=name or f"narration-samples-{datetime.date.today().isoformat()}",
                                data_source={"type": "jsonl", "source": {"type": "file_content", "content": [{"item": i} for i in items]}})
     return ev.id, run
 
@@ -110,7 +111,8 @@ def slim(o: dict) -> dict:
             "results": {str(r.get("name")): {"score": r.get("score"), "reason": r.get("reason")} for r in o.get("results") or []}}
 
 
-def report(run, output: list[dict], judge: str, n_insights: int, samples: str = "narration_samples.jsonl") -> list[str]:
+def report(run, output: list[dict], judge: str, n_insights: int, samples: str = "narration_samples.jsonl",
+           items_file: str = "foundry_eval_items.jsonl") -> list[str]:
     by = scores(output)
     portal = getattr(run, "report_url", None) or "(link: add from the portal)"
     lines = ["# Foundry evaluation of the narration", "",
@@ -130,23 +132,20 @@ def report(run, output: list[dict], judge: str, n_insights: int, samples: str = 
             lines.append(f"| {name} | {lang.upper()} | {len(xs)} | {sum(xs) / len(xs):.2f} | " + " | ".join(map(str, dist))
                          + f" | {100 * sum(x >= 3 for x in xs) / len(xs):.0f}% |")
     missing = 2 * len(EVALUATORS) * n_insights - sum(len(v) for v in by.values())
-    lines += ["", f"Rows without a numeric score (judge errors): {missing}.", "",
-              "Reading fluency: no sentence scored below 3; 136 of the 139 reasons for a 3 cite brevity or simplicity:",
-              "correct and clear, but \"brief and simple, lacking complex sentence structures or varied vocabulary\" (per-row reasons in",
-              "[foundry_eval_items.jsonl](foundry_eval_items.jsonl)). The rubric rewards complexity; the narrator is told to say one",
-              "short radio sentence, so 3-4 is the expected range, not a quality problem.", "",
+    lines += ["", f"Rows without a numeric score (judge errors): {missing}. Per-row scores and reasons: [{items_file}]({items_file}).", "",
               "Caveats: the judge is the same model family that wrote the sentences; an LLM judge on Turkish is weaker evidence than",
               "on English. The deterministic Verifier (see [narration.md](narration.md)) is the guarantee; this is a second opinion.", ""]
     return lines
 
 
-def main(samples: Path, out: Path, resume: str | None = None) -> None:
+def main(samples: Path, out: Path, resume: str | None = None, name: str | None = None) -> None:
     load_env()
     judge = os.environ["FOUNDRY_MODEL"]
     items = rows(samples)
-    run, output = run_eval(items, judge, resume)
-    (RESULTS / "foundry_eval_items.jsonl").write_text("".join(json.dumps(slim(o), ensure_ascii=False) + "\n" for o in output))
-    lines = report(run, output, judge, len(items) // 2, samples.name)
+    run, output = run_eval(items, judge, resume, name)
+    items_path = out.with_name(out.stem + "_items.jsonl")
+    items_path.write_text("".join(json.dumps(slim(o), ensure_ascii=False) + "\n" for o in output))
+    lines = report(run, output, judge, len(items) // 2, samples.name, items_path.name)
     out.write_text("\n".join(lines))
     print("\n".join(lines))
 
@@ -156,5 +155,6 @@ if __name__ == "__main__":
     ap.add_argument("--samples", type=Path, default=RESULTS / "narration_samples.jsonl")
     ap.add_argument("--out", type=Path, default=RESULTS / "foundry_eval.md")
     ap.add_argument("--resume", nargs="?", const="latest", help="wait for an existing run (latest, or EVAL_ID:RUN_ID)")
+    ap.add_argument("--name", help="Foundry run name (default narration-samples-<date>)")
     a = ap.parse_args()
-    main(a.samples, a.out, a.resume)
+    main(a.samples, a.out, a.resume, a.name)

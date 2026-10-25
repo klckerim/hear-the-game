@@ -34,7 +34,7 @@ tools answers "What did I miss?" with 2-3 verified sentences.
 
 **Measured, not claimed.** Detectors are tuned on seeds 1-10 and reported on seeds 11-30 against hidden scenarios (pressing recall
 85%, precision 36%; the flank detector's 11% precision is stated, not hidden). Narration passed the Verifier on the first draft for
-100% of 100 Insights in both languages at p50 1.58 s; Foundry's groundedness evaluator scored 4.99 of 5. With commentator and
+100% of 100 Insights in both languages at p50 1.58 s; Foundry's groundedness evaluator scored the shipping prompt 4.66-4.92 of 5. With commentator and
 callouts, 97% of 30-second windows contain speech, against 21% for tactical narration alone.
 
 Everything runs on synthetic data: six fictional clubs, six matches, calibrated on real open data. Listeners pick a match, watch it
@@ -45,7 +45,7 @@ separately. Accessibility was checked by the author with VoiceOver; it has not b
 Foundry is the part of the system that writes words, and it is used where an LLM earns its place and nowhere else: one model call per
 tactical Insight, one per stretch of live play, and one Foundry Agent Service prompt agent whose job is choosing which match tools
 to call for a recap. Every model sentence is grounded in computed facts and passes a deterministic Verifier before it is spoken,
-and the results are measured with Foundry evaluations (groundedness 4.99 / 4.99 EN / TR) and traced in Application Insights through
+and the results are measured with Foundry evaluations (groundedness 4.72 / 4.66 EN / TR for the fan persona, 4.92 / 4.92 for the analyst) and traced in Application Insights through
 Foundry tracing (`htg.narrate_insight` and `htg.recap` spans with the Verifier's attempts and reasons). Setting the reasoning effort
 to `minimal` cut narration latency from p50 10.73 s to 1.58 s, which is what made live narration possible.
 

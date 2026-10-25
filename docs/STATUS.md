@@ -425,6 +425,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Open for tomorrow (owner heard it, not looked at yet):** at a big moment a commentator line was cut off just as it started by
   another voice (a female voice, likely the narration sentence or the device voice); the line still showed in the feed.
 - **Owner, later:** Azure portal screenshots `docs/img/trace.png`, `foundry-eval.png`, `metrics.png`.
+- Foundry eval refresh (2026-10-25, task `2026-10-25-foundry-eval-refresh.md`): prompt 5, 50 Insights per persona, runs `narration-prompt5-fan/analyst-2026-10-25`. Groundedness fan 4.72 EN / 4.66 TR, analyst 4.92 / 4.92 (was 4.99 on prompt 3: mostly two-exclamation chance lines and numberless fan lines; 3 rows of 200 scored 2, listed in the file); fluency 3.08-3.40. `eval/foundry_eval.py` got `--name`; items file now sits next to `--out`. Owner: screenshot the fan run as `docs/img/foundry-eval.png`.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |

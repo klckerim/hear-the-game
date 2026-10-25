@@ -244,17 +244,19 @@ every line generated live, English listener, commentary prompt v4, [`eval/result
   and callout durations are estimates (see the file). The Verifier checks names, numbers and a list of invented details, not every
   adjective.
 
-**Microsoft Foundry evaluation** (built-in evaluators, judge gpt-5-mini, 100 Insights × EN/TR, prompt-3 sentences,
+**Microsoft Foundry evaluation** (built-in evaluators, judge gpt-5-mini, shipping prompt 5, 50 Insights per persona × EN/TR, seeds 11-30,
 [`eval/results/foundry_eval.md`](eval/results/foundry_eval.md))
 
-| | EN | TR |
-|---|---|---|
-| Groundedness (1-5) | 4.99 | 4.99 |
-| Fluency (1-5) | 3.13 | 3.48 |
+| | Fan EN | Fan TR | Analyst EN | Analyst TR |
+|---|---|---|---|---|
+| Groundedness (1-5) | 4.72 | 4.66 | 4.92 | 4.92 |
+| Fluency (1-5) | 3.08 | 3.28 | 3.14 | 3.40 |
 
-Fluency sits at 3-4 because the rubric rewards complex sentences; 136 of the 139 reasons for a 3 cite brevity, which is what a
-one-sentence radio line is. The judge is the same model family, and an LLM judge on Turkish is weaker evidence than on English: read
-this as a second opinion next to the deterministic Verifier.
+Groundedness is lower than the earlier prompt-3 run (4.99): most fan 4s are chances written as two exclamations ("Chance for
+Valemont! Okafor shoots…") or lines that leave out numbers on purpose. Three rows of 200 scored 2: one ambiguous Turkish flank line,
+one invented "misses the keeper", and one judge misreading; the file lists them. Fluency sits at 3-4 because the rubric rewards
+complex sentences; most reasons for a 3 cite brevity, which is what a one-sentence radio line is. The judge is the same model
+family, and an LLM judge on Turkish is weaker evidence than on English: read this as a second opinion next to the deterministic Verifier.
 
 **Deployed latency** (Istanbul → Sweden Central, measured from outside, [`eval/results/latency.md`](eval/results/latency.md))
 
