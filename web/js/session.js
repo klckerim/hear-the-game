@@ -53,13 +53,13 @@ function jumpTo(t) {
   if (live.ws) stopListening(undefined, true);
   connect(watch === "highlights" ? clipFrom(t) : t);
 }
-// The status is read aloud: match, Live from a minute or Highlights, and in the fan modes "Live commentary · 20 s delay". Redrawn on
+// The status is read aloud: match, Live from a minute or Highlights, and in the fan modes "20 s delay" (kept short: one line on a phone). Redrawn on
 // a language change.
 function renderStatus() {
   let s = `${uiTeam("HOME")} – ${uiTeam("AWAY")}`;
   if (live.watch === "highlights") s += ` · ${t("watchHl")} · ${(live.moments || []).length} ${t("hlCount")}`;
   else s += ` · ${startT >= 60 ? `${t("liveFrom")} ${Math.floor(startT / 60)}'` : t("watchLive")}`;
-  if (live.delay_s) s += ` · ${live.commentary ? t("liveDelay") + " · " : ""}${live.delay_s} ${t("secs")} ${t("delayWord")}`;
+  if (live.delay_s) s += ` · ${live.delay_s} ${t("secs")} ${t("delayWord")}`;
   $("status").textContent = s;
 }
 // The commentary feed stays only when the new session continues it: the same match, the same way to watch, starting at or after its
@@ -71,7 +71,7 @@ const continuesFeed = (feed, was, now) => !!was && was.match === now.match && wa
 function resetLive() {
   const feedFor = { match: matchId, watch }, feed = continuesFeed(live.feed, live.feedFor, { ...feedFor, from: startT }) ? live.feed : [];
   Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false,
-    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, windows: null, stats: null, delay_s: 0, commentary: false, feed, feedFor,
+    gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, windows: null, stats: null, delay_s: 0, feed, feedFor,
     cutShow: null, trail: [] });
   $("tlInner").querySelectorAll(".mk:not(.mo)").forEach(e => e.remove()); renderTimeline(); renderWhy(); renderStats(); renderFeed();
   clearTimeout(recapWait); recapWait = null; setRecapBusy(false);
@@ -88,7 +88,7 @@ function onMessage(m) {
       $("dot" + id).style.background = COLOR[m.teams[side].color] || "#ccc";
     }
     if (m.score) { live.score = [m.score.HOME || 0, m.score.AWAY || 0]; $("score").textContent = live.score.join(" – "); }
-    Object.assign(live, { delay_s: m.delay_s || 0, commentary: !!m.commentary }); renderStatus();
+    Object.assign(live, { delay_s: m.delay_s || 0 }); renderStatus();
     fillFav(m.teams); setTeamNames(); fillClub(); sendMode(); sendClub();
     addHistory(m.history);
   } else if (m.type === "state") {
