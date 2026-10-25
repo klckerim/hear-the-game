@@ -403,7 +403,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   newest line (`continuesFeed` above `resetLive`): Next moment, a forward timeline click, a mode switch that resumes. A match switch,
   Live <-> Highlights (cleared at once), a jump back, or Start after Stop clears it. `addFeed` skips a line already there (segment id
   + time). A line joins the feed when it ends or is cut off (owner asked: the caption shows the line under way, the feed what was
-  said; with Narration off it joins at once). **Owner to check after deploy:** Highlights 76' -> Live 36'; Live -> Highlights; Stop -> Start; one forward Next moment.
+  said; with Narration off it joins at once). Parts 0-2 committed (`6f3d61b`, `3aa6b69`; ruff + 105 tests pass).
+- **Submission drafts:** `docs/submission.md` (name, tagline, pitch ~100 words, description ~360, category, judge instructions,
+  tech list); numbers only from README / `eval/results/`, layout sentences marked `<!-- UI -->`. Live URL: https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/
+- **Owner to check after deploy:** Highlights 76' -> Live 36'; Live -> Highlights; Stop -> Start; one forward Next moment.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
