@@ -248,7 +248,7 @@ button:focus-visible, select:focus-visible, input:focus-visible, canvas:focus-vi
 #tourBtn[aria-pressed="true"] { background: transparent; color: var(--chalk); border-color: var(--chalk); }
 .banner .icon { background: transparent; border: 0; font-size: 20px; line-height: 1; padding: 2px 8px; color: var(--muted); }
 #blindBtn { position: absolute; top: 8px; right: 8px; z-index: 2; padding: 3px 10px; font-size: 12px; background: rgba(13, 21, 18, 0.8); }
-#blindBtn[aria-pressed="true"] { background: var(--chalk); color: var(--night); border-color: var(--chalk); }  /* pressed: readable on the dark cover */
+#blindBtn.on { background: var(--chalk); color: var(--night); border-color: var(--chalk); }  /* pitch hidden: readable on the dark cover */
 /* Settings: one closed box; the summary shows the current choices */
 .settings { display: block; }
 .settings summary { cursor: pointer; list-style: none; display: flex; align-items: baseline; gap: 10px; min-width: 0; font-family: var(--display); font-weight: 500; font-size: 15px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }

@@ -4,10 +4,14 @@ $("playBtn").addEventListener("click", () => { endTour(); live.ws ? stopListenin
 $("tourBtn").addEventListener("click", () => tour.on ? endTour() : runTour());
 $("tourClose").addEventListener("click", () => { if (tour.on) endTour(); store.set(TOUR_DONE, "1"); renderTourBtn(); });
 loadTour().then(steps => { tour.steps = steps && steps.length ? steps : null; renderTourBtn(); });
-$("blindBtn").addEventListener("click", e => {
-  const on = e.currentTarget.getAttribute("aria-pressed") !== "true";
-  e.currentTarget.setAttribute("aria-pressed", String(on)); $("blind").hidden = !on;
-});
+// The label says what a press does ("Hide pitch" / "Show pitch"), so there is no aria-pressed: a screen reader would read
+// "Show pitch, pressed".
+function setBlind(on) {
+  const b = $("blindBtn");
+  b.classList.toggle("on", on); b.dataset.i18n = on ? "showBtn" : "blindBtn"; b.textContent = t(b.dataset.i18n);
+  $("blind").hidden = !on;
+}
+$("blindBtn").addEventListener("click", () => setBlind($("blind").hidden));
 ["L_ball", "L_press", "L_crowd", "L_cue"].forEach(id => $(id).addEventListener("change", applyLayers));
 // Callouts default on in the fan modes and off in Analyst (it reads the log); the listener's own choice is kept per group, so a
 // trip to Analyst and back does not undo it.
@@ -100,7 +104,7 @@ function applyMode() {
   document.body.dataset.mode = mode;
   document.querySelectorAll("#modes button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
   const eyes = mode === "eyes_free";  // eyes-free hides the pitch; the other modes leave the choice to the "Hide pitch" button
-  $("blindBtn").setAttribute("aria-pressed", String(eyes)); $("blind").hidden = !eyes;
+  setBlind(eyes);
   $("L_callout").checked = calloutsWanted();
   renderSettingsSum();
 }
