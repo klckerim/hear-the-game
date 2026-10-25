@@ -199,10 +199,10 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
 .why .tag[hidden], .why dl[hidden], .why small[hidden] { display: none; }
 .why p { margin: 0; }
 .why small { display: block; color: var(--muted); font-size: 12px; }
-.why dl { display: flex; flex-wrap: wrap; gap: 3px 14px; margin: 0; font-family: var(--mono); font-size: 12px; }
-.why dl div { display: flex; gap: 6px; }
+.why dl { display: grid; grid-template-columns: minmax(0, max-content) 1fr; gap: 3px 14px; margin: 0; font-size: 12px; }
+.why dl div { display: contents; }
 .why dt { color: var(--muted); }
-.why dd { margin: 0; }
+.why dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; }
 body[data-mode="eyes_free"] .tl-only { display: none; }
 /* Live commentary feed (fan modes): the commentator's last lines, newest on top, as they are spoken. Fixed height: no layout jump. */
 .feed { background: var(--desk); border: 1px solid var(--line); border-radius: 6px; padding: 8px 4px 8px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 6px; height: calc(6 * 1.45em + 46px); font-size: 13px; min-width: 0; }

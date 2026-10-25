@@ -109,14 +109,32 @@ function selectMark(mk) {
   renderWhy();
 }
 // claim_facts as key/value pairs in the interface language: "team_en" shows as "team" in English, "side_tr" as "side" in Turkish.
-function factPairs(f) {
-  const out = [];
-  for (const [k, v] of Object.entries(f)) {
-    const m = k.match(/^(.*)_(en|tr)$/);
-    if (m ? m[2] !== uiLang : (uiLang === "tr" && (k + "_tr") in f)) continue;
-    out.push([(m ? m[1] : k).replace(/_/g, " "), String(v)]);
+// The Why card's numbers, one readable row per fact the sentence rests on: what was measured, before -> now, over which window.
+// The values are the Insight's claim_facts as computed by the detectors; only their wording is the client's.
+const pctText = n => uiLang === "tr" ? `%${n}` : `${n}%`;
+function insRows(ins) {
+  const f = ins.claim_facts, opp = f["opponent_" + uiLang] || "", rows = [];
+  const fill = (k, v = {}) => t(k).replace(/\{(\w+)\}/g, (_, x) => v[x] ?? "");
+  const was = (a, b, u = pctText) => `${u(a)} → ${u(b)}`;
+  const win = () => rows.push([t("fx_window"), fill("fx_windowVal", { n: f.recent_min })]);
+  if (ins.type === "pressure_shift") { rows.push([fill("fx_press", { opp }), was(f.share_before_pct, f.share_now_pct)]); win(); }
+  else if (ins.type === "tempo_change") {
+    const sec = n => `${n} ${t("secs")}`;
+    rows.push([t("fx_gap"), was(f.gap_before_s, f.gap_now_s, sec)], [t("fx_slower"), pctText(f.slower_pct)]); win();
+  } else if (ins.type === "flank_overload") {
+    rows.push([fill("fx_flank", { side: t("side_" + f.side) }), was(f.share_before_pct, f.share_now_pct)]); win();
+  } else if (ins.type === "physical_drop") { rows.push([t("fx_player"), f.player], [t("fx_hsr"), pctText(f.hsr_now_pct)]); win(); }
+  else if (ins.type === "goal") {
+    if (f.player) rows.push([t("fx_scorer"), f.player]);
+    rows.push([t("fx_score"), `${uiTeam("HOME")} ${f.home_score}–${f.away_score} ${uiTeam("AWAY")}`]);
+  } else if (ins.type === "chance") {
+    rows.push([t("fx_trigger"), t(f.source === "shot" ? "fx_shot" : "fx_danger")]);
+    if (f.player) rows.push([t("fx_player"), f.player]);
+    if (f.outcome) rows.push([t("fx_outcome"), t("outcome")[f.outcome] || f.outcome]);
+  } else {  // a type this client does not know yet: its facts as they come, minus the names already in the title
+    for (const [k, v] of Object.entries(f)) if (!/^(team|opponent)_/.test(k) && !/_tr$/.test(k)) rows.push([k.replace(/_/g, " "), String(v)]);
   }
-  return out;
+  return rows;
 }
 function renderWhy() {
   const mk = live.sel, dl = $("whyFacts");
@@ -136,7 +154,7 @@ function renderWhy() {
   $("whyTag").hidden = !text;
   $("whyTag").textContent = mk.speech ? TAG[uiLang][src || "template"] : `${TAG[uiLang].template} · ${t("notSpoken")}`;
   $("whyTag").classList.toggle("dim", !mk.speech || src === "template");
-  const pairs = ins ? factPairs(ins.claim_facts) : [];
+  const pairs = ins ? insRows(ins) : [];
   if (mk.speed) pairs.push([t("speed"), `${Math.round(mk.speed * 3.6)} ${t("kmh")}`]);
   for (const [k, v] of pairs) {
     const d = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
@@ -144,7 +162,7 @@ function renderWhy() {
   }
   dl.hidden = !pairs.length;
   $("whyEvidence").hidden = !ins;
-  if (ins) $("whyEvidence").textContent = `${t("evidence")}: ${ins.evidence.length} ${t(ins.evidence.length === 1 ? "event" : "events")}`;
+  if (ins) $("whyEvidence").textContent = t(ins.evidence.length === 1 ? "evidence1" : "evidenceN").replace("{n}", ins.evidence.length);
 }
 function drawEvidence(g, sx, sy, dpr) {
   const hl = live.hl; if (!hl) return;
