@@ -419,6 +419,9 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   (club-colour dots, broadcast face, ▾) opens a list of match cards; your club's matches first with a "your team" badge, the current
   one marked with an amber edge (`aria-current`). Cards are buttons, not radios (an arrow key must not switch the match); Escape or a
   click outside closes. A club name never breaks; a pair wraps between the clubs. Not checked visually by Claude. Needs a deploy.
+- **Close timeline markers (owner saw it):** two Insights a few px apart: the newest covered the older one's hit area, so the older
+  could not be selected. Now the selected marker is raised (z-index 3) and a second tap on it selects the next marker of the same
+  lane within 22 px, in match order, round again (`nextOverlap`; pointer clicks only, Enter keeps its marker). Needs a deploy.
 - **Open for tomorrow (owner heard it, not looked at yet):** at a big moment a commentator line was cut off just as it started by
   another voice (a female voice, likely the narration sentence or the device voice); the line still showed in the feed.
 - **Owner, later:** Azure portal screenshots `docs/img/trace.png`, `foundry-eval.png`, `metrics.png`.

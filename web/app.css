@@ -187,6 +187,7 @@ kbd { font-family: var(--mono); font-size: 11px; border: 1px solid var(--line); 
 .tl .mk.mo.red::before { background: #e5484d; }
 .tl .mk.goal::before { width: 16px; height: 16px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 2px var(--chalk); }
 .tl .mk[aria-pressed="true"]::before { outline: 2px solid var(--amber); outline-offset: 2px; }
+.tl .mk[aria-pressed="true"] { z-index: 3; }  /* the selected marker sits on top, so a second tap reaches the one under it (nextOverlap) */
 .tl .mk.new::before { animation: ping 0.9s ease-out 3; }
 @keyframes ping { from { box-shadow: 0 0 0 0 var(--amber); } to { box-shadow: 0 0 0 9px rgba(242, 179, 61, 0); } }
 @media (prefers-reduced-motion: reduce) { .tl .mk.new::before { animation: none; outline: 2px solid var(--amber); } }

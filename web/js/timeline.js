@@ -67,9 +67,17 @@ function addMark(mk) {
   const b = mk.el = document.createElement("button");
   b.type = "button"; b.className = "mk " + mk.kind; b.setAttribute("aria-pressed", "false");
   b.style.left = pct(mk.t) + "%"; b.style.setProperty("--c", teamColor(mk.team));
-  b.addEventListener("click", () => selectMark(mk));
+  // e.detail: a pointer click (a keyboard click is 0 and keeps its own marker; Tab reaches each one)
+  b.addEventListener("click", e => selectMark(e.detail && live.sel === mk ? nextOverlap(mk) : mk));
   live.marks.push(mk); $("tlInner").append(b); renderMark(mk);
   return mk;
+}
+// Markers of one lane closer than their 22 px hit area cover each other, and the newest is on top. The selected one is raised
+// (CSS), so a second tap on it selects the next overlapping one, in match order, and round again.
+function nextOverlap(mk) {
+  const lane = k => k.kind === "ins", x = k => k.el.offsetLeft;
+  const near = live.marks.filter(k => lane(k) === lane(mk) && Math.abs(x(k) - x(mk)) < 22).sort((p, q) => p.t - q.t);
+  return near[(near.indexOf(mk) + 1) % near.length];
 }
 function markSpoken(m) {
   const mk = live.marks.find(k => k.ins && k.ins.insight.insight_id === m.insight_id);
