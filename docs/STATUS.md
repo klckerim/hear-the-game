@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-25 (Features D, the live commentator and the "broadcast desk" layout are deployed and checked by the owner, 2026-10-23; client split into css/js). Next: pre-freeze round (`docs/tasks/2026-10-24-pre-freeze.md`: listening caption, feed fixes, submission drafts), then the owner's start-screen decision, README final pass and the video. Calendar note: the plan's dates (Day 5 = Oct 24)
+Last updated: 2026-10-25 (Features D, the live commentator and the "broadcast desk" layout are deployed and checked by the owner, 2026-10-23; client split into css/js). Pre-freeze round done and deployed (caption, feed, `docs/submission.md`). Next: the phone status-bar fix + team picker (needs a deploy), the commentator cut-off seen on 2026-10-25, then the owner's start-screen decision, README final pass and the video. Calendar note: the plan's dates (Day 5 = Oct 24)
 run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
@@ -406,7 +406,22 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   said; with Narration off it joins at once). Parts 0-2 committed (`6f3d61b`, `3aa6b69`; ruff + 105 tests pass).
 - **Submission drafts:** `docs/submission.md` (name, tagline, pitch ~100 words, description ~360, category, judge instructions,
   tech list); numbers only from README / `eval/results/`, layout sentences marked `<!-- UI -->`. Live URL: https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/
-- **Owner to check after deploy:** Highlights 76' -> Live 36'; Live -> Highlights; Stop -> Start; one forward Next moment.
+- **Deployed and checked by the owner (2026-10-25):** feed height at 1440x900 / 1280x800, Highlights 76' -> Live 36', Live ->
+  Highlights, Stop -> Start, forward Next moment, Analyst <-> Casual caption: all OK. Task file moved to `docs/tasks/done/`.
+- **iOS Safari (owner, 2026-10-25):** Live started, screen locked after the first line: commentary still playing after 3 minutes;
+  on unlock the feed held the lines spoken meanwhile. One phone, one run; README may say "worked on one iPhone in Safari", not more.
+- **Azure credit** ends after Nov 10 (owner); `minReplicas` stays 1.
+- **Phone transport row (owner saw it):** in Highlights the long "Ready: Zekteris – Thornfield · Highlights. Press …" status pushed
+  the bar's content off screen. Cause: `.p-ctl` is a wrapping flex column, and in a multi-line flex container items stretch to the
+  line's width, which the no-wrap status sets. Fix: `flex-wrap: nowrap` on phones (the status then ellipsises), and the
+  ready line drops "Press Start listening to begin" (Start sits beside it; screen readers still hear the whole status). Needs a deploy.
+- **Match picker (owner asked: the native select wrapped names on phones and looked plain):** a button with the current match
+  (club-colour dots, broadcast face, ▾) opens a list of match cards; your club's matches first with a "your team" badge, the current
+  one marked with an amber edge (`aria-current`). Cards are buttons, not radios (an arrow key must not switch the match); Escape or a
+  click outside closes. A club name never breaks; a pair wraps between the clubs. Not checked visually by Claude. Needs a deploy.
+- **Open for tomorrow (owner heard it, not looked at yet):** at a big moment a commentator line was cut off just as it started by
+  another voice (a female voice, likely the narration sentence or the device voice); the line still showed in the feed.
+- **Owner, later:** Azure portal screenshots `docs/img/trace.png`, `foundry-eval.png`, `metrics.png`.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
@@ -435,7 +450,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - 10 listeners joining in the same second still wait p50 3.8 s for the first message (0.5 vCPU); fine for judging, owner chose to keep 0.5.
 - The Verifier checks numbers, names, jargon and code values; it cannot catch invented details without a number or a name. Say so in the README.
 - Keep the deployed demo cheap: single container app; scale-to-zero is not ideal for a live demo, so use min 1 replica only during judging.
-- iOS Safari background audio untested.
+- iOS Safari background audio: worked once on one iPhone (locked screen, 3 min, 2026-10-25); not tested further.
 - No claim of blind-user validation unless it actually happens.
 - Detector scores may be mediocre on some scenario types; report honestly.
 

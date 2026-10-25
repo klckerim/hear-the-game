@@ -38,7 +38,11 @@
   <section class="player" id="player" data-i18n-aria="matchView">
     <div class="p-match">
       <div class="matchbar" id="matchbar" role="group" data-i18n-aria="matchBar" hidden>
-        <select id="matchSel" data-i18n-aria="matchLabel"></select>
+        <!-- Match picker: a button showing the current match; it opens a list of match cards (club colours, "your team" first) -->
+        <div class="mpick" id="mpick">
+          <button type="button" id="matchBtn" aria-expanded="false" aria-controls="matchList"></button>
+          <ul class="mlist" id="matchList" data-i18n-aria="matchLabel" hidden></ul>
+        </div>
         <div class="seg" role="group" data-i18n-aria="watchLabel" id="watch">
           <button type="button" data-watch="live" aria-pressed="true" data-i18n="watchLive"></button>
           <button type="button" data-watch="highlights" aria-pressed="false" data-i18n="watchHl"></button>

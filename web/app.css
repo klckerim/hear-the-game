@@ -72,7 +72,9 @@ h1 .accent { color: var(--amber); }
 }
 @media (max-width: 860px) {
   body { padding-bottom: calc(var(--bar-h, 130px) + 20px); }  /* the fixed transport row never covers content (height measured in JS) */
-  .p-ctl { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; flex-direction: column-reverse; align-items: stretch; gap: 6px;
+  /* nowrap: in a wrapping flex column the items stretch to the line's width, and a long status line (no-wrap) made that line wider
+     than the screen; single-line, they stretch to the bar and the status ellipsises */
+  .p-ctl { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; flex-direction: column-reverse; flex-wrap: nowrap; align-items: stretch; gap: 6px;
     padding: 8px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
     background: rgba(13, 21, 18, 0.97); border-top: 1px solid var(--line); }
   .p-btns { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr); }  /* never wider than the screen */
@@ -82,7 +84,22 @@ h1 .accent { color: var(--amber); }
 }
 /* Match bar: which match and how to watch it; one row on desktop, wraps on phones */
 .matchbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; min-width: 0; }
-.matchbar select { flex: 1 1 240px; min-width: 0; font-family: var(--display); font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; padding: 6px 10px; }
+/* Match picker: the button shows the current match in the broadcast face with club-colour dots; the list opens under it as cards.
+   A club name never breaks; a pair that does not fit wraps between the two clubs. */
+.mpick { position: relative; flex: 1 1 240px; min-width: 0; }
+#matchBtn { width: 100%; display: flex; align-items: center; gap: 6px 10px; text-align: left; padding: 6px 10px; }
+#matchBtn[aria-expanded="true"] { border-color: var(--amber); }
+#matchBtn .caret { margin-left: auto; color: var(--amber); font-size: 14px; }
+.mpick .mt { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; font-family: var(--display); font-size: 18px; letter-spacing: 0.03em; text-transform: uppercase; }
+.mpick .vs { color: var(--muted); font-family: var(--display); font-size: 18px; }
+.mpick .dot { width: 10px; height: 10px; }
+.mlist { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 30; list-style: none; margin: 0; padding: 6px; display: grid; gap: 4px;
+  background: var(--desk); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55); max-height: 70vh; overflow-y: auto; }
+.mlist[hidden] { display: none; }
+.mlist button { width: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; text-align: left; padding: 10px 12px; background: transparent; border-color: transparent; border-left: 3px solid transparent; border-radius: 5px; }
+.mlist button:hover { background: #1c2a25; border-color: transparent; border-left-color: var(--muted); }
+.mlist button[aria-current="true"] { background: #1c2a25; border-left-color: var(--amber); }
+.mlist .yours { margin-left: auto; }
 .matchbar .seg button { padding: 7px 14px; font-size: 14px; }
 .matchbar[hidden] { display: none; }
 .scorebar { display: flex; flex-wrap: nowrap; align-items: center; gap: 16px; min-width: 0; font-family: var(--display); font-size: 22px; text-transform: uppercase; letter-spacing: 0.03em; }
