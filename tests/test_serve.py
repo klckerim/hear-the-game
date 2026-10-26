@@ -279,3 +279,54 @@ def test_two_recap_requests_back_to_back_get_one_recap(monkeypatch):
                 return recaps
 
     assert asyncio.run(run()) == 1
+
+
+def test_open_sessions_are_capped_per_client_ip(monkeypatch):
+    from services.engine import serve
+
+    monkeypatch.setattr(serve, "_warm", serve.OrderedDict())
+    match = serve.Match.load(seed7())
+
+    async def run() -> tuple[list[str], int, str]:
+        sessions: set = set()
+
+        async def handler(ws) -> None:
+            await serve.session(ws, match, [[300.0, 5400.0]], 1.0, sessions)
+
+        async with websockets.serve(handler, "localhost", 0, process_request=process_request) as srv:
+            uri = f"ws://localhost:{srv.sockets[0].getsockname()[1]}/ws"
+            # the client may claim any first hop; the ingress appends the real address last
+            one = [websockets.connect(uri, additional_headers={"X-Forwarded-For": f"10.0.0.{i}, 203.0.113.7"}) for i in range(5)]
+            conns = [await c for c in one]
+            try:
+                first = [json.loads(await asyncio.wait_for(c.recv(), 30))["type"] for c in conns[:4]]
+                try:
+                    await asyncio.wait_for(conns[4].recv(), 10)
+                    refused = 0
+                except websockets.ConnectionClosed as e:
+                    refused = e.rcvd.code
+                async with websockets.connect(uri, additional_headers={"X-Forwarded-For": "198.51.100.9"}) as other:
+                    other_first = json.loads(await asyncio.wait_for(other.recv(), 30))["type"]
+                await conns[0].close()
+                await asyncio.sleep(0.2)  # the closed session's slot is released
+                async with websockets.connect(uri, additional_headers={"X-Forwarded-For": "203.0.113.7"}) as again:
+                    assert json.loads(await asyncio.wait_for(again.recv(), 30))["type"] == "hello"
+            finally:
+                for c in conns:
+                    await c.close()
+            return first, refused, other_first
+
+    assert asyncio.run(run()) == (["hello"] * 4, 1013, "hello")
+
+
+def test_client_ip_falls_back_to_the_socket_peer():
+    from websockets.datastructures import Headers
+
+    from services.engine.serve import client_ip
+
+    class Ws:
+        def __init__(self, headers: Headers):
+            self.request, self.remote_address = type("R", (), {"headers": headers})(), ("127.0.0.1", 5555)
+
+    assert client_ip(Ws(Headers())) == "127.0.0.1"
+    assert client_ip(Ws(Headers([("X-Forwarded-For", "1.1.1.1"), ("X-Forwarded-For", "2.2.2.2, 3.3.3.3")]))) == "3.3.3.3"

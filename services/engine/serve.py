@@ -76,6 +76,7 @@ ICONS = {"/apple-touch-icon.png": "image/png", "/icon.svg": "image/svg+xml", "/i
 CLIENT_FILES = {"/app.css": "text/css; charset=utf-8"} | {f"/js/{f.name}": "text/javascript; charset=utf-8"
                                                          for f in (ROOT / "web" / "js").glob("*.js")}
 MAX_SESSIONS = 20
+MAX_SESSIONS_PER_IP = 4  # judges may share an office NAT; the video is recorded with several tabs
 STATS_EVERY_S = 10.0
 MAX_DELAY_S = 30.0
 RECAP_COOLDOWN_S = 20.0  # after a listener's recap arrives, before the next request is accepted
@@ -158,6 +159,13 @@ def process_request(connection, request):  # noqa: ANN001 - websockets hook; ret
         kind = "application/json" if m.group(1).endswith(".json") else "audio/mpeg"
         return http_response(HTTPStatus.OK, (CALLOUT_AUDIO / m.group(1)).read_bytes(), kind)
     return http_response(HTTPStatus.NOT_FOUND, b"not found", "text/plain")
+
+
+def client_ip(ws) -> str:  # noqa: ANN001 - a websockets connection
+    """The listener's address: the rightmost X-Forwarded-For hop, the one Container Apps ingress appends (a client can send the
+    hops before it); locally, the socket's peer."""
+    hops = [h.strip() for v in ws.request.headers.get_all("X-Forwarded-For") for h in v.split(",") if h.strip()]
+    return hops[-1] if hops else str((ws.remote_address or ("",))[0])
 
 
 def query(path: str, key: str, default: str = "") -> str:
@@ -258,7 +266,8 @@ def record_for(match_dir: Path) -> MatchRecord:
 async def session(ws, match: Match, windows: list[list[float]], speed: float, sessions: set, delay_s: float = 0.0, lang: str = "en",
                   commentator: Model | None = None, mode: str = "live") -> None:
     """Plays `windows` of the match in order: one window from the chosen second to full time (Live), or the Highlights clips."""
-    if len(sessions) >= MAX_SESSIONS:
+    ip = client_ip(ws)
+    if len(sessions) >= MAX_SESSIONS or sum(client_ip(s) == ip for s in sessions) >= MAX_SESSIONS_PER_IP:
         await ws.close(1013, "busy")
         return
     sessions.add(ws)
