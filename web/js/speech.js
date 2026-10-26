@@ -28,25 +28,32 @@ function idleCaption() {
 }
 function duckTo(v) { if (duck) duck.gain.setTargetAtTime(v, ctx.currentTime, 0.08); }
 const TAG = { tr: { llm: "doğrulandı", agent: "doğrulandı", template: "şablon" }, en: { llm: "verified", agent: "verified", template: "template" } };
+let sayHeld = 0;  // sentences waiting for a voice under way; commentaryLine treats them as a busy voice, so no line starts in the gap
 async function say(m, prefix) {
-  const l = lang(), text = m.text[l];
-  setCaption(m.text, true);
-  $("captionTag").textContent = (prefix ? prefix + " · " : "") + TAG[uiLang][(m.source && m.source[l]) || "template"];
-  $("captionMine").hidden = !(club && m.team === club);
+  const l = lang(), text = m.text[l], gen = live.gen;
+  const show = () => {  // the caption follows the voice: shown when the sentence starts, not while it waits
+    setCaption(m.text, true);
+    $("captionTag").textContent = (prefix ? prefix + " · " : "") + TAG[uiLang][(m.source && m.source[l]) || "template"];
+    $("captionMine").hidden = !(club && m.team === club);
+  };
   const finish = () => { duckTo(1); setTimeout(() => { $("captionTag").classList.add("idle"); $("captionMine").hidden = true; }, 400); };
-  if (!$("L_voice").checked) return;
-  // A callout already under way finishes first (at most ~2 s; "Goal! Rossi!", then the sentence): cutting the commentator off
-  // mid-name sounded broken. New callouts wait while the sentence is pending.
-  const wait = callouts.cur ? Math.min(3, callouts.cur.end - ctx.currentTime) : 0, gen = live.gen;
-  if (wait > 0) {
-    callouts.held++; await new Promise(r => setTimeout(r, wait * 1000 + 150)); callouts.held = Math.max(0, callouts.held - 1);
-    if (live.gen !== gen) return;  // a new session (match, mode, jump) started meanwhile: this sentence or recap belongs to the old one
-  }
-  if (comm && comm.goal) {  // a goal line is never cut off; the sentence follows it (max 8 s)
-    const end = Date.now() + 8000;
-    while (comm && comm.goal && Date.now() < end) await new Promise(r => setTimeout(r, 150));
+  if (!$("L_voice").checked) { show(); return; }
+  sayHeld++;
+  try {
+    // A callout already under way finishes first (at most ~2 s; "Goal! Rossi!", then the sentence): cutting the commentator off
+    // mid-name sounded broken. New callouts wait while the sentence is pending.
+    const wait = callouts.cur ? Math.min(3, callouts.cur.end - ctx.currentTime) : 0;
+    if (wait > 0) {
+      callouts.held++; await new Promise(r => setTimeout(r, wait * 1000 + 150)); callouts.held = Math.max(0, callouts.held - 1);
+      if (live.gen !== gen) return;  // a new session (match, mode, jump) started meanwhile: this sentence or recap belongs to the old one
+    }
+    // A commentator line under way is never cut off by a narration sentence: the sentence follows it (max 8 s after a goal line,
+    // 6 s after another). A recap waits only for a goal line and cuts any other.
+    const start = Date.now();
+    while (comm && (comm.goal || !prefix) && Date.now() - start < (comm.goal ? 8000 : 6000)) await new Promise(r => setTimeout(r, 150));
     if (live.gen !== gen) return;
-  }
+  } finally { sayHeld = Math.max(0, sayHeld - 1); }
+  show();
   stopCallout(); stopComm(); duckTo(0.3);
   const buf = await ((m.buf && m.buf[l]) || decodeClip(m, l));
   if (live.gen !== gen) { duckTo(1); return; }  // decoding took long enough for the listener to switch
@@ -146,8 +153,9 @@ function stopCallout() {
 
 /* ---------------- live commentator ---------------- */
 // Lines from the server's live commentator (Foundry, verified, commentary voice), played when the play clock reaches their match time.
-// One voice at a time, by priority: a goal line cuts anything; otherwise recaps, narration and the tour come first, and a line whose
-// slot is taken waits up to COMM_WAIT_S, then is dropped as stale. Callouts yield: one under way finishes, no new one starts meanwhile.
+// One voice at a time, by priority: a goal line cuts anything; otherwise a line whose slot is taken (by recaps, the tour, a narration
+// sentence playing or waiting for its turn) waits up to COMM_WAIT_S, then is dropped as stale. A line already playing is not cut by
+// narration (the sentence waits for it); recaps cut it. Callouts yield: one under way finishes, no new one starts meanwhile.
 const COMM_WAIT_S = 3;
 let comm = null, clipGoal = false;  // the commentator line playing: { src, goal }; whether the narration clip playing is a goal
 function commentaryLine(m, a) {
@@ -158,7 +166,7 @@ function commentaryLine(m, a) {
   const release = () => { if (holding) { holding = false; callouts.held = Math.max(0, callouts.held - 1); } };
   const tryPlay = async () => {
     if (live.gen !== gen || !live.ws) { release(); return; }
-    const voice = tour.on || clip || comm || ("speechSynthesis" in window && speechSynthesis.speaking);
+    const voice = tour.on || clip || comm || sayHeld || ("speechSynthesis" in window && speechSynthesis.speaking);
     const calling = callouts.cur && callouts.cur.end > ctx.currentTime;
     // A goal line cuts anything except a goal sentence already under way (same goal, said once): then it waits like the others.
     if ((!m.goal && (voice || calling)) || (m.goal && clip && clipGoal)) {
