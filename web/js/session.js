@@ -67,13 +67,13 @@ function jumpTo(t) {
   if (live.ws) stopListening(undefined, true);
   connect(watch === "highlights" ? clipFrom(t) : t);
 }
-// The status is read aloud: match, Live from a minute or Highlights, and in the fan modes "20 s delay" (kept short: one line on a phone). Redrawn on
-// a language change.
+// The status is read aloud: match, Live from a minute or Highlights, and in the desk's fan modes "20 s delay" (kept short: one line on a
+// phone; the listening view leaves the delay out). Redrawn on a language change and a view switch.
 function renderStatus() {
   let s = `${uiTeam("HOME")} – ${uiTeam("AWAY")}`;
   if (live.watch === "highlights") s += ` · ${t("watchHl")} · ${(live.moments || []).length} ${t("hlCount")}`;
   else s += ` · ${startT >= 60 ? `${t("liveFrom")} ${Math.floor(startT / 60)}'` : t("watchLive")}`;
-  if (live.delay_s) s += ` · ${live.delay_s} ${t("secs")} ${t("delayWord")}`;
+  if (live.delay_s && view === "desk") s += ` · ${live.delay_s} ${t("secs")} ${t("delayWord")}`;
   $("status").textContent = s;
 }
 // The commentary feed stays only when the new session continues it: the same match, the same way to watch, starting at or after its

@@ -126,6 +126,7 @@ function applyI18n() {
   if (captionWaiting && !tour.on) idleCaption();
   document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
   $("uiLangSel").value = uiLang;
+  document.querySelectorAll("#lLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === uiLang)));  // listening view
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
   if (!live.ws) $("status").textContent = readyLine();
   setTeamNames(); fillClub(); fillMatches();
@@ -135,11 +136,13 @@ function applyI18n() {
   renderTimeline(); renderFeed();
 }
 // Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
-// While listening, the status line (read aloud) says the commentator follows within the delay; stopped, it shows the ready line.
-$("uiLangSel").addEventListener("change", e => {
-  uiLang = e.target.value; store.set("htg.lang", uiLang); applyI18n(); preloadCallouts();
-  if (live.ws) $("status").textContent = t("langSwitched");
-});
+// Desk, while listening: the status line (read aloud) names the new commentary language. Otherwise it is only redrawn in the new language.
+function setLang(v) {
+  if (v === uiLang) return;
+  uiLang = v; store.set("htg.lang", uiLang); applyI18n(); preloadCallouts();
+  if (live.ws && view === "desk") $("status").textContent = t("langSwitched");
+}
+$("uiLangSel").addEventListener("change", e => setLang(e.target.value));
 // The delay is fixed per session (20 s in the fan modes, none in Analyst), so crossing between Analyst and a fan mode while listening
 // restarts where the listener is, in the new mode (Highlights: the clip under way); otherwise a session started in Analyst would stay
 // without the live commentator.

@@ -311,7 +311,7 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
    lays the rest out as one narrow column with the transport in the page (not sticky, not fixed to the bottom). */
 #toListen { grid-area: view; justify-self: end; border-radius: 999px; padding: 6px 14px; font-size: 13px; white-space: nowrap; }
 body[data-view="desk"] .listen-only { display: none; }
-body[data-view="listen"] :is(.hdr-right .sub, #toListen, .matchbar, .modebar, .d-pitch, .d-listen, .p-btns .hint) { display: none; }
+body[data-view="listen"] :is(.hdr-right, #toListen, .matchbar, .modebar, .d-pitch, .d-listen, .p-btns .hint) { display: none; }
 body[data-view="listen"] .wrap { max-width: 640px; }
 body[data-view="listen"] .player { position: static; margin: 0; padding: 0; border: 0; }
 body[data-view="listen"] .p-ctl { position: static; padding: 0; background: none; border: 0; }
@@ -323,9 +323,12 @@ body[data-view="listen"] .d-now { grid-area: auto; }
    text >= 18 px. Colour only for club dots and the focus ring; no tags or badges except "your team" on a match card. */
 body[data-view="listen"] { font-size: 18px; }
 body[data-view="listen"] .wrap { max-width: 560px; gap: 20px; }
-body[data-view="listen"] header { display: block; }
+body[data-view="listen"] header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 8px; }
+body[data-view="listen"] h1 { white-space: nowrap; }
+@media (max-width: 400px) { body[data-view="listen"] h1 { font-size: 27px; } }  /* title and language share one row down to 375 px; narrower, the language wraps under it, right-aligned */
+body[data-view="listen"] .seg button:focus-visible { outline-offset: -4px; }  /* inside: the segment clips anything outside it */
 body[data-view="listen"] h1 .accent { color: inherit; }
-.l-sub { margin: 8px 0 0; font-size: 18px; color: var(--chalk); }
+.l-sub { flex-basis: 100%; margin: 0; font-size: 18px; color: var(--chalk); }
 body[data-view="listen"] .player { gap: 14px; }
 body[data-view="listen"] .p-match { display: grid; gap: 14px; padding: 18px; background: var(--desk); border: 1px solid var(--line); border-radius: 12px; }
 /* Score card: home | score | away, the clock under the score. Names wrap inside their cell (between words only); the score, in the
@@ -370,8 +373,9 @@ body[data-view="listen"] #status { white-space: normal; font-size: 18px; color: 
 .l-more .mt { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: 0.03em; text-transform: uppercase; }
 .l-more .vs { color: var(--muted); font-family: var(--display); font-size: 24px; }
 .l-more .yours { font-size: 14px; padding: 2px 6px; }
-body[data-view="listen"] #appLang { margin-top: 14px; min-height: 48px; padding-left: 14px; color: var(--chalk); }  /* under the tagline */
-body[data-view="listen"] #appLang select { min-height: 48px; font-size: 18px; padding: 10px 8px; }
+#lLang { margin-left: auto; }  /* top right, beside the title; wraps under it on the narrowest screens */
+#lLang button { min-height: 48px; padding: 8px 12px; font-size: 17px; }
+#lLang button[aria-pressed="true"] { background: var(--chalk); color: var(--night); }
 .l-more .banner { font-size: 18px; color: var(--chalk); border-color: var(--muted); }
 .l-more .banner button { min-height: 48px; }
 .l-more #tourBtn { color: var(--chalk); border-color: var(--chalk); }

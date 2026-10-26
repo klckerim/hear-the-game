@@ -17,6 +17,7 @@ function setView(v) {
   view = v; store.set("htg.view", v); document.body.dataset.view = v; arrange();
   const want = v === "listen" ? "eyes_free" : deskMode();
   if (want !== mode) setMode(want, false);
+  if (live.ws && live.teams) renderStatus();  // the delay shows in the desk only
 }
 function viewBtn(id, to) {
   const b = document.createElement("button");
@@ -24,11 +25,19 @@ function viewBtn(id, to) {
   b.addEventListener("click", () => { setView(to); $(to === "listen" ? "playBtn" : "toListen").focus(); });  // the pressed button is gone
   return b;
 }
-// The listening view's own elements; the rest are the desk's. DOM order is the reading and the visual order: title, tagline, language, the
-// "now playing" card (score, clock, caption), Start, Next moment and Catch me up, Live / Highlights, status, the match list,
+// The listening view's own elements; the rest are the desk's. DOM order is the reading and the visual order: title, language (top right),
+// tagline, the "now playing" card (score, clock, caption), Start, Next moment and Catch me up, Live / Highlights, status, the match list,
 // tour offer, a hint (CSS shows the lock-screen one on touch screens, the keys elsewhere; the other is display: none), the switch.
 const el = (tag, cls, key) => { const e = document.createElement(tag); e.className = cls; if (key) e.dataset.i18n = key; return e; };
 document.querySelector("h1").after(el("p", "l-sub listen-only", "listenSub"));
+// Language: two buttons instead of the desk's select (a picker wheel takes several VoiceOver steps): one double tap switches screen and
+// commentary. Each is named in its own language and read in that voice; the current one is pressed.
+const langPick = el("div", "seg listen-only"); langPick.id = "lLang"; langPick.setAttribute("role", "group"); langPick.dataset.i18nAria = "uiLangLabel";
+for (const [v, name] of [["en", "English"], ["tr", "Türkçe"]]) {
+  const b = el("button", ""); b.type = "button"; b.lang = v; b.dataset.lang = v; b.textContent = name;
+  b.addEventListener("click", () => setLang(v)); langPick.append(b);
+}
+document.querySelector("h1").after(langPick);
 const listenMore = el("div", "l-more listen-only"), chooseTitle = el("h2", "", "chooseMatch"), keys = el("p", "l-hint l-keys", "keysLine");
 chooseTitle.id = "chooseTitle";
 listenMore.append(chooseTitle, keys, el("p", "l-hint l-touch", "touchLine"), viewBtn("toDesk", "desk"));
@@ -42,7 +51,6 @@ function arrange() {
     moveTo($("caption"), e => document.querySelector(".scorebar").after(e));  // into the card
     moveTo($("watch"), e => $("recapBtn").after(e));
     moveTo($("matchList"), e => chooseTitle.after(e));
-    moveTo($("appLang"), e => document.querySelector(".l-sub").after(e));
     moveTo($("tourBanner"), e => keys.before(e));
     $("matchList").hidden = false;  // always open: VoiceOver swipes straight through it
   } else {

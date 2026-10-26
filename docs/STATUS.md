@@ -471,8 +471,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Polish after review** (2026-10-26): score card is one grid row (home | score | away, clock under; score 48 px desktop / 40 px at
   390, names scale to fit at 320); the idle status is the ready line, "Not connected." only after a failure; phone cards 20 px / 14 px.
 - **One language for screen and commentary** (owner's decision): the desk's commentary-language control is gone, `lang()` is the
-  interface language, a stored `htg.commentary` is removed on load; the select ("Language" / "Dil") sits under the tagline in the
-  listening view; changed while listening, the status line says the commentator follows within 20 s. README paragraph updated.
+  interface language, a stored `htg.commentary` is removed on load; in the listening view the select is replaced by two buttons at the
+  top right ("English" / "Türkçe", each in its own `lang`, `aria-pressed`, group "Language" / "Dil"; one double tap, no picker wheel;
+  beside the title down to 375 px, under it on narrower screens); changed while listening in the desk, the status line says "Commentary in English" / "Anlatım Türkçe"; in the listening view
+  it is only redrawn in the new language. The listening view's status leaves out "20 s delay" (the desk keeps it). README paragraph updated.
 - **Owner, VoiceOver on iOS (not done yet):** 1. open the app: the listening view; swipe from the top: title, tagline, score, clock,
   caption, Start, Next moment, Catch me up, Live, Highlights, status, "Choose a match", the cards, language, tour, hint, "Show the pitch
   & data". 2. double-tap a card: sound starts on the first tap, focus lands on Stop, VoiceOver says the status. 3. double-tap Stop,
