@@ -1,7 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-25 (Features D, the live commentator and the "broadcast desk" layout are deployed and checked by the owner, 2026-10-23; client split into css/js). Pre-freeze round done and deployed (caption, feed, `docs/submission.md`). Next: the phone status-bar fix + team picker (needs a deploy), the commentator cut-off seen on 2026-10-25, then the owner's start-screen decision, README final pass and the video. Calendar note: the plan's dates (Day 5 = Oct 24)
-run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
+Last updated: 2026-10-26 (hardening of the public demo done: 4 server commits + 1 client fix). The owner deploys hardening on its own (owner's decision, 2026-10-26), not together with listen-view. Next: `2026-10-26-listen-view.md`; the phone status-bar fix + team picker, the commentator cut-off seen on 2026-10-25, the owner's start-screen decision, README final pass and the video. Calendar note: the plan's dates (Day 5 = Oct 24) run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -422,6 +421,29 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Open for tomorrow (owner heard it, not looked at yet):** at a big moment a commentator line was cut off just as it started by
   another voice (a female voice, likely the narration sentence or the device voice); the line still showed in the feed.
 - Foundry eval refresh (2026-10-25, task `2026-10-25-foundry-eval-refresh.md`): prompt 5, 50 Insights per persona, runs `narration-prompt5-fan/analyst-2026-10-25`. Groundedness fan 4.72 EN / 4.66 TR, analyst 4.92 / 4.92 (was 4.99 on prompt 3: mostly two-exclamation chance lines and numberless fan lines; 3 rows of 200 scored 2, listed in the file); fluency 3.08-3.40. `eval/foundry_eval.py` got `--name`; items file now sits next to `--out`.
+
+## Hardening (2026-10-26; task: `docs/tasks/done/2026-10-26-hardening.md`; deployed on its own, not with listen-view: owner's decision)
+- **Prefs:** a session keeps only the latest valid `set_mode` / `set_favourite` (`keep_pref`, validation shared with
+  `apply_listener_message` via `run_local.listener_pref`); every other client message is dropped. Before, each one was stored for the whole session.
+- **Recaps:** one "What did I miss?" recap per session at a time, then a 20 s cooldown (`RecapGate`, monotonic clock); requests in
+  between are ignored (the client's own timeout already falls back to its local recap). Recap work runs on its own
+  `RECAP_POOL` (2 threads) so it cannot starve narration and commentary. Full-time / half-time recaps are not gated.
+  Client follow-up (`web/js/session.js`): a press within 25 s of the last recap replays it (`live.recapAt`, `RECAP_REPLAY_MS`)
+  instead of sending a request the server would ignore and sitting on "Preparing…" for 30 s.
+- **Sessions per IP:** at most 4 open sessions per client IP (`MAX_SESSIONS_PER_IP`), refused with the same 1013 "busy"; counted from the
+  live `sessions` set, so a closed or failed session frees its slot. **Deviation from the task:** the IP is the *rightmost*
+  `X-Forwarded-For` hop, not the first: Container Apps ingress appends the real address and keeps whatever the client sent before it
+  (Microsoft Learn, "Ingress in Azure Container Apps", HTTP headers), so the first hop could be spoofed to dodge the cap.
+- **NaN:** `?delay=nan|inf` -> no delay; a NaN / infinite `since_min` -> the default last 10 minutes. `.env.example` has a placeholder Foundry endpoint.
+- Tests: 6 new (112 pass). Not tested on the deployed app.
+- **Not doing (decided):** WebSocket `origins=` (a wrong list breaks the demo and local dev); a server idle timeout (the client already
+  stops a hidden tab, and a timeout would cut locked-screen listeners; a script is bounded by the IP cap and the deployment TPM); a disk
+  cache size cap (falls away with the recap gate); Foundry portal links in `eval/results/foundry_eval.md` stay (jury evidence, no
+  credential); squad names that match common real surnames stay (fictional clubs). `htg/validate.py` reads `truth.json`: it is the
+  generator's validator, not a detector, engine or agent, so it is allowed; not moved.
+- **Owner, open:** a subscription budget with an email alert; check the Foundry deployment's TPM limit (the real hard cap; 429 falls
+  back to templates); confirm `web/icon*` are self-made; check the MAI-Voice preview terms allow a public demo; optionally commit with
+  the GitHub noreply email.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
