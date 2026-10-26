@@ -136,11 +136,16 @@ function applyI18n() {
   renderTimeline(); renderFeed();
 }
 // Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
-// Desk, while listening: the status line (read aloud) names the new commentary language. Otherwise it is only redrawn in the new language.
+// Desk, while listening: the status line (read aloud) names the new commentary language. Listening view, while listening: the same
+// notice is only heard, a visually hidden span after the redrawn status text; the next status update replaces it. Otherwise the status
+// is only redrawn in the new language.
 function setLang(v) {
   if (v === uiLang) return;
   uiLang = v; store.set("htg.lang", uiLang); applyI18n(); preloadCallouts();
-  if (live.ws && view === "desk") $("status").textContent = t("langSwitched");
+  if (!live.ws) return;
+  if (view === "desk") { $("status").textContent = t("langSwitched"); return; }
+  const heard = document.createElement("span"); heard.className = "sr-only"; heard.textContent = ` ${t("langHeard")}`;
+  $("status").append(heard);
 }
 $("uiLangSel").addEventListener("change", e => setLang(e.target.value));
 // The delay is fixed per session (20 s in the fan modes, none in Analyst), so crossing between Analyst and a fan mode while listening
