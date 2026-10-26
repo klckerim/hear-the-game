@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-26 (hardening of the public demo done: 4 server commits + 1 client fix). The owner deploys hardening on its own (owner's decision, 2026-10-26), not together with listen-view. Next: `2026-10-26-listen-view.md`; the phone status-bar fix + team picker, the commentator cut-off seen on 2026-10-25, the owner's start-screen decision, README final pass and the video. Calendar note: the plan's dates (Day 5 = Oct 24) run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
+Last updated: 2026-10-26 (listening view done: 4 commits, pushed, not deployed). Next: the owner tries it with VoiceOver on iOS (checklist under "Listening view"), `azd deploy`, then the README task and the video (opening shot: the listening view). No Azure portal screenshots in the README (owner's decision, 2026-10-25). Calendar note: the plan's dates (Day 5 = Oct 24) run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -206,7 +206,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - Timeline window ends at full time (`meta.duration_s`): Late drama shows 76'-90', not 91'. Two layout tries (Why card above the
   caption with a height-capped pitch; Analyst panels moved up) were reverted at the owner's request.
 - **Deployed** by the owner (`azd deploy`, 2026-10-22); timeline and Why card checked on the deployed app by the owner. Features C
-  is closed. **Owner, open:** screenshots `docs/img/timeline.png`, `docs/img/analyst.png` later (README has a placeholder comment).
+  is closed.
 
 - Demo start: chapters (0', 19', 76'). First goal (Baptiste, Valemont) at 22:38, 3.6 minutes into the default chapter; Late drama
   has two goals (79', 87').
@@ -444,6 +444,35 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Owner, open:** a subscription budget with an email alert; check the Foundry deployment's TPM limit (the real hard cap; 429 falls
   back to templates); confirm `web/icon*` are self-made; check the MAI-Voice preview terms allow a public demo; optionally commit with
   the GitHub noreply email.
+
+## Listening view (2026-10-26; task: `docs/tasks/done/2026-10-26-listen-view.md` + the owner's addendum; pushed, not deployed)
+- **Commentator cut-off fixed** (`web/js/speech.js`): a narration sentence now waits for a commentator line under way (max 6 s, 8 s
+  after a goal line) instead of cutting it; `sayHeld` keeps the voice slot so no new line starts in the gap; the caption changes when
+  the sentence starts, not while it waits. Recaps still cut non-goal lines. Not heard live yet (timing only shows at a real moment).
+- **Two views, one page** (`web/js/listen.js`, views block in `web/app.css`): `body[data-view]`; first visit opens the listening
+  view, `?view=listen|desk` overrides and is stored in `htg.view`. "Show the pitch & data" / "Listening view" (desk header, beside the
+  language) switch both ways without stopping the sound. The listening view plays in Audio only through `setMode(m, false)`, so
+  `htg.mode` keeps the desk's choice (Analyst -> listen -> desk is Analyst again, also after a reload).
+- **Listening view** (calm, mobile first, max 560 px): a "now playing" card (score, clock, caption as the subtitle), Start / Stop as
+  the strongest element (72 px), Next moment + Catch me up (stack below 360 px), Live / Highlights, status, "Choose a match" (h2) with
+  the always-open cards, language, tour offer, a hint line (touch: lock-screen hint; desktop: Space / N; chosen by CSS), the switch.
+  Five desk elements (caption, Live / Highlights, match list, language, tour banner) move into this order and back to their places.
+- **Match cards:** read as "Northport versus Valemont" (TR "Northport – Valemont maçı"), never the score; dots `aria-hidden`. In the
+  listening view a tap starts that match at once on the Start path, synchronously (iOS audio unlock), and focuses Start/Stop; the
+  match already playing only moves focus. The desk keeps "a new match waits for Start".
+- **Checked** (headless Chrome against local `serve`, 1440 / 390 / 340 / 320 px): reading order = visual order; no horizontal scroll;
+  no target under 48 px; text >= 18 px except the 14 px "your team" badge on a card; only `#status` is a live region here; a card
+  starts a session (hello, status); view switches keep the same socket; the desk comes back exactly as before; touch hint under
+  touch emulation; TR texts; no console errors. Contrast: muted text 6.3:1 on the card, chalk 14.5:1. Six screenshots (two were
+  wasted on a stale headless browser).
+- **Deviations:** order follows the addendum (Next moment / Catch me up before Live / Highlights); the status line stays visible
+  (it is the only spoken state: connecting, lost, reconnecting); the tour banner stays, in neutral colours. Live / Highlights does
+  not start on its own in the listening view (same as the desk: Start or a card starts).
+- **Owner, VoiceOver on iOS (not done yet):** 1. open the app: the listening view; swipe from the top: title, tagline, score, clock,
+  caption, Start, Next moment, Catch me up, Live, Highlights, status, "Choose a match", the cards, language, tour, hint, "Show the pitch
+  & data". 2. double-tap a card: sound starts on the first tap, focus lands on Stop, VoiceOver says the status. 3. double-tap Stop,
+  then Start again. 4. Next moment, then Catch me up (hear the recap). 5. lock the phone for a minute: sound continues. 6. "Show the
+  pitch & data", then "Listening view": the sound never stops. 7. switch the language to Türkçe and repeat 1-2.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |

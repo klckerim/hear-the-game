@@ -114,3 +114,13 @@ ways, the always-open match list.
 
 ## Out of scope
 New features, voice commands, a second settings menu, onboarding beyond the existing tour, server changes, README (next task).
+
+## Addendum (owner, after trying a first version; applies to sections 2 and 4)
+Design: mobile first, like a radio / podcast "now playing" screen, calm. One column, max ~560 px; a "now playing" card on top (match,
+clock and score large and bold, the caption inside under them); Start / Stop full width under the card (>= 64 px, the strongest
+element); Next moment and Catch me up side by side (stack below 360 px); Live / Highlights a full-width two-part segmented control;
+then "Choose a match" (h2) with the always-open cards, language and "Show the pitch & data" at the bottom. No small tags, badges or
+secondary text except "your team" on a card; colour only for club dots and the focus ring.
+Hint line (replaces 2.11), chosen by CSS: touch devices (`(hover: none) and (pointer: coarse)`) "Lock your phone, the match keeps
+playing. Headphones tell you the side of the pitch."; desktop the keys line. Both in the DOM, the hidden one `display: none`.
+Do not add custom touch gestures or Media Session / lock-screen controls. Commits one per part; at the end push to origin (no deploy).
