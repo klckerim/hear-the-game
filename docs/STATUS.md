@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-26 (listening view done: 4 commits, pushed, not deployed). Next: the owner tries it with VoiceOver on iOS (checklist under "Listening view"), `azd deploy`, then the README task and the video (opening shot: the listening view). No Azure portal screenshots in the README (owner's decision, 2026-10-25). Calendar note: the plan's dates (Day 5 = Oct 24) run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
+Last updated: 2026-10-26 (listening view done, deployed by the owner; VoiceOver on iOS and the commentator fix checked by the owner, all passed). Next: the README task and the video (opening shot: the listening view). No Azure portal screenshots in the README (owner's decision, 2026-10-25). Calendar note: the plan's dates (Day 5 = Oct 24) run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -445,10 +445,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   back to templates); confirm `web/icon*` are self-made; check the MAI-Voice preview terms allow a public demo; optionally commit with
   the GitHub noreply email.
 
-## Listening view (2026-10-26; task: `docs/tasks/done/2026-10-26-listen-view.md` + the owner's addendum; pushed, not deployed)
+## Listening view (2026-10-26; task: `docs/tasks/done/2026-10-26-listen-view.md` + the owner's addendum; deployed by the owner, 2026-10-26)
 - **Commentator cut-off fixed** (`web/js/speech.js`): a narration sentence now waits for a commentator line under way (max 6 s, 8 s
   after a goal line) instead of cutting it; `sayHeld` keeps the voice slot so no new line starts in the gap; the caption changes when
-  the sentence starts, not while it waits. Recaps still cut non-goal lines. Not heard live yet (timing only shows at a real moment).
+  the sentence starts, not while it waits. Recaps still cut non-goal lines. Heard by the owner at a goal on 2026-10-26: no cut-off.
 - **Two views, one page** (`web/js/listen.js`, views block in `web/app.css`): `body[data-view]`; first visit opens the listening
   view, `?view=listen|desk` overrides and is stored in `htg.view`. "Show the pitch & data" / "Listening view" (desk header, beside the
   language) switch both ways without stopping the sound. The listening view plays in Audio only through `setMode(m, false)`, so
@@ -475,7 +475,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   top right ("English" / "Türkçe", each in its own `lang`, `aria-pressed`, group "Language" / "Dil"; one double tap, no picker wheel;
   beside the title down to 375 px, under it on narrower screens); changed while listening in the desk, the status line says "Commentary in English" / "Anlatım Türkçe"; in the listening view
   it is only redrawn in the new language. The listening view's status leaves out "20 s delay" (the desk keeps it). README paragraph updated.
-- **Owner, VoiceOver on iOS (not done yet):** 1. open the app: the listening view; swipe from the top: title, English, Türkçe (the
+- **Owner, VoiceOver on iOS (done 2026-10-26, all 7 steps passed):** 1. open the app: the listening view; swipe from the top: title, English, Türkçe (the
   current one "selected"), tagline, score, clock, caption, Start, Next moment, Catch me up, Live, Highlights, status, "Choose a match",
   the cards, tour, hint, "Show the pitch & data". 2. double-tap a card: sound starts on the first tap, focus lands on Stop, VoiceOver says the status. 3. double-tap Stop,
   then Start again. 4. Next moment, then Catch me up (hear the recap). 5. lock the phone for a minute: sound continues. 6. "Show the
