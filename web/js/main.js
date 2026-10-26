@@ -139,11 +139,13 @@ document.querySelectorAll("#commLang button").forEach(b => b.addEventListener("c
 // The delay is fixed per session (20 s in the fan modes, none in Analyst), so crossing between Analyst and a fan mode while listening
 // restarts where the listener is, in the new mode (Highlights: the clip under way); otherwise a session started in Analyst would stay
 // without the live commentator.
-document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => {
+// remember: false for the listening view's Audio only, so htg.mode keeps the desk's own choice.
+function setMode(m, remember = true) {
   const was = mode;
-  mode = b.dataset.mode; store.set("htg.mode", mode); applyMode(); sendMode();
+  mode = m; if (remember) store.set("htg.mode", mode); applyMode(); sendMode();
   if (live.ws && (was === "analyst") !== (mode === "analyst")) { const at = playT(); stopListening(); connect(at ?? startT); }  // the caption starts over: the old line belongs to the other delay
-}));
+}
+document.querySelectorAll("#modes button").forEach(b => b.addEventListener("click", () => setMode(b.dataset.mode)));
 $("club").addEventListener("change", e => { favClub = e.target.value; store.set("htg.club", favClub); fillClub(); fillMatches(); sendClub(); });
 // A new match or a new way to watch stops listening and waits for Start (from kick-off / the first clip): looking through the
 // list, or an arrow key on the focused picker, must not start a match. The status line (read aloud) says what is ready. A timeline
