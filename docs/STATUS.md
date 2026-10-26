@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-26 (listening view done, deployed by the owner; VoiceOver on iOS and the commentator fix checked by the owner, all passed). Next: the README task and the video (opening shot: the listening view). No Azure portal screenshots in the README (owner's decision, 2026-10-25). Calendar note: the plan's dates (Day 5 = Oct 24) run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
+Last updated: 2026-10-26 (README final pass, submission texts, deployed latency with 4 sessions, bug hunt: all done; nothing to deploy). Next: the video (opening shot: the listening view), then the owner's read-through of README and the submission texts. Calendar note: the plan's dates (Day 5 = Oct 24) run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -482,6 +482,26 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   pitch & data", then "Listening view": the sound never stops. 7. double-tap "Türkçe" at the top right: screen and commentary switch
   together, the language buttons are read in their own voice; repeat 1-2.
 
+## README final (2026-10-26; task: `docs/tasks/done/2026-10-26-readme-final.md` + the owner's addendum; no deploy needed)
+- README (`31486dc`): first screen is title, pitch line, Live demo · category links (no video link yet: owner adds it later), intro,
+  Try it, "How it works in 3 steps", two screenshots side by side (`docs/img/listen-phone.png` 390x844, `docs/img/desk.png` 1440x900
+  Casual; owner approved images after all), and a "Challenge fit" table against Official Rules 4.1 (stage labels i a-e, ii, iii-vi
+  taken from the owner's addendum; owner to check them against the rules text). Also: listening-view paragraph, "Why Foundry"
+  (prompts 3 and 5 had Foundry evaluations, prompt 4 only the offline eval: worded so), fluency sentence, honest iOS / VoiceOver line,
+  a real Verifier blind spot ("at the break" at minute 9), public demo limits, Not built: Media Session, user study, auto-eventing.
+- Screenshots were taken from local serve with `HTG_ENV=azure`: with `.env` as it is (`HTG_ENV=local`, `COMMENTARY=on`) the local
+  stub commentator tags lines "live · 0.0 s", which would mislead. Not a bug in the deployed app.
+- `docs/submission.md` (`c7fbe22`): judge steps follow the listening view, one EN/TR switch, the desk one tap away; session limit 4 per IP.
+- Deployed latency (`4e10302`): `eval/latency.py --watch live|highlights`. 4 sessions, 3 min, from Istanbul: Live hello p50 2.2 s /
+  p95 3.0 s, state p95 202 ms, longest gap 1.6 s, Insight -> speech p50 334 ms (4, all verified with audio); Highlights hello p50 2.0 s /
+  p95 2.7 s, longest gap 2.4 s (probably a clip cut), no narration in the 3 minutes. 0 session errors, no busy refusals.
+- Bug hunt (headless Chrome, local serve, `HTG_ENV=local`): 6 matches x Live/Highlights x EN/TR in the listening view at 390 px (tap card,
+  hello, Next moment, Catch me up, Stop) and the desk at 1440 in Audio only / Casual / Analyst: 0 console errors, 0 uncaught exceptions,
+  Start/Stop label, match, watch and status right at every step. Nothing fixed, no commit. For the owner (not fixed, minor):
+  - After Stop the status says "Ready: <match> · Live" although Start resumes from the minute where it stopped (e.g. 7').
+  - The template recap in the first minute reads "After 0 minutes it is Northport 0, Valemont 0" (the agent is used when deployed;
+    the template is its fallback).
+
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
 |---|---|---|
@@ -506,7 +526,7 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 ## Risks
 - Live narration on a cache miss: p50 1.58 s / p95 3.60 s (prompt 4, minimal effort, offline eval), so most misses now make the 4 s deadline;
   the slowest still fall back to the template, and deployed misses also pay TTS (p50 ~0.45 s). The demo still uses the pre-generated cache.
-- 10 listeners joining in the same second still wait p50 3.8 s for the first message (0.5 vCPU); fine for judging, owner chose to keep 0.5.
+- 4 listeners (the per-IP cap) joining in the same second wait p50 2.2 s for the first message (0.5 vCPU, 2026-10-26); fine for judging.
 - The Verifier checks numbers, names, jargon and code values; it cannot catch invented details without a number or a name. Say so in the README.
 - Keep the deployed demo cheap: single container app; scale-to-zero is not ideal for a live demo, so use min 1 replica only during judging.
 - iOS Safari background audio: worked once on one iPhone (locked screen, 3 min, 2026-10-25); not tested further.
