@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from htg.adapters.base import Speech
@@ -15,6 +16,8 @@ from services.engine.resolve import MP3_BYTES_PER_S
 
 RECAP_TIMEOUT_S = 25.0  # the button says "Preparing..." meanwhile; measured agent latency is in eval/results/recap.md
 MISSED_MIN = 10  # "What did I miss?" covers the last 10 minutes by default
+# Recaps run here, not on the default pool narration and commentary use: a burst of recaps cannot starve them
+RECAP_POOL = ThreadPoolExecutor(max_workers=2, thread_name_prefix="recap")
 
 
 def since_for(kind: str, t: float, since_min: Any = None) -> int:
@@ -36,7 +39,7 @@ async def recap_message(rec: MatchRecord, model: RecapModel | None, speech: Spee
         return r, {lang: speech.synthesize(" ".join(r[lang]), lang) for lang in LANGS}
 
     try:
-        r, audio = await asyncio.wait_for(asyncio.to_thread(work), RECAP_TIMEOUT_S)
+        r, audio = await asyncio.wait_for(asyncio.get_running_loop().run_in_executor(RECAP_POOL, work), RECAP_TIMEOUT_S)
     except Exception:  # timeout or anything unexpected: the template recap, no audio (the device voice reads it)
         text, _ = template_recap(rec, t, since_min)
         r, audio = {**text, "source": {lang: "template" for lang in LANGS}}, {lang: None for lang in LANGS}

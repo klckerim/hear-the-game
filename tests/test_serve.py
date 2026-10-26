@@ -238,3 +238,44 @@ def test_only_the_latest_valid_preference_of_each_type_is_kept():
     assert not any(keep_pref(prefs, m) for m in junk)
     assert keep_pref(prefs, {"type": "set_mode", "mode": "analyst"}) and keep_pref(prefs, {"type": "set_mode", "mode": "casual"})
     assert prefs == {"set_mode": {"type": "set_mode", "mode": "casual"}}
+
+
+def test_one_recap_at_a_time_then_a_20_s_cooldown():
+    from services.engine.serve import RECAP_COOLDOWN_S, RecapGate
+
+    t = [100.0]
+    gate = RecapGate(clock=lambda: t[0])
+    assert gate.start() and not gate.start()  # back to back: the second is ignored while the first is in flight
+    t[0] += 5.0
+    gate.done()
+    t[0] += RECAP_COOLDOWN_S - 0.1
+    assert not gate.start()  # still cooling down
+    t[0] += 0.2
+    assert gate.start()
+
+
+def test_two_recap_requests_back_to_back_get_one_recap(monkeypatch):
+    from services.engine import serve
+
+    monkeypatch.setattr(serve, "_warm", serve.OrderedDict())
+    match = serve.Match.load(seed7())
+
+    async def run() -> int:
+        async def handler(ws) -> None:
+            await serve.session(ws, match, [[1800.0, 5400.0]], 50.0, set())
+
+        async with websockets.serve(handler, "localhost", 0, process_request=process_request) as srv:
+            async with websockets.connect(f"ws://localhost:{srv.sockets[0].getsockname()[1]}/ws") as c:
+                assert json.loads(await asyncio.wait_for(c.recv(), 30))["type"] == "hello"
+                for _ in range(2):
+                    await c.send(json.dumps({"type": "recap_request"}))
+                recaps, loop = 0, asyncio.get_running_loop()
+                end = loop.time() + 1.5  # the template recap takes milliseconds; a second one would arrive well inside this
+                while (left := end - loop.time()) > 0:
+                    try:
+                        recaps += json.loads(await asyncio.wait_for(c.recv(), left))["type"] == "recap"
+                    except TimeoutError:
+                        break
+                return recaps
+
+    assert asyncio.run(run()) == 1

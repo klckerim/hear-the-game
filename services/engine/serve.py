@@ -35,8 +35,10 @@ import json
 import os
 import re
 import threading
+import time
 from collections import OrderedDict
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from http import HTTPStatus
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
@@ -76,6 +78,7 @@ CLIENT_FILES = {"/app.css": "text/css; charset=utf-8"} | {f"/js/{f.name}": "text
 MAX_SESSIONS = 20
 STATS_EVERY_S = 10.0
 MAX_DELAY_S = 30.0
+RECAP_COOLDOWN_S = 20.0  # after a listener's recap arrives, before the next request is accepted
 CLIP_BEFORE_S, CLIP_AFTER_S = 30.0, 15.0  # a Highlights window around each moment
 HALF_S = 2700.0
 WARM_MAX = 64  # warmed pipelines kept (~2 MB each; a start second per match); the least recently used goes first
@@ -107,6 +110,23 @@ class Match:
                  for side, t in self.meta["teams"].items()}  # players as in `hello`: the favourite-player list before Start
         return {"id": self.id, "seed": self.meta["seed"], "teams": teams, "duration_s": self.meta["duration_s"], "moments": self.moments,
                 "windows": highlight_windows(self.moments, self.meta["duration_s"])}
+
+
+@dataclass
+class RecapGate:
+    """One "What did I miss?" recap per session at a time, then RECAP_COOLDOWN_S before the next; requests in between are ignored."""
+    clock: Callable[[], float] = time.monotonic
+    busy: bool = False
+    ready_at: float = field(default=float("-inf"))
+
+    def start(self) -> bool:
+        if self.busy or self.clock() < self.ready_at:
+            return False
+        self.busy = True
+        return True
+
+    def done(self) -> None:
+        self.busy, self.ready_at = False, self.clock() + RECAP_COOLDOWN_S
 
 
 def http_response(status: HTTPStatus, body: bytes, content_type: str) -> Response:
@@ -249,6 +269,7 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
     prefs: dict[str, dict] = {}  # the latest valid set_mode / set_favourite, applied again to the warmed copy of every window
     insights: dict[str, dict] = {}
     tasks: set[asyncio.Task] = set()
+    gate = RecapGate()
     now = windows[0][0]  # server match time: `delay_s` ahead of what the listener hears
     stream = CommentaryStream(commentator, resolver.speech, known_names(meta), meta.get("seed"), delay_s, speed, lang,
                               lambda m: send(m), lambda: now) if commentator and delay_s > 0 else None
@@ -268,6 +289,12 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
         await send(msg)
         return msg
 
+    async def asked_recap(since_min: object) -> None:
+        try:
+            await recap("missed", now - delay_s, since_min)  # what the listener has heard
+        finally:
+            gate.done()
+
     def spawn(coro) -> None:  # noqa: ANN001
         task = asyncio.create_task(coro)
         tasks.add(task)
@@ -282,7 +309,8 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
             if not isinstance(msg, dict):
                 continue
             if msg.get("type") == "recap_request":
-                spawn(recap("missed", now - delay_s, msg.get("since_min")))  # what the listener has heard
+                if gate.start():
+                    spawn(asked_recap(msg.get("since_min")))
                 continue
             if msg.get("type") == "set_lang" and msg.get("lang") in ("en", "tr"):
                 if stream:
