@@ -311,10 +311,65 @@ body[data-mode="eyes_free"] .stage .scorebar .clock { display: none; }
    lays the rest out as one narrow column with the transport in the page (not sticky, not fixed to the bottom). */
 #toListen { grid-area: view; justify-self: end; border-radius: 999px; padding: 6px 14px; font-size: 13px; white-space: nowrap; }
 body[data-view="desk"] .listen-only { display: none; }
-body[data-view="listen"] :is(.hdr-right .sub, #toListen, #mpick, .modebar, .d-pitch, .d-listen) { display: none; }
+body[data-view="listen"] :is(.hdr-right .sub, #toListen, .matchbar, .modebar, .d-pitch, .d-listen, .p-btns .hint) { display: none; }
 body[data-view="listen"] .wrap { max-width: 640px; }
 body[data-view="listen"] .player { position: static; margin: 0; padding: 0; border: 0; }
 body[data-view="listen"] .p-ctl { position: static; padding: 0; background: none; border: 0; }
 body[data-view="listen"] .desk { grid-template-columns: minmax(0, 1fr); grid-template-areas: none; }
 body[data-view="listen"] .d-now { grid-area: auto; }
 @media (max-width: 860px) { body[data-view="listen"] { padding-bottom: 32px; } }
+/* Listening view: mobile first, a calm radio-style "now playing" screen. One column (max 560 px); a card with the match, score, clock
+   and the caption (the subtitle for low-vision users); Start / Stop the strongest element; large targets (>= 48 px, Start >= 64 px);
+   text >= 18 px. Colour only for club dots and the focus ring; no tags or badges except "your team" on a match card. */
+body[data-view="listen"] { font-size: 18px; }
+body[data-view="listen"] .wrap { max-width: 560px; gap: 20px; }
+body[data-view="listen"] header { display: block; }
+body[data-view="listen"] h1 .accent { color: inherit; }
+.l-sub { margin: 8px 0 0; font-size: 18px; color: var(--chalk); }
+body[data-view="listen"] .player { gap: 14px; }
+body[data-view="listen"] .p-match { display: grid; gap: 14px; padding: 18px; background: var(--desk); border: 1px solid var(--line); border-radius: 12px; }
+body[data-view="listen"] .scorebar { flex-wrap: wrap; justify-content: center; gap: 6px 14px; font-size: 30px; font-weight: 700; }
+body[data-view="listen"] .score { font-size: 28px; font-weight: 500; padding: 2px 12px; color: var(--chalk); border-color: var(--muted); }
+body[data-view="listen"] .clock { flex-basis: 100%; margin: 0; text-align: center; font-size: 22px; color: var(--chalk); }
+body[data-view="listen"] .caption { height: auto; min-height: calc(3 * 1.4em + 2px); padding: 0; background: none; border: 0; border-radius: 0;
+  font-size: 22px; line-height: 1.4; text-align: center; justify-content: center; }
+body[data-view="listen"] .caption .tags { display: none; }
+body[data-view="listen"] #captionSub { font-size: 18px; }
+body[data-view="listen"] .p-ctl { display: grid; gap: 12px; }
+body[data-view="listen"] .p-btns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+body[data-view="listen"] .p-btns button { min-height: 56px; padding: 8px 12px; font-size: 18px; font-weight: 500; line-height: 1.2; }
+body[data-view="listen"] .p-btns #playBtn { grid-column: 1 / -1; width: auto; min-height: 72px; font-family: var(--display); font-weight: 700; font-size: 30px;
+  letter-spacing: 0.04em; text-transform: uppercase; background: var(--chalk); color: var(--night); border-color: var(--chalk); }
+body[data-view="listen"] #watch { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+body[data-view="listen"] #watch button { min-height: 52px; }
+body[data-view="listen"] #watch button[aria-pressed="true"] { background: var(--chalk); color: var(--night); font-weight: 500; }
+body[data-view="listen"] #status { white-space: normal; font-size: 18px; color: var(--chalk); text-align: center; }
+@media (max-width: 600px) {  /* phones: home, score, away, clock one under the other (side by side, a long name wrapped badly) */
+  body[data-view="listen"] .scorebar { flex-direction: column; gap: 4px; }
+  body[data-view="listen"] .clock { flex-basis: auto; }
+}
+@media (max-width: 359px) { body[data-view="listen"] .p-btns { grid-template-columns: minmax(0, 1fr); } }  /* Next moment, Catch me up stack */
+.l-more { display: grid; gap: 14px; }
+.l-more h2 { margin: 12px 0 0; font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: 0.04em; text-transform: uppercase; }
+.l-more .mlist { position: static; padding: 0; gap: 8px; background: none; border: 0; box-shadow: none; max-height: none; overflow: visible; }
+.l-more .mlist button { min-height: 60px; padding: 10px 14px; background: var(--desk); border: 1px solid var(--line); border-left: 4px solid var(--line); }
+.l-more .mlist button:hover { border-color: var(--muted); }
+.l-more .mlist button[aria-current="true"] { border-color: var(--chalk); border-left-color: var(--chalk); }
+.l-more .mt { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: 0.03em; text-transform: uppercase; }
+.l-more .vs { color: var(--muted); font-family: var(--display); font-size: 24px; }
+.l-more .yours { font-size: 14px; padding: 2px 6px; }
+.l-more #appLang { grid-area: auto; justify-self: start; min-height: 48px; padding-left: 14px; color: var(--chalk); }  /* the header's grid area would add a column here */
+.l-more #appLang select { min-height: 48px; font-size: 18px; padding: 10px 8px; }
+.l-more .banner { font-size: 18px; color: var(--chalk); border-color: var(--muted); }
+.l-more .banner button { min-height: 48px; }
+.l-more #tourBtn { color: var(--chalk); border-color: var(--chalk); }
+.l-more .banner .icon { min-width: 48px; color: var(--chalk); }
+.l-hint { margin: 0; color: var(--chalk); }
+.l-touch { display: none; }
+@media (hover: none) and (pointer: coarse) { .l-touch { display: block; } .l-keys { display: none; } }  /* phones: the lock-screen hint, no keys */
+#toDesk { min-height: 56px; font-size: 18px; }
+@media (max-width: 380px) {
+  body[data-view="listen"] .scorebar { font-size: 24px; }
+  body[data-view="listen"] .score { font-size: 22px; }
+  .l-more .mt, .l-more .vs { font-size: 20px; }
+}

@@ -51,7 +51,10 @@ const T = {
     st_possession_pct: "Topla oynama", st_shots: "Şut (isabetli)", st_pass_completion_pct: "Pas isabeti", st_pressing_pct: "Pres",
     st_corners: "Korner", st_fouls: "Faul", statsWait: "İlk sayılar maç başlayınca gelir.",
     statsNote: "Pres: rakibin topla yaptığı hareketlerin bu takımın baskısı altında yapılan payı. Her 10 saniyede güncellenir.",
-    toListen: "Dinleme görünümü", toDesk: "Sahayı ve veriyi göster" },
+    toListen: "Dinleme görünümü", toDesk: "Sahayı ve veriyi göster",
+    listenSub: "Sesle izlenen futbol. Kulaklığını tak.", chooseMatch: "Maç seç", versus: "{home} – {away} maçı",
+    keysLine: "Tuşlar: Boşluk başlatır ya da durdurur, N sonraki ana geçer.",
+    touchLine: "Telefonunu kilitle, maç çalmaya devam eder. Kulaklıkta sesin yönü sahanın tarafını söyler." },
   en: { sub: "Follow the match by sound.", headphones: "Best with headphones", matchView: "Match view",
     pitchAria: "Ball position on the pitch", home: "Home", away: "Away", blindTitle: "Pitch hidden",
     blindSub: "You follow the match by sound alone.", tagIdle: "Narration",
@@ -90,7 +93,10 @@ const T = {
     st_possession_pct: "Possession", st_shots: "Shots (on target)", st_pass_completion_pct: "Pass completion", st_pressing_pct: "Pressing",
     st_corners: "Corners", st_fouls: "Fouls", statsWait: "The first numbers arrive when the match starts.",
     statsNote: "Pressing: share of the opponent's on-ball actions made under this team's pressure. Updates every 10 s.",
-    toListen: "Listening view", toDesk: "Show the pitch & data" } };
+    toListen: "Listening view", toDesk: "Show the pitch & data",
+    listenSub: "Football you can hear. Put on headphones.", chooseMatch: "Choose a match", versus: "{home} versus {away}",
+    keysLine: "Keys: Space starts or stops, N jumps to the next moment.",
+    touchLine: "Lock your phone, the match keeps playing. Headphones tell you the side of the pitch." } };
 const MODES = ["eyes_free", "casual", "analyst"];
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 const LANGS = ["en", "tr"];

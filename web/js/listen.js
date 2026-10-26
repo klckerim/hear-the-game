@@ -14,7 +14,7 @@ document.body.dataset.view = view;
 if (view === "listen") mode = "eyes_free";  // before main.js applies the mode
 const deskMode = () => MODES.includes(store.get("htg.mode")) ? store.get("htg.mode") : "casual";
 function setView(v) {
-  view = v; store.set("htg.view", v); document.body.dataset.view = v;
+  view = v; store.set("htg.view", v); document.body.dataset.view = v; arrange();
   const want = v === "listen" ? "eyes_free" : deskMode();
   if (want !== mode) setMode(want, false);
 }
@@ -24,9 +24,37 @@ function viewBtn(id, to) {
   b.addEventListener("click", () => { setView(to); $(to === "listen" ? "playBtn" : "toListen").focus(); });  // the pressed button is gone
   return b;
 }
-// The listening view's own elements; the rest are the desk's, shown or hidden by app.css.
-const listenMore = document.createElement("section");
-listenMore.className = "listen-only"; listenMore.id = "listenMore";
-listenMore.append(viewBtn("toDesk", "desk"));
+// The listening view's own elements; the rest are the desk's. DOM order is the reading and the visual order: title and tagline, the
+// "now playing" card (score, clock, caption), Start, Next moment and Catch me up, Live / Highlights, status, the match list, language,
+// tour offer, a hint (CSS shows the lock-screen one on touch screens, the keys elsewhere; the other is display: none), the switch.
+const el = (tag, cls, key) => { const e = document.createElement(tag); e.className = cls; if (key) e.dataset.i18n = key; return e; };
+document.querySelector("h1").after(el("p", "l-sub listen-only", "listenSub"));
+const listenMore = el("div", "l-more listen-only"), chooseTitle = el("h2", "", "chooseMatch"), keys = el("p", "l-hint l-keys", "keysLine");
+chooseTitle.id = "chooseTitle";
+listenMore.append(chooseTitle, keys, el("p", "l-hint l-touch", "touchLine"), viewBtn("toDesk", "desk"));
 document.querySelector(".d-now").after(listenMore);
 $("appLang").before(viewBtn("toListen", "listen"));  // desk header, beside the language: not in the phone player bar
+// A few desk elements move into the listening view's order and back; a comment marks each one's place in the desk.
+const homes = new Map();
+function moveTo(e, put) { if (!homes.has(e)) { const mark = document.createComment(e.id); e.before(mark); homes.set(e, mark); } put(e); }
+function arrange() {
+  if (view === "listen") {
+    moveTo($("caption"), e => document.querySelector(".scorebar").after(e));  // into the card
+    moveTo($("watch"), e => $("recapBtn").after(e));
+    moveTo($("matchList"), e => chooseTitle.after(e));
+    moveTo($("appLang"), e => keys.before(e));
+    moveTo($("tourBanner"), e => keys.before(e));
+    $("matchList").hidden = false;  // always open: VoiceOver swipes straight through it
+  } else {
+    homes.forEach((mark, e) => mark.after(e));
+    $("matchList").hidden = true; $("matchBtn").setAttribute("aria-expanded", "false");
+  }
+}
+arrange();
+// A match card starts that match at once (Live from kick-off, or Highlights); swiping through the list activates nothing. Same start
+// path as Start, synchronously in the tap (iOS unlocks audio only inside the gesture). The match already playing only moves focus.
+function listenPick(id) {
+  if (id !== curMatch().id) setMatch(id);
+  if (!live.ws) { endTour(); connect(); }
+  $("playBtn").focus();
+}

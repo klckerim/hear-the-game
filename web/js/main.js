@@ -49,8 +49,8 @@ function fillClub() {
 // team". Cards are plain buttons (Tab between them), not radios: an arrow key must not switch the match. Escape or a click outside closes.
 function matchFace(m) {  // "● NORTHPORT – VALEMONT ●": each name in one line, the pair wraps between the clubs only
   const side = s => { const e = document.createElement("span"), d = document.createElement("i"); e.className = "mt"; d.className = "dot";
-    d.style.background = COLOR[m.teams[s].color] || "#ccc"; e.append(...(s === "HOME" ? [d, m.teams[s]["name_" + uiLang]] : [m.teams[s]["name_" + uiLang], d])); return e; };
-  const dash = document.createElement("span"); dash.className = "vs"; dash.textContent = "–";
+    d.setAttribute("aria-hidden", "true"); d.style.background = COLOR[m.teams[s].color] || "#ccc"; e.append(...(s === "HOME" ? [d, m.teams[s]["name_" + uiLang]] : [m.teams[s]["name_" + uiLang], d])); return e; };
+  const dash = document.createElement("span"); dash.className = "vs"; dash.textContent = "–"; dash.setAttribute("aria-hidden", "true");
   return [side("HOME"), dash, side("AWAY")];
 }
 function fillMatches() {
@@ -65,6 +65,8 @@ function fillMatches() {
     b.type = "button"; b.dataset.id = m.id; b.append(...matchFace(m));
     if (m.id === cur.id) b.setAttribute("aria-current", "true");
     if (mine(m)) { const y = document.createElement("span"); y.className = "yours"; y.textContent = t("yourTeam"); b.append(y); }
+    const name = t("versus").replace("{home}", m.teams.HOME["name_" + uiLang]).replace("{away}", m.teams.AWAY["name_" + uiLang]);
+    b.setAttribute("aria-label", mine(m) ? `${name}, ${t("yourTeam")}` : name);  // never the score: the list must not spoil a result
     li.append(b); return li;
   }));
 }
@@ -72,13 +74,15 @@ function openMatches(on) {
   $("matchList").hidden = !on; $("matchBtn").setAttribute("aria-expanded", String(on));
   if (on) ($("matchList").querySelector("[aria-current]") || $("matchList").querySelector("button")).focus();
 }
+function setMatch(id) {
+  if (live.ws) stopListening();
+  matchId = id; store.set("htg.match", matchId); startT = 0;
+  resetLive(); applyMatch();  // nothing of the old match stays: caption, feed, log, markers, Why
+}
 function pickMatch(id) {
   openMatches(false); $("matchBtn").focus();
   if (id === curMatch().id) return;
-  if (live.ws) stopListening();
-  matchId = id; store.set("htg.match", matchId); startT = 0;
-  resetLive(); applyMatch(); readyFor();  // nothing of the old match stays: caption, feed, log, markers, Why
-  idleCaption();
+  setMatch(id); readyFor(); idleCaption();
 }
 function applyWatch() { document.querySelectorAll("#watch button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.watch === watch))); renderTimeline(); }
 // Before Start (or after a new match is picked): names, colours, clubs and the timeline come from the fixture list.
@@ -155,9 +159,9 @@ function readyFor() {
   $("status").textContent = `${t("ready")} ${uiTeam("HOME")} – ${uiTeam("AWAY")} · ${watch === "live" ? t("watchLive") : t("watchHl")}`;  // Start sits beside it: no "press Start"
 }
 $("matchBtn").addEventListener("click", () => openMatches($("matchList").hidden));
-$("matchList").addEventListener("click", e => { const b = e.target.closest("button"); if (b) pickMatch(b.dataset.id); });
+$("matchList").addEventListener("click", e => { const b = e.target.closest("button"); if (b) (view === "listen" ? listenPick : pickMatch)(b.dataset.id); });
 $("mpick").addEventListener("keydown", e => { if (e.key === "Escape" && !$("matchList").hidden) { e.stopPropagation(); openMatches(false); $("matchBtn").focus(); } });
-document.addEventListener("click", e => { if (!$("matchList").hidden && !$("mpick").contains(e.target)) openMatches(false); });
+document.addEventListener("click", e => { if (view === "desk" && !$("matchList").hidden && !$("mpick").contains(e.target)) openMatches(false); });
 document.querySelectorAll("#watch button").forEach(b => b.addEventListener("click", () => {
   if (watch === b.dataset.watch) return;
   if (live.ws) stopListening();
