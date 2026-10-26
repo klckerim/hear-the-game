@@ -112,10 +112,10 @@ function applyMode() {
   $("L_callout").checked = calloutsWanted();
   renderSettingsSum();
 }
-// The closed Settings box says what is chosen: "Casual · EN · ★ Northport" (or "No favourite club").
+// The closed Settings box says what is chosen: "Casual · ★ Northport" (or "No favourite club").
 function renderSettingsSum() {
   const c = league && favClub && league.clubs[favClub];
-  $("settingsSum").textContent = [t("mode_" + mode), lang().toUpperCase(), c ? `★ ${c.name}` : t("sumNoClub")].join(" · ");
+  $("settingsSum").textContent = [t("mode_" + mode), c ? `★ ${c.name}` : t("sumNoClub")].join(" · ");
 }
 function applyI18n() {
   document.documentElement.lang = uiLang;
@@ -126,7 +126,6 @@ function applyI18n() {
   if (captionWaiting && !tour.on) idleCaption();
   document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
   $("uiLangSel").value = uiLang;
-  document.querySelectorAll("#commLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang())));
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
   if (!live.ws) $("status").textContent = readyLine();
   setTeamNames(); fillClub(); fillMatches();
@@ -136,10 +135,11 @@ function applyI18n() {
   renderTimeline(); renderFeed();
 }
 // Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
-$("uiLangSel").addEventListener("change", e => { uiLang = e.target.value; store.set("htg.lang", uiLang); applyI18n(); });
-document.querySelectorAll("#commLang button").forEach(b => b.addEventListener("click", () => {
-  commLang = b.dataset.lang; store.set("htg.commentary", commLang); applyI18n(); preloadCallouts();
-}));
+// While listening, the status line (read aloud) says the commentator follows within the delay; stopped, it shows the ready line.
+$("uiLangSel").addEventListener("change", e => {
+  uiLang = e.target.value; store.set("htg.lang", uiLang); applyI18n(); preloadCallouts();
+  if (live.ws) $("status").textContent = t("langSwitched");
+});
 // The delay is fixed per session (20 s in the fan modes, none in Analyst), so crossing between Analyst and a fan mode while listening
 // restarts where the listener is, in the new mode (Highlights: the clip under way); otherwise a session started in Analyst would stay
 // without the live commentator.

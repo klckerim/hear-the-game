@@ -19,8 +19,8 @@
 html { scrollbar-gutter: stable; overflow-anchor: none; }  /* TR and EN texts differ in length: no scrollbar jump, no scroll-anchoring jump */
 #status { min-height: 1.5em; }
 #voiceNote { min-height: 4.5em; }
-#modes, #commLang { display: flex; width: 100%; }
-#modes button, #commLang button { flex: 1 1 0; white-space: nowrap; }
+#modes { display: flex; width: 100%; }
+#modes button { flex: 1 1 0; white-space: nowrap; }
 body {
   background: var(--night); color: var(--chalk); font-family: var(--body); font-size: 15px; line-height: 1.5;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
@@ -370,8 +370,8 @@ body[data-view="listen"] #status { white-space: normal; font-size: 18px; color: 
 .l-more .mt { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: 0.03em; text-transform: uppercase; }
 .l-more .vs { color: var(--muted); font-family: var(--display); font-size: 24px; }
 .l-more .yours { font-size: 14px; padding: 2px 6px; }
-.l-more #appLang { grid-area: auto; justify-self: start; min-height: 48px; padding-left: 14px; color: var(--chalk); }  /* the header's grid area would add a column here */
-.l-more #appLang select { min-height: 48px; font-size: 18px; padding: 10px 8px; }
+body[data-view="listen"] #appLang { margin-top: 14px; min-height: 48px; padding-left: 14px; color: var(--chalk); }  /* under the tagline */
+body[data-view="listen"] #appLang select { min-height: 48px; font-size: 18px; padding: 10px 8px; }
 .l-more .banner { font-size: 18px; color: var(--chalk); border-color: var(--muted); }
 .l-more .banner button { min-height: 48px; }
 .l-more #tourBtn { color: var(--chalk); border-color: var(--chalk); }

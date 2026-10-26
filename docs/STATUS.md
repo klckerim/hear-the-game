@@ -468,6 +468,11 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 - **Deviations:** order follows the addendum (Next moment / Catch me up before Live / Highlights); the status line stays visible
   (it is the only spoken state: connecting, lost, reconnecting); the tour banner stays, in neutral colours. Live / Highlights does
   not start on its own in the listening view (same as the desk: Start or a card starts).
+- **Polish after review** (2026-10-26): score card is one grid row (home | score | away, clock under; score 48 px desktop / 40 px at
+  390, names scale to fit at 320); the idle status is the ready line, "Not connected." only after a failure; phone cards 20 px / 14 px.
+- **One language for screen and commentary** (owner's decision): the desk's commentary-language control is gone, `lang()` is the
+  interface language, a stored `htg.commentary` is removed on load; the select ("Language" / "Dil") sits under the tagline in the
+  listening view; changed while listening, the status line says the commentator follows within 20 s. README paragraph updated.
 - **Owner, VoiceOver on iOS (not done yet):** 1. open the app: the listening view; swipe from the top: title, tagline, score, clock,
   caption, Start, Next moment, Catch me up, Live, Highlights, status, "Choose a match", the cards, language, tour, hint, "Show the pitch
   & data". 2. double-tap a card: sound starts on the first tap, focus lands on Stop, VoiceOver says the status. 3. double-tap Stop,

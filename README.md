@@ -35,9 +35,8 @@ mode-dependent silence (Audio only 10 s, Analyst 15 s, Casual 25 s). Moments of 
 narrated. **What did I miss?** asks the [Recap agent](#recap-agent) for 2-3 verified sentences about the last 10 minutes, told from
 your club's side; at the end of the match it gives a **full-time recap** by itself.
 
-**Two language settings.** The **interface** (EN/TR, in the header) and the **commentary language** (EN/TR, next to the listening
-mode) are set apart and remembered on the device, so the page can stay in English while you hear Turkish commentary. When they
-differ, the caption shows the spoken sentence with the same verified sentence in the interface language under it.
+**One language for screen and voice.** One EN/TR switch (in the header; at the top of the listening view) sets the interface and
+the commentary together and is remembered on the device. Switched while listening, the commentator follows within the 20 s delay.
 
 **Sound tour.** Before the first start the page offers a 60-second tour: each step plays the real sound (ball tick low to high,
 left to right, the two team tones, heartbeat, crowd, pass/shot/save/whistle, goal for and against your club, the favourite-player

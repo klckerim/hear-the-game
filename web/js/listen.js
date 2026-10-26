@@ -24,8 +24,8 @@ function viewBtn(id, to) {
   b.addEventListener("click", () => { setView(to); $(to === "listen" ? "playBtn" : "toListen").focus(); });  // the pressed button is gone
   return b;
 }
-// The listening view's own elements; the rest are the desk's. DOM order is the reading and the visual order: title and tagline, the
-// "now playing" card (score, clock, caption), Start, Next moment and Catch me up, Live / Highlights, status, the match list, language,
+// The listening view's own elements; the rest are the desk's. DOM order is the reading and the visual order: title, tagline, language, the
+// "now playing" card (score, clock, caption), Start, Next moment and Catch me up, Live / Highlights, status, the match list,
 // tour offer, a hint (CSS shows the lock-screen one on touch screens, the keys elsewhere; the other is display: none), the switch.
 const el = (tag, cls, key) => { const e = document.createElement(tag); e.className = cls; if (key) e.dataset.i18n = key; return e; };
 document.querySelector("h1").after(el("p", "l-sub listen-only", "listenSub"));
@@ -42,7 +42,7 @@ function arrange() {
     moveTo($("caption"), e => document.querySelector(".scorebar").after(e));  // into the card
     moveTo($("watch"), e => $("recapBtn").after(e));
     moveTo($("matchList"), e => chooseTitle.after(e));
-    moveTo($("appLang"), e => keys.before(e));
+    moveTo($("appLang"), e => document.querySelector(".l-sub").after(e));
     moveTo($("tourBanner"), e => keys.before(e));
     $("matchList").hidden = false;  // always open: VoiceOver swipes straight through it
   } else {
