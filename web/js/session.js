@@ -82,7 +82,7 @@ const continuesFeed = (feed, was, now) => !!was && was.match === now.match && wa
 // A new session (any start) resets what belongs to its window.
 function resetLive() {
   const feedFor = { match: matchId, watch }, feed = continuesFeed(live.feed, live.feedFor, { ...feedFor, from: startT }) ? live.feed : [];
-  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, ended: false,
+  Object.assign(live, { clock0: null, frames: [], due: [], score: [0, 0], lastTickSlot: -1, nextBeat: 0, cur: null, log: [], recap: [], recapOut: null, recapAt: 0, ended: false,
     gen: live.gen + 1, marks: [], insBySeq: {}, sel: null, hl: null, windows: null, stats: null, delay_s: 0, feed, feedFor,
     cutShow: null, trail: [] });
   $("tlInner").querySelectorAll(".mk:not(.mo)").forEach(e => e.remove()); renderTimeline(); renderWhy(); renderStats(); renderFeed();
@@ -121,7 +121,7 @@ function onMessage(m) {
     live.due.push({ t: m.t_from, kind: "cut", m });
   } else if (m.type === "recap") {
     if (m.kind === "full_time" || m.kind === "half_time") { live.due.push({ t: m.t, kind: "recap", m }); return; }  // plays when its match time arrives
-    clearTimeout(recapWait); recapWait = null; setRecapBusy(false); playRecap(m);
+    clearTimeout(recapWait); recapWait = null; setRecapBusy(false); live.recapAt = Date.now(); playRecap(m);
   }
 }
 
@@ -243,11 +243,14 @@ function renderRecap() {
 // "What did I miss?": the server's Recap agent writes 2-3 verified sentences (template recap if the agent fails). Without a server
 // answer in RECAP_WAIT_MS, or before the match is connected, the old behaviour: score + the last three narrations.
 const RECAP_WAIT_MS = 30000;
+// The server ignores a recap_request for 20 s after a recap; within this, the last recap is played again instead of waiting
+const RECAP_REPLAY_MS = 25000;
 let recapWait = null;
 function setRecapBusy(on) { const b = $("recapBtn"); b.textContent = on ? t("preparing") : t("recapBtn"); b.setAttribute("aria-busy", String(on)); }
 function askRecap() {
   if (!(live.ws && live.ws.readyState === 1 && live.teams)) { readRecap(); return; }
   if (recapWait) return;
+  if (live.recapOut && Date.now() - live.recapAt < RECAP_REPLAY_MS) { playRecap(live.recapOut); return; }
   live.ws.send(JSON.stringify({ type: "recap_request" }));
   setRecapBusy(true);
   recapWait = setTimeout(() => { recapWait = null; setRecapBusy(false); readRecap(); }, RECAP_WAIT_MS);
