@@ -480,6 +480,10 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   else the first `navigator.languages` entry starting with "tr" or "en", else "en"; `?lang=en|tr` overrides and is stored (like `?view`).
   The desk's header select is unchanged and sets `htg.lang` for both views. README and `docs/submission.md` say so. The README's phone
   screenshot (`docs/img/listen-phone.png`, alt text "English and Türkçe buttons at the top") still shows the old buttons: owner retakes it.
+- **Caption follows a language switch** (owner, 2026-10-27): `#caption` kept the old language's sentence (a recap stayed until the next
+  line) and its tag fell back to "Narration". `setCaption` now keeps the sentence (EN + TR) and a tag builder; `applyI18n` redraws both
+  at once in the new language while the voice finishes the sentence in the old one; a line without the new language empties the caption.
+  Checked in a local session (desk, templates): narration, Catch me up recap, one-language line, stopped state; no console errors.
 - **Owner, VoiceOver on iOS (passed 2026-10-26 with the old language buttons; steps 1 and 7 changed 2026-10-27, re-run them):** 1. open the
   app: the listening view, in the device's language; swipe from the top: title (no language buttons), tagline, score, clock, caption, Start, Next moment, Catch me up, Live, Highlights, status, "Choose a match",
   the cards, tour, hint, "Show the pitch & data". 2. double-tap a card: sound starts on the first tap, focus lands on Stop, VoiceOver says the status. 3. double-tap Stop,

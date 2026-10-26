@@ -123,7 +123,7 @@ function applyI18n() {
   const busy = live.ws || tour.on;
   document.querySelectorAll("[data-i18n]").forEach(e => { if (!(e.id === "captionMain" && busy)) e.textContent = t(e.dataset.i18n); });
   if (!busy) { $("captionMain").lang = uiLang; $("captionSub").hidden = true; }
-  if (captionWaiting && !tour.on) idleCaption();
+  if (captionWaiting && !tour.on) idleCaption(); else if (busy) redrawCaption();  // the sentence on screen, in the new language
   document.querySelectorAll("[data-i18n-aria]").forEach(e => e.setAttribute("aria-label", t(e.dataset.i18nAria)));
   $("uiLangSel").value = uiLang;
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
@@ -134,7 +134,8 @@ function applyI18n() {
   renderLog(); renderRecap(); pickVoices(); live.marks.forEach(renderMark); renderWhy(); renderStats(); renderTourBtn(); setRecapBusy(!!recapWait);
   renderTimeline(); renderFeed();
 }
-// Either language changes from the next sentence on; the one being spoken finishes and nothing restarts.
+// The voice changes from the next sentence on; the one being spoken finishes and nothing restarts. The caption shows it in the new
+// language at once.
 // Only the desk's select changes it: while listening, the status line (read aloud) names the new commentary language; otherwise the
 // status is only redrawn in the new language.
 function setLang(v) {

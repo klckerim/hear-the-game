@@ -11,19 +11,24 @@ function pickVoices() {
 function primeVoice() { if ("speechSynthesis" in window) speechSynthesis.speak(new SpeechSynthesisUtterance("")); }  // unlock on the user gesture
 // text: { en, tr }. Shows the commentary-language sentence; when the interface language differs and the message has it, that version
 // sits under it in smaller muted text. A message with only one language shows that one (no translation in the client).
-function setCaption(text, liveNow) {
+// tag: builds the tag line in the current language. Both are kept, so a language change redraws the caption at once in the new language
+// (the voice finishes the sentence under way in the old one); a sentence without the new language leaves the caption empty.
+let captionNow = null;
+function setCaption(text, liveNow, tag) {
   const main = text[lang()] !== undefined ? lang() : uiLang, sub = main !== uiLang ? text[uiLang] : undefined;
   $("captionMain").textContent = text[main] ?? ""; $("captionMain").lang = main;
   $("captionSub").textContent = sub ?? ""; $("captionSub").lang = uiLang; $("captionSub").hidden = !sub;
   $("captionTag").classList.toggle("idle", !liveNow);
-  captionWaiting = false;
+  if (tag) $("captionTag").textContent = tag();
+  captionNow = { text, tag }; captionWaiting = false;
 }
+function redrawCaption() { if (captionNow) setCaption(captionNow.text, !$("captionTag").classList.contains("idle"), captionNow.tag); }
 // The caption before the first sentence: the idle text when stopped; after Start a listening state (fan modes: the commentator speaks
 // once the delay has filled; Analyst: notes only when something changes). Redrawn on a language change until a sentence replaces it.
 let captionWaiting = true;
 function idleCaption() {
   const k = !live.ws ? "captionIdle" : mode === "analyst" ? "captionListenAnalyst" : "captionListen";
-  setCaption({ [uiLang]: t(k) }, false); $("captionTag").textContent = t("tagIdle"); $("captionMine").hidden = true;
+  setCaption({ [uiLang]: t(k) }, false, () => t("tagIdle")); $("captionMine").hidden = true;
   captionWaiting = true;
 }
 function duckTo(v) { if (duck) duck.gain.setTargetAtTime(v, ctx.currentTime, 0.08); }
@@ -32,8 +37,7 @@ let sayHeld = 0;  // sentences waiting for a voice under way; commentaryLine tre
 async function say(m, prefix) {
   const l = lang(), text = m.text[l], gen = live.gen;
   const show = () => {  // the caption follows the voice: shown when the sentence starts, not while it waits
-    setCaption(m.text, true);
-    $("captionTag").textContent = (prefix ? prefix + " · " : "") + TAG[uiLang][(m.source && m.source[l]) || "template"];
+    setCaption(m.text, true, () => (prefix ? t(prefix) + " · " : "") + TAG[uiLang][(m.source && m.source[uiLang]) || "template"]);
     $("captionMine").hidden = !(club && m.team === club);
   };
   const finish = () => { duckTo(1); setTimeout(() => { $("captionTag").classList.add("idle"); $("captionMine").hidden = true; }, 400); };
@@ -179,8 +183,7 @@ function commentaryLine(m, a) {
     if (live.gen !== gen || !live.ws) return;
     if (m.goal) { stopClip(); stopComm(); if ("speechSynthesis" in window) speechSynthesis.cancel(); }
     stopCallout();
-    setCaption(m.text, true);
-    $("captionTag").textContent = commTag(m);
+    setCaption(m.text, true, () => commTag(m));
     $("captionMine").hidden = true;
     const idle = () => setTimeout(() => { if (!comm && !clip) $("captionTag").classList.add("idle"); }, 400);
     if (!$("L_voice").checked || !b) { addFeed(m); idle(); return; }

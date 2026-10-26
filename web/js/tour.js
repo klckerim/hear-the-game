@@ -46,7 +46,7 @@ async function tourClip(step, l) {
 }
 function tourVoice(step) {
   const l = lang(), text = step[l];
-  setCaption(step, true); $("captionTag").textContent = t("tourTag"); $("captionMine").hidden = true;
+  setCaption(step, true, () => t("tourTag")); $("captionMine").hidden = true;
   return new Promise(async done => {
     tour.wake = done;
     const buf = await tourClip(step, l);

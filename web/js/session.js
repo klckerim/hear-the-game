@@ -261,14 +261,14 @@ function askRecap() {
 function playRecap(m) {
   live.recapOut = m; renderRecap();
   const joined = { en: m.text.en.join(" "), tr: m.text.tr.join(" ") };
-  say({ text: joined, source: m.source, audio: m.audio, team: null }, m.kind === "full_time" ? t("fullTime") : m.kind === "half_time" ? t("halfTimeRecap") : t("recapTag"));
+  say({ text: joined, source: m.source, audio: m.audio, team: null }, m.kind === "full_time" ? "fullTime" : m.kind === "half_time" ? "halfTimeRecap" : "recapTag");
 }
 // The old "What did I miss": speak the score and the last three narrations, oldest first, with the device voice
 function readRecap() {
-  if (!live.recap.length) { setCaption({ [uiLang]: t("recapEmpty") }, false); return; }
+  if (!live.recap.length) { setCaption({ en: T.en.recapEmpty, tr: T.tr.recapEmpty }, false); return; }
   const said = l => [`${T[l].recapScore}: ${live.score.join(" - ")}.`, ...live.recap.slice(0, 3).reverse().map(r => r.text[l])];
   const lines = said(lang());
-  setCaption({ [lang()]: lines.join(" "), [uiLang]: said(uiLang).join(" ") }, true); $("captionTag").textContent = t("recapTitle");
+  setCaption({ en: said("en").join(" "), tr: said("tr").join(" ") }, true, () => t("recapTitle"));
   const v = voiceFor[lang()];
   if ("speechSynthesis" in window && v) { speechSynthesis.cancel(); lines.forEach(l => { const u = new SpeechSynthesisUtterance(l); u.voice = v; u.lang = v.lang; u.rate = 1.05; speechSynthesis.speak(u); }); }
 }
