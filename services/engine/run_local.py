@@ -165,11 +165,21 @@ class LivePipeline:
         return out
 
 
+def listener_pref(msg: dict) -> str | None:
+    """The type of a valid `set_mode` / `set_favourite` message from a listener; None for anything else."""
+    if msg.get("type") == "set_mode" and isinstance(msg.get("mode"), str) and msg["mode"] in SILENCE_S:
+        return "set_mode"
+    if msg.get("type") == "set_favourite" and msg.get("team") in ("HOME", "AWAY", None):
+        return "set_favourite"
+    return None
+
+
 def apply_listener_message(pipe: LivePipeline, msg: dict) -> None:
     """`set_mode` and `set_favourite` from a listener; anything else is ignored."""
-    if msg.get("type") == "set_mode" and msg.get("mode") in SILENCE_S:
+    kind = listener_pref(msg)
+    if kind == "set_mode":
         pipe.mode = msg["mode"]
-    elif msg.get("type") == "set_favourite" and msg.get("team") in ("HOME", "AWAY", None):
+    elif kind == "set_favourite":
         pipe.favourite = msg["team"]
 
 

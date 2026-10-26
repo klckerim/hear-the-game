@@ -228,3 +228,13 @@ def test_stats_come_every_10_s_from_the_recap_tool(monkeypatch):
     for m in stats:
         assert m["match"] == get_stats(rec, m["t"]) and m["last10"] == get_stats(rec, m["t"], from_min=m["t"] / 60 - 10)
         assert m["last10"]["length_min"] == 10 and m["match"]["from_minute"] == 0
+
+
+def test_only_the_latest_valid_preference_of_each_type_is_kept():
+    from services.engine.serve import keep_pref
+
+    prefs: dict = {}
+    junk = [{"type": "x", "n": i} for i in range(1000)] + [{"type": "set_mode", "mode": ["casual"]}, {"type": "set_mode", "mode": "nope"}]
+    assert not any(keep_pref(prefs, m) for m in junk)
+    assert keep_pref(prefs, {"type": "set_mode", "mode": "analyst"}) and keep_pref(prefs, {"type": "set_mode", "mode": "casual"})
+    assert prefs == {"set_mode": {"type": "set_mode", "mode": "casual"}}

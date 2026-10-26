@@ -58,7 +58,7 @@ from htg.recap.tools import MatchRecord, get_stats
 from services.engine.commentary import CommentaryStream
 from services.engine.recap import recap_message, since_for
 from services.engine.resolve import is_stale
-from services.engine.run_local import LivePipeline, apply_listener_message, make_resolver, warm_up
+from services.engine.run_local import LivePipeline, apply_listener_message, listener_pref, make_resolver, warm_up
 
 ROOT = Path(__file__).resolve().parents[2]
 CLIENT = ROOT / "web" / "live.html"
@@ -195,6 +195,14 @@ def t_of(msg: dict) -> float:
     return msg["insight"]["t"] if msg["type"] == "insight" else msg["t"]
 
 
+def keep_pref(prefs: dict[str, dict], msg: dict) -> bool:
+    """Keep only the latest valid message of each preference type (a session holds two at most); False for anything else."""
+    kind = listener_pref(msg)
+    if kind:
+        prefs[kind] = msg
+    return kind is not None
+
+
 def warmed(meta: dict, match_dir: Path, start_s: float, speed: float) -> LivePipeline:
     """Every listener who starts a match at the same second replays the same thing, so the warm-up is computed once and each
     session gets a copy.
@@ -238,7 +246,7 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
     meta, match_dir = match.meta, match.dir
     resolver = await asyncio.to_thread(make_resolver, meta)  # Azure clients are built here; keep that off the loop too
     pipe: LivePipeline | None = None
-    prefs: list[dict] = []  # set_mode / set_favourite, applied again to the warmed copy of every window
+    prefs: dict[str, dict] = {}  # the latest valid set_mode / set_favourite, applied again to the warmed copy of every window
     insights: dict[str, dict] = {}
     tasks: set[asyncio.Task] = set()
     now = windows[0][0]  # server match time: `delay_s` ahead of what the listener hears
@@ -280,8 +288,7 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
                 if stream:
                     stream.lang = msg["lang"]
                 continue
-            prefs.append(msg)
-            if pipe:
+            if keep_pref(prefs, msg) and pipe:
                 apply_listener_message(pipe, msg)
 
     async def deliver(msg: dict) -> None:
@@ -301,7 +308,7 @@ async def session(ws, match: Match, windows: list[list[float]], speed: float, se
         rec, next_stats = await asyncio.to_thread(record_for, match_dir), 0.0
         for k, (t0, t1) in enumerate(windows):
             warm = await asyncio.to_thread(warmed, meta, match_dir, t0, speed)  # off the loop; computed once per start second
-            for msg in prefs:
+            for msg in prefs.values():
                 apply_listener_message(warm, msg)
             # an Insight found in the warm-up can still be in the Director's queue and be spoken after the start
             insights.update({h["insight"]["insight_id"]: h["insight"] for h in warm.history if h["type"] == "insight"})
