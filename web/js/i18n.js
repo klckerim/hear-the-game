@@ -36,7 +36,7 @@ const T = {
     spaceKey: "Boşluk", nextBtn: "Sonraki an", delayWord: "gecikme", secs: "sn", liveTag: "canlı", fallbackTag: "yedek", clubLabel: "Favori kulüp", clubNone: "Yok", yourTeam: "senin takımın",
     off: "Bağlı değil.", wait: "Sunucuya bağlanıldı, maç bekleniyor.", lost: "Bağlantı koptu. Başlat'a basınca kaldığı yerden sürer.", reconnecting: "Bağlantı koptu, yeniden bağlanılıyor…",
     fail: "Sunucuya bağlanılamadı. run_local çalışıyor mu?", novoice: "Bu dilde cihaz sesi yok; anlatım altyazı olarak görünür.",
-    voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Dil", langSwitched: "Anlatım Türkçe", langHeard: "Dil Türkçe olarak ayarlandı. Spiker Türkçe konuşmaya başlayacak.", install: "Uygulamayı yükle",
+    voice: "Ses", voiceTail: "(cihaz sesi; sunucu Azure klibi gönderirse o çalar)", uiLangLabel: "Dil", langSwitched: "Anlatım Türkçe", install: "Uygulamayı yükle",
     tlTitle: "Zaman çizelgesi · bir yere ya da ana dokun, oradan başla; oynanmış işaret kanıtını gösterir", tlLegendIns: "Tespit (dolu = anlatıldı)", tlInsight: "Tespit", tlShot: "Şut", tlGoal: "Gol", tlMoment: "An (seç: oradan dinle)",
     whyTitle: "Neden?", whyIdle: "Zaman çizelgesinde bir işaret seç: dayandığı olaylar sahada parlar, sayıları burada görünür.",
     evidenceN: "Dayanak: maçtaki {n} olay (sahada işaretli).", evidence1: "Dayanak: maçtaki 1 olay (sahada işaretli).", speed: "Top hızı",
@@ -78,7 +78,7 @@ const T = {
     spaceKey: "Space", nextBtn: "Next moment", delayWord: "delay", secs: "s", liveTag: "live", fallbackTag: "fallback", clubLabel: "Favourite club", clubNone: "None", yourTeam: "your team",
     off: "Not connected.", wait: "Connected, waiting for the match.", lost: "Connection lost. Start picks up where it stopped.", reconnecting: "Connection lost, reconnecting…",
     fail: "Cannot reach the server. Is run_local running?", novoice: "No device voice for this language; narration shows as captions.",
-    voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Language", langSwitched: "Commentary in English", langHeard: "Language set to English. The commentator will switch to English.", install: "Install the app",
+    voice: "Voice", voiceTail: "(device voice; an Azure clip from the server plays instead when present)", uiLangLabel: "Language", langSwitched: "Commentary in English", install: "Install the app",
     tlTitle: "Timeline · select a minute or a moment to start there; a played marker shows its evidence", tlLegendIns: "Insight (filled = spoken)", tlInsight: "Insight", tlShot: "Shot", tlGoal: "Goal", tlMoment: "Moment (select to listen from there)",
     whyTitle: "Why?", whyIdle: "Select a marker on the timeline: the events behind it light up on the pitch and its numbers show here.",
     evidenceN: "Based on {n} match events (marked on the pitch).", evidence1: "Based on 1 match event (marked on the pitch).", speed: "Ball speed",
@@ -100,7 +100,15 @@ const T = {
 const MODES = ["eyes_free", "casual", "analyst"];
 const store = { get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 const LANGS = ["en", "tr"];
-let uiLang = LANGS.includes(store.get("htg.lang")) ? store.get("htg.lang") : (navigator.language || "en").toLowerCase().startsWith("tr") ? "tr" : "en";
+// The stored choice; first visit: the first of the device's languages that is English or Turkish, else English. ?lang=en|tr overrides and
+// is stored (like ?view). The listening view has no language control, so this is its language.
+let uiLang = (() => {
+  const q = new URLSearchParams(location.search).get("lang");
+  if (LANGS.includes(q)) { store.set("htg.lang", q); return q; }
+  if (LANGS.includes(store.get("htg.lang"))) return store.get("htg.lang");
+  const device = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+  return device.map(l => l.toLowerCase().slice(0, 2)).find(l => LANGS.includes(l)) || "en";
+})();
 // One language for the screen and the commentary (owner, 2026-10-26): a separate commentary language, once saved, kept the voice
 // English after a blind listener switched the screen to Turkish. Earlier visitors' saved choice is dropped.
 try { localStorage.removeItem("htg.commentary"); } catch (e) {}

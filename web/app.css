@@ -325,7 +325,7 @@ body[data-view="listen"] { font-size: 18px; }
 body[data-view="listen"] .wrap { max-width: 560px; gap: 20px; }
 body[data-view="listen"] header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 8px; }
 body[data-view="listen"] h1 { white-space: nowrap; }
-@media (max-width: 400px) { body[data-view="listen"] h1 { font-size: 27px; } }  /* title and language share one row down to 375 px; narrower, the language wraps under it, right-aligned */
+@media (max-width: 400px) { body[data-view="listen"] h1 { font-size: 27px; } }  /* the title stays on one row down to 320 px */
 body[data-view="listen"] .seg button:focus-visible { outline-offset: -4px; }  /* inside: the segment clips anything outside it */
 body[data-view="listen"] h1 .accent { color: inherit; }
 .l-sub { flex-basis: 100%; margin: 0; font-size: 18px; color: var(--chalk); }
@@ -373,9 +373,6 @@ body[data-view="listen"] #status { white-space: normal; font-size: 18px; color: 
 .l-more .mt { display: inline-flex; align-items: center; gap: 8px; font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: 0.03em; text-transform: uppercase; }
 .l-more .vs { color: var(--muted); font-family: var(--display); font-size: 24px; }
 .l-more .yours { font-size: 14px; padding: 2px 6px; }
-#lLang { margin-left: auto; }  /* top right, beside the title; wraps under it on the narrowest screens */
-#lLang button { min-height: 48px; padding: 8px 12px; font-size: 17px; }
-#lLang button[aria-pressed="true"] { background: var(--chalk); color: var(--night); }
 .l-more .banner { font-size: 18px; color: var(--chalk); border-color: var(--muted); }
 .l-more .banner button { min-height: 48px; }
 .l-more #tourBtn { color: var(--chalk); border-color: var(--chalk); }

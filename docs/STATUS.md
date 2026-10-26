@@ -455,8 +455,8 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   `htg.mode` keeps the desk's choice (Analyst -> listen -> desk is Analyst again, also after a reload).
 - **Listening view** (calm, mobile first, max 560 px): a "now playing" card (score, clock, caption as the subtitle), Start / Stop as
   the strongest element (72 px), Next moment + Catch me up (stack below 360 px), Live / Highlights, status, "Choose a match" (h2) with
-  the always-open cards, language, tour offer, a hint line (touch: lock-screen hint; desktop: Space / N; chosen by CSS), the switch.
-  Five desk elements (caption, Live / Highlights, match list, language, tour banner) move into this order and back to their places.
+  the always-open cards, tour offer, a hint line (touch: lock-screen hint; desktop: Space / N; chosen by CSS), the switch.
+  Four desk elements (caption, Live / Highlights, match list, tour banner) move into this order and back to their places.
 - **Match cards:** read as "Northport versus Valemont" (TR "Northport – Valemont maçı"), never the score; dots `aria-hidden`. In the
   listening view a tap starts that match at once on the Start path, synchronously (iOS audio unlock), and focuses Start/Stop; the
   match already playing only moves focus. The desk keeps "a new match waits for Start".
@@ -475,12 +475,17 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   top right ("English" / "Türkçe", each in its own `lang`, `aria-pressed`, group "Language" / "Dil"; one double tap, no picker wheel;
   beside the title down to 375 px, under it on narrower screens); changed while listening in the desk, the status line says "Commentary in English" / "Anlatım Türkçe"; in the listening view
   it is only redrawn in the new language. The listening view's status leaves out "20 s delay" (the desk keeps it). README paragraph updated.
-- **Owner, VoiceOver on iOS (done 2026-10-26, all 7 steps passed):** 1. open the app: the listening view; swipe from the top: title, English, Türkçe (the
-  current one "selected"), tagline, score, clock, caption, Start, Next moment, Catch me up, Live, Highlights, status, "Choose a match",
+- **Listening view follows the device language** (owner, 2026-10-27, after VoiceOver on macOS still mixed voices on a switch): the two
+  language buttons and the listening view's spoken switch notice are gone; the view has no language control. Default: stored `htg.lang`,
+  else the first `navigator.languages` entry starting with "tr" or "en", else "en"; `?lang=en|tr` overrides and is stored (like `?view`).
+  The desk's header select is unchanged and sets `htg.lang` for both views. README and `docs/submission.md` say so. The README's phone
+  screenshot (`docs/img/listen-phone.png`, alt text "English and Türkçe buttons at the top") still shows the old buttons: owner retakes it.
+- **Owner, VoiceOver on iOS (passed 2026-10-26 with the old language buttons; steps 1 and 7 changed 2026-10-27, re-run them):** 1. open the
+  app: the listening view, in the device's language; swipe from the top: title (no language buttons), tagline, score, clock, caption, Start, Next moment, Catch me up, Live, Highlights, status, "Choose a match",
   the cards, tour, hint, "Show the pitch & data". 2. double-tap a card: sound starts on the first tap, focus lands on Stop, VoiceOver says the status. 3. double-tap Stop,
   then Start again. 4. Next moment, then Catch me up (hear the recap). 5. lock the phone for a minute: sound continues. 6. "Show the
-  pitch & data", then "Listening view": the sound never stops. 7. double-tap "Türkçe" at the top right: screen and commentary switch
-  together, the language buttons are read in their own voice; repeat 1-2.
+  pitch & data", then "Listening view": the sound never stops. 7. open `?lang=tr` (or pick Türkçe in the desk's header select,
+  then "Listening view"): screen and commentary in Turkish, VoiceOver in one voice; repeat 1-2.
 
 ## README final (2026-10-26; task: `docs/tasks/done/2026-10-26-readme-final.md` + the owner's addendum; no deploy needed)
 - README (`31486dc`): first screen is title, pitch line, Live demo · category links (no video link yet: owner adds it later), intro,

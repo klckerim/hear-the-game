@@ -25,19 +25,13 @@ function viewBtn(id, to) {
   b.addEventListener("click", () => { setView(to); $(to === "listen" ? "playBtn" : "toListen").focus(); });  // the pressed button is gone
   return b;
 }
-// The listening view's own elements; the rest are the desk's. DOM order is the reading and the visual order: title, language (top right),
-// tagline, the "now playing" card (score, clock, caption), Start, Next moment and Catch me up, Live / Highlights, status, the match list,
+// The listening view's own elements; the rest are the desk's. DOM order is the reading and the visual order: title, tagline,
+// the "now playing" card (score, clock, caption), Start, Next moment and Catch me up, Live / Highlights, status, the match list,
 // tour offer, a hint (CSS shows the lock-screen one on touch screens, the keys elsewhere; the other is display: none), the switch.
 const el = (tag, cls, key) => { const e = document.createElement(tag); e.className = cls; if (key) e.dataset.i18n = key; return e; };
 document.querySelector("h1").after(el("p", "l-sub listen-only", "listenSub"));
-// Language: two buttons instead of the desk's select (a picker wheel takes several VoiceOver steps): one double tap switches screen and
-// commentary. Each is named in its own language and read in that voice; the current one is pressed.
-const langPick = el("div", "seg listen-only"); langPick.id = "lLang"; langPick.setAttribute("role", "group"); langPick.dataset.i18nAria = "uiLangLabel";
-for (const [v, name] of [["en", "English"], ["tr", "Türkçe"]]) {
-  const b = el("button", ""); b.type = "button"; b.lang = v; b.dataset.lang = v; b.textContent = name;
-  b.addEventListener("click", () => setLang(v)); langPick.append(b);
-}
-document.querySelector("h1").after(langPick);
+// No language control here (owner, 2026-10-27: switching in this view mixed VoiceOver's voices): it follows the device language or
+// ?lang; the desk's select changes it for both views.
 const listenMore = el("div", "l-more listen-only"), chooseTitle = el("h2", "", "chooseMatch"), keys = el("p", "l-hint l-keys", "keysLine");
 chooseTitle.id = "chooseTitle";
 listenMore.append(chooseTitle, keys, el("p", "l-hint l-touch", "touchLine"), viewBtn("toDesk", "desk"));

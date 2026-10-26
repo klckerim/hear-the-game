@@ -85,8 +85,9 @@ Live / Highlights, and the six matches in a list that is always open, so a scree
 starts it; no card shows a final score. It plays in Audio only. **Show the pitch & data** opens the desk described below: it is the
 same session, so switching never stops the sound. The view you last used is remembered on the device.
 
-**One language for screen and voice.** One EN/TR switch (in the header; at the top of the listening view) sets the interface and
-the commentary together and is remembered on the device. Switched while listening, the commentator follows within the 20 s delay.
+**One language for screen and voice.** The listening view speaks the device's language (English or Turkish; `?lang=tr` opens
+Turkish). The desk has the language switch in its header: it sets the interface and the commentary together, for both views, and is
+remembered on the device. Switched while listening, the commentator follows within the 20 s delay.
 
 **Sound tour.** Before the first start the page offers a 60-second tour: each step plays the real sound (ball tick low to high,
 left to right, the two team tones, heartbeat, crowd, pass/shot/save/whistle, goal for and against your club, the favourite-player

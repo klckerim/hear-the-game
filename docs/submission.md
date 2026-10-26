@@ -59,7 +59,8 @@ to `minimal` cut narration latency from p50 10.73 s to 1.58 s, which is what mad
 5. Switch **Live** to **Highlights** and press Start: every moment of the match back to back (about 12 minutes for the default
    match), with a half-time and a full-time recap. <!-- UI -->
 6. Press **Catch me up** for a recap of the last 10 minutes from the Recap agent. <!-- UI -->
-7. Switch the language with **English / Türkçe** at the top: screen and commentary change together. <!-- UI -->
+7. The listening view speaks the device's language (English or Turkish); `?lang=tr` opens Turkish. The desk (next step) has the
+   language switch in its header: screen and commentary change together. <!-- UI -->
 8. Press **Show the pitch & data** to open the broadcast desk; it is the same session, so the sound keeps playing. There, switch the
    listening mode: **Audio only** (pitch hidden), **Casual** (live commentary feed), **Analyst** (no delay, no commentator; sparse
    tactical notes plus team stats and an event log on screen), and select a marker on the timeline. <!-- UI -->
