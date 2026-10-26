@@ -309,15 +309,18 @@ family, and an LLM judge on Turkish is weaker evidence than on English: read thi
 
 **Deployed latency** (Istanbul → Sweden Central, measured from outside, [`eval/results/latency.md`](eval/results/latency.md))
 
-| | 1 listener | 10 listeners joining in the same second |
-|---|---|---|
-| Connect → first message | 1.5 s | p50 3.8 s / p95 6.5 s |
-| State packets (nominal every 200 ms) | p50 200 ms / p95 214 ms | p50 200 ms / p95 237 ms, longest gap 3.4 s |
-| Speech decided → delivered | 224 ms | p50 1.4 s / p95 3.4 s |
+4 listeners joining in the same second (the most one client IP may open), 3 minutes each, 2026-10-26:
 
-The first 10-listener run showed a 13 s start and a 15.8 s stall: every listener re-ran a 13-minute warm-up on the shared CPU. The
-server now warms up once and copies the result per listener; the table shows the run after that fix. Client audio output latency is
-not measured.
+| | Live, from kick-off | Highlights |
+|---|---|---|
+| Connect → first message | p50 2.2 s / p95 3.0 s | p50 2.0 s / p95 2.7 s |
+| State packets (nominal every 200 ms) | p50 200 ms / p95 202 ms, longest gap 1.6 s | p50 200 ms / p95 202 ms, longest gap 2.4 s |
+| Narration: Insight → speech delivered | p50 334 ms (4 sentences, all verified with audio) | none narrated in these 3 minutes |
+
+The longest Highlights gap is probably the cut between two clips. An earlier run (2026-10-21, 10 listeners, before the per-IP cap)
+first showed a 13 s start and a 15.8 s stall, because every listener re-ran a 13-minute warm-up on the shared CPU; the server now
+warms up once and copies the result per listener (after the fix: start p50 3.8 s, longest gap 3.4 s). Client audio output latency
+is not measured.
 
 ## Overlay feed (machine-readable)
 
@@ -442,7 +445,7 @@ HTG_ENV=azure python -m eval.narration --seeds 11-30 --limit 100 --samples eval/
 HTG_ENV=azure python -m eval.commentary                                     # live commentary: speech coverage, latency, drops
 HTG_ENV=azure python -m htg.speech.callouts                                  # callout clips (commentary voice)
 python -m eval.foundry_eval                                                    # Foundry evaluation of those samples
-python -m eval.latency --url wss://<your-app>/ws --sessions 10 --minutes 3      # deployed latency
+python -m eval.latency --url wss://<your-app>/ws --sessions 4 --minutes 3 --watch live  # deployed latency (or highlights)
 python -m eval.scenarios                                                       # detectors vs. hidden truth
 ```
 

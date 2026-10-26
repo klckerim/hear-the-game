@@ -76,3 +76,38 @@ Client: Istanbul -> Sweden Central. Target: the deployed Container App. Sessions
 After the warm-up fix (redeployed 2026-10-21), same test: `hello` p50 12.9 s -> 3.8 s, longest `state` gap 15.8 s -> 3.4 s,
 speech p95 15.6 s -> 3.4 s. The container has 0.5 vCPU and every session runs its own state engine and detectors in real time;
 the remaining delay when 10 listeners start in the same second is most likely CPU contention (not measured separately).
+### 2026-10-26: 4 session(s), 3 min, mode `casual`, watch `live`
+
+Client: Istanbul -> Sweden Central. Target: the deployed Container App. Sessions started together; each plays the default match live from kick-off.
+
+| measure | n | p50 / p95 / max |
+|---|---|---|
+| connect -> `hello` | 4 | 2181 / 3040 / 3040 ms |
+| `state` inter-arrival (nominal 200 ms) | 3562 | 200 / 202 / 1628 ms |
+| decision -> `speech` (server resolve, approx. +/- one state batch) | 0 | n/a |
+| `insight` -> `speech` (incl. Director hold) | 4 | 334 / 338 / 338 ms |
+
+- `speech` EN by source: llm 4 (100%); with audio: 4 of 4
+- `speech` TR by source: llm 4 (100%); with audio: 4 of 4
+- Session errors: 0
+
+### 2026-10-26: 4 session(s), 3 min, mode `casual`, watch `highlights`
+
+Client: Istanbul -> Sweden Central. Target: the deployed Container App. Sessions started together; each plays the default match's highlights.
+
+| measure | n | p50 / p95 / max |
+|---|---|---|
+| connect -> `hello` | 4 | 1968 / 2683 / 2683 ms |
+| `state` inter-arrival (nominal 200 ms) | 3515 | 200 / 202 / 2429 ms |
+| decision -> `speech` (server resolve, approx. +/- one state batch) | 0 | n/a |
+| `insight` -> `speech` (incl. Director hold) | 0 | n/a |
+
+- `speech` EN by source: none; with audio: 0 of 0
+- `speech` TR by source: none; with audio: 0 of 0
+- Session errors: 0
+
+Notes on the two 2026-10-26 runs (4 sessions: the server now allows at most 4 open sessions per client IP). In Live, decision ->
+`speech` has no samples because every `speech` arrived before the `state` batch that reached its match time: the server resolved
+it (from the cache) within one 200 ms batch; `insight` -> `speech` is the usable number. In Highlights, no Insight was narrated in
+the 3 minutes (the first clips are moments, not tactical trends). Its longest `state` gap (2.4 s) is probably a cut between clips
+(the server prepares the next clip there before sending its first state); this was not separated from network stalls.

@@ -1,7 +1,7 @@
 """Measure the deployed demo from the outside, like a listener's browser would see it.
 
     python -m eval.latency --url wss://<app>/ws --sessions 1 --minutes 3
-    python -m eval.latency --url wss://<app>/ws --sessions 10 --minutes 3
+    python -m eval.latency --url wss://<app>/ws --sessions 4 --minutes 3 --watch highlights   # 4: the server's per-IP cap
     python -m eval.latency --url wss://<app>/ws --sessions 1 --minutes 3 --mode analyst   # more cache misses: live Foundry calls
 
 Each run appends one section to eval/results/latency.md. Measured per session: connect -> `hello`; wall-clock gap between
@@ -25,13 +25,13 @@ RESULTS = Path(__file__).resolve().parent / "results" / "latency.md"
 NOMINAL_STATE_MS = 200
 
 
-async def one_session(url: str, minutes: float, mode: str) -> dict:
+async def one_session(url: str, minutes: float, mode: str, watch: str) -> dict:
     """Listens for `minutes` of wall-clock time; returns raw timings in seconds (wall clock is fine here: eval, not htg/)."""
     out: dict = {"hello": None, "state": [], "speech": [], "insight": {}, "error": None}
     state_t: list[float] = []  # last match time in each state batch, with its arrival in `out["state"]`
     t0 = time.perf_counter()
     try:
-        async with websockets.connect(url, max_size=None, open_timeout=30) as ws:
+        async with websockets.connect(f"{url}{'&' if '?' in url else '?'}mode={watch}", max_size=None, open_timeout=30) as ws:
             if mode != "casual":
                 await ws.send(json.dumps({"type": "set_mode", "mode": mode}))
             end = t0 + 60 * minutes
@@ -69,7 +69,7 @@ def q(xs: list[float], unit: str = "ms") -> str:
     return f"{p(0.5):.0f} / {p(0.95):.0f} / {xs[-1]:.0f} {unit}"
 
 
-def report(runs: list[dict], url: str, sessions: int, minutes: float, mode: str, client: str, region: str) -> list[str]:
+def report(runs: list[dict], url: str, sessions: int, minutes: float, mode: str, watch: str, client: str, region: str) -> list[str]:
     hello = [r["hello"] for r in runs if r["hello"] is not None]
     gaps = [b - a for r in runs for a, b in zip(r["state"], r["state"][1:], strict=False)]
     speech = [s for r in runs for s in r["speech"]]
@@ -77,8 +77,9 @@ def report(runs: list[dict], url: str, sessions: int, minutes: float, mode: str,
     held = [s["arrived"] - s["insight"] for s in speech if s["insight"] is not None]
     errors = [r["error"] for r in runs if r["error"]]
     target = "a local server" if "localhost" in url else "the deployed Container App"  # the public URL stays out of the repo
-    rows = [f"### {datetime.date.today().isoformat()}: {sessions} session(s), {minutes:g} min, mode `{mode}`", "",
-            f"Client: {client} -> {region}. Target: {target}. Sessions started together; each replays the demo match from minute 13.", "",
+    plays = "the default match live from kick-off" if watch == "live" else "the default match's highlights"
+    rows = [f"### {datetime.date.today().isoformat()}: {sessions} session(s), {minutes:g} min, mode `{mode}`, watch `{watch}`", "",
+            f"Client: {client} -> {region}. Target: {target}. Sessions started together; each plays {plays}.", "",
             "| measure | n | p50 / p95 / max |", "|---|---|---|",
             f"| connect -> `hello` | {len(hello)} | {q(hello)} |",
             f"| `state` inter-arrival (nominal {NOMINAL_STATE_MS} ms) | {len(gaps)} | {q(gaps)} |",
@@ -108,11 +109,11 @@ Measured from outside with `python -m eval.latency` (see the module docstring). 
 """
 
 
-def main(url: str, sessions: int, minutes: float, mode: str, client: str, region: str, out: Path) -> None:
+def main(url: str, sessions: int, minutes: float, mode: str, watch: str, client: str, region: str, out: Path) -> None:
     async def run() -> list[dict]:
-        return await asyncio.gather(*(one_session(url, minutes, mode) for _ in range(sessions)))
+        return await asyncio.gather(*(one_session(url, minutes, mode, watch) for _ in range(sessions)))
 
-    lines = report(asyncio.run(run()), url, sessions, minutes, mode, client, region)
+    lines = report(asyncio.run(run()), url, sessions, minutes, mode, watch, client, region)
     print("\n".join(lines))
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("a") as f:
@@ -125,8 +126,9 @@ if __name__ == "__main__":
     ap.add_argument("--sessions", type=int, default=1)
     ap.add_argument("--minutes", type=float, default=3.0)
     ap.add_argument("--mode", choices=["eyes_free", "casual", "analyst"], default="casual")
+    ap.add_argument("--watch", choices=["live", "highlights"], default="live")  # the client's `mode=` query
     ap.add_argument("--client", default="Istanbul")
     ap.add_argument("--region", default="Sweden Central")
     ap.add_argument("--out", type=Path, default=RESULTS)
     a = ap.parse_args()
-    main(a.url, a.sessions, a.minutes, a.mode, a.client, a.region, a.out)
+    main(a.url, a.sessions, a.minutes, a.mode, a.watch, a.client, a.region, a.out)
