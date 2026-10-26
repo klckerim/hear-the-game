@@ -475,11 +475,12 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   top right ("English" / "Türkçe", each in its own `lang`, `aria-pressed`, group "Language" / "Dil"; one double tap, no picker wheel;
   beside the title down to 375 px, under it on narrower screens); changed while listening in the desk, the status line says "Commentary in English" / "Anlatım Türkçe"; in the listening view
   it is only redrawn in the new language. The listening view's status leaves out "20 s delay" (the desk keeps it). README paragraph updated.
-- **Owner, VoiceOver on iOS (not done yet):** 1. open the app: the listening view; swipe from the top: title, tagline, score, clock,
-  caption, Start, Next moment, Catch me up, Live, Highlights, status, "Choose a match", the cards, language, tour, hint, "Show the pitch
-  & data". 2. double-tap a card: sound starts on the first tap, focus lands on Stop, VoiceOver says the status. 3. double-tap Stop,
+- **Owner, VoiceOver on iOS (not done yet):** 1. open the app: the listening view; swipe from the top: title, English, Türkçe (the
+  current one "selected"), tagline, score, clock, caption, Start, Next moment, Catch me up, Live, Highlights, status, "Choose a match",
+  the cards, tour, hint, "Show the pitch & data". 2. double-tap a card: sound starts on the first tap, focus lands on Stop, VoiceOver says the status. 3. double-tap Stop,
   then Start again. 4. Next moment, then Catch me up (hear the recap). 5. lock the phone for a minute: sound continues. 6. "Show the
-  pitch & data", then "Listening view": the sound never stops. 7. switch the language to Türkçe and repeat 1-2.
+  pitch & data", then "Listening view": the sound never stops. 7. double-tap "Türkçe" at the top right: screen and commentary switch
+  together, the language buttons are read in their own voice; repeat 1-2.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |
