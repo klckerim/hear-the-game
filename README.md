@@ -1,12 +1,56 @@
 # Hear the Game
 
-**Follow a football match by sound.** Hear the Game turns a live stream of match events into spatial sound made on
-your own device, plus short, verified narration in English or Turkish, so blind and partially sighted fans (and anyone who can't
-look at a screen) can follow the shape of a match as it happens.
+**Follow a football match by sound.**
 
-> Built for the Microsoft × Premier League **Inside the Game** hackathon (October 2026), category **Best Use of Microsoft Foundry**.
-> All teams, players and matches are fictional and synthetic: a small league of six clubs and six matches. The default match is
-> **Northport** (red) v **Valemont** (blue).
+[Live demo](https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/) · Submission category: [Best Use of Microsoft Foundry](#microsoft-stack)
+
+Hear the Game turns a live stream of match events into spatial sound made on your own device, plus short, verified narration in
+English or Turkish, so blind and partially sighted fans (and anyone who can't look at a screen) can follow the shape of a match as
+it happens.
+
+> Built for the Microsoft × Premier League **Inside the Game** hackathon (October 2026). All teams, players and matches are
+> fictional and synthetic: a small league of six clubs and six matches. The default match is **Northport** (red) v **Valemont** (blue).
+
+**Try it**
+- Open the live demo with headphones on: left/right position is part of the information.
+- The app opens in the **listening view**, built for following the match without looking at the screen; VoiceOver works.
+- Press **Start listening** (Space on a keyboard).
+- **Show the pitch & data** (or `?view=desk`) opens the broadcast desk with the pitch, timeline, Why card and Analyst mode.
+
+## How it works in 3 steps
+
+1. **Events → sound, at once.** Match events stream to your device, which turns them into spatial sound itself; no model in the way.
+2. **Facts → verified words.** Code computes the facts, Microsoft Foundry writes a sentence, the Verifier checks every number and
+   name, and Azure AI Speech speaks it.
+3. **You choose.** Listening view or desk, Audio only / Casual / Analyst, your club, English or Turkish.
+
+<table>
+<tr>
+<td width="30%"><img src="docs/img/listen-phone.png" width="220" alt="Listening view on a phone: English and Türkçe buttons at the top, a now-playing card with Northport 0-0 Valemont at 0:32 and the caption 'Free-kick to Valemont after a foul by Northport.', a large Stop button, Next moment and Catch me up, Live and Highlights, and the start of the match list."></td>
+<td><img src="docs/img/desk.png" alt="Broadcast desk at desktop width in Casual mode: score bar with Northport 0-0 Valemont at 0:40 and a 20 s delay, the pitch with the ball, the match timeline with moment markers, and the live commentary feed with two lines tagged live, 3.8 s and 4.3 s."></td>
+</tr>
+<tr>
+<td>The listening view, the first screen (phone).</td>
+<td>The broadcast desk in Casual: pitch, timeline and the live commentary feed.</td>
+</tr>
+</table>
+
+## Challenge fit
+
+How the app maps to the pipeline in the Official Rules, section 4.1.
+
+| Stage | What Hear the Game does | Where |
+|---|---|---|
+| Ingest (i a) | A timed match feed (synthetic replay behind an `EventSource` adapter) becomes 10 Hz state: ball, danger, pressure, tempo | [Architecture](#architecture), [`htg/engine/state.py`](htg/engine/state.py) |
+| Interpret (i b) | Detectors find pressing surges, tempo drops, flank overloads and fatigue, scored against hidden truth | [Evidence](#evidence), [`htg/engine/detectors.py`](htg/engine/detectors.py) |
+| Explain (i c) | Foundry writes each sentence from computed `claim_facts`; the Verifier rejects any number or name not in them | [Why you can trust it](#why-you-can-trust-it) |
+| Render (i d) | Spatial sound made on the device, Azure AI Speech voices, pitch and evidence timeline on screen | [What you hear](#what-you-hear) |
+| Personalize (i e) | Listening view or desk; Audio only / Casual / Analyst; favourite club; favourite-player chime; EN/TR | [What you hear](#what-you-hear) |
+| Player identification, speed (ii) | Player names in callouts and commentary, shot speed in the event log; no auto-eventing from video | [What you hear](#what-you-hear), [Not built](#built-vs-not-built) |
+| Narrative generation (iii) | Narration per Insight, a live commentator per segment of play, and the Recap agent for "What did I miss?" and full time | [Recap agent](#recap-agent) |
+| Explainability (iv) | Every Insight carries its evidence `seq`s; the Why card shows its facts and lights the evidence on the pitch | [What you hear](#what-you-hear) |
+| Data innovation (v) | A synthetic league calibrated on real open data, with hidden scenarios for honest scoring, and a machine-readable feed | [`docs/data.md`](docs/data.md), [Overlay feed](#overlay-feed-machine-readable) |
+| Multi-language storytelling (vi) | English and Turkish text and voices from the same facts, each language checked by the Verifier | [Microsoft stack](#microsoft-stack) |
 
 ## The problem
 
@@ -35,6 +79,12 @@ mode-dependent silence (Audio only 10 s, Analyst 15 s, Casual 25 s). Moments of 
 narrated. **What did I miss?** asks the [Recap agent](#recap-agent) for 2-3 verified sentences about the last 10 minutes, told from
 your club's side; at the end of the match it gives a **full-time recap** by itself.
 
+**Listening view (the first screen).** The app opens in a view made for blind and low-vision fans, and for anyone listening rather
+than looking: a now-playing card (score, clock and the sentence being spoken), **Start listening**, **Next moment**, **Catch me up**,
+Live / Highlights, and the six matches in a list that is always open, so a screen reader swipes straight through it. Tapping a match
+starts it; no card shows a final score. It plays in Audio only. **Show the pitch & data** opens the desk described below: it is the
+same session, so switching never stops the sound. The view you last used is remembered on the device.
+
 **One language for screen and voice.** One EN/TR switch (in the header; at the top of the listening view) sets the interface and
 the commentary together and is remembered on the device. Switched while listening, the commentator follows within the 20 s delay.
 
@@ -62,8 +112,6 @@ spoken), the `claim_facts` it was allowed to use, and how many events back it (t
 match or last 10 minutes), updated every 10 s of match time from the same `get_stats` tool the [Recap agent](#recap-agent) calls, so
 the table and the agent never disagree. The event log shows shot speed and outcome ("Shot · Arda · 72 km/h · blocked") and passes
 longer than 30 m with their length. Casual and Audio only stay simple: no table.
-
-<!-- Screenshots: docs/img/timeline.png (Why card after selecting an Insight), docs/img/analyst.png (stats table). Owner to add. -->
 
 **Live commentary (Casual and Audio only).** Tactical narration alone speaks about once every few minutes, so the fan modes add
 two layers in a male commentary voice (MAI-Voice-2.1 (preview) in English, MAI-Voice-2 in Turkish; Azure neural voices as the
@@ -254,7 +302,9 @@ every line generated live, English listener, commentary prompt v4, [`eval/result
 Groundedness is lower than the earlier prompt-3 run (4.99): most fan 4s are chances written as two exclamations ("Chance for
 Valemont! Okafor shoots…") or lines that leave out numbers on purpose. Three rows of 200 scored 2: one ambiguous Turkish flank line,
 one invented "misses the keeper", and one judge misreading; the file lists them. Fluency sits at 3-4 because the rubric rewards
-complex sentences; most reasons for a 3 cite brevity, which is what a one-sentence radio line is. The judge is the same model
+complex sentences; most reasons for a 3 cite brevity, which is what a one-sentence radio line is. Short radio lines and
+exclamations score low on a general-purpose fluency judge; groundedness is the metric that matters here, because every number
+and name must come from the facts. The judge is the same model
 family, and an LLM judge on Turkish is weaker evidence than on English: read this as a second opinion next to the deterministic Verifier.
 
 **Deployed latency** (Istanbul → Sweden Central, measured from outside, [`eval/results/latency.md`](eval/results/latency.md))
@@ -308,6 +358,12 @@ The listener sends three messages back: `{"type": "set_mode", "mode": "analyst"}
 
 ## Microsoft stack
 
+**Why Foundry.** It carries three parts of the work. *Develop:* prompt changes were measured, not guessed: prompts 3, 4 and 5 were
+compared with Foundry evaluations and the offline narration eval ([Evidence](#evidence)). *Orchestrate:* per Insight, the narrator
+writes, the [Verifier](#why-you-can-trust-it) checks, one retry carries the reasons and the template is the fallback; the
+[Recap agent](#recap-agent) (Foundry Agent Service) chooses its own match tools. *Manage:* Foundry tracing in Application Insights
+shows each Insight's Verifier attempts and reasons, and the evaluations are rerun for each new prompt.
+
 | Service | What it does here | Where |
 |---|---|---|
 | **Microsoft Foundry** (model deployment, gpt-5-mini) | Writes the EN + TR sentence from `claim_facts`; the live commentator's 0-2 lines per segment of play | [`htg/narration/foundry.py`](htg/narration/foundry.py), [`htg/commentary/commentator.py`](htg/commentary/commentator.py) |
@@ -331,7 +387,10 @@ Built: everything above, running on one Container App with a synthetic replay as
 **Not built** (the production path, described only): real data feeds ingested through **Event Hubs**, fan-out to many listeners
 through **Web PubSub**, an Insight log in **Cosmos DB**, a shared clip cache in **Blob Storage**. The code keeps the seams for them
 (`EventSource`, `Broadcaster` and `Speech` adapters with local implementations), but none of these services are used.
+Automatic event detection from video (auto-eventing) is not built: the events come from the synthetic replay.
 More languages than English and Turkish are not built: each one needs its own Verifier rules, templates and voices.
+Lock-screen and headphone controls (Media Session API) are not built: they need a media element on iOS; next step.
+A study with blind and low-vision listeners has not been run ([`docs/listening-test.md`](docs/listening-test.md) is the protocol).
 
 ## Limitations
 
@@ -349,9 +408,15 @@ More languages than English and Turkish are not built: each one needs its own Ve
 - **A hidden tab stops listening** 2 minutes after the browser suspends its sound (nobody can hear it), and after 45 minutes even if
   the sound still plays, so a forgotten tab does not call Foundry for a whole match. Listening with the screen locked keeps going as
   long as the browser keeps playing; Start picks up where it stopped.
-- **iOS background audio** is untested. The layout was checked in headless Chrome at phone and desktop widths, not on many real phones.
-- **Accessibility** was checked by the author with VoiceOver. It has **not been validated with blind users**. A listening-test
-  protocol with an answer key is in [`docs/listening-test.md`](docs/listening-test.md); it has not been run yet.
+- **iOS:** background audio worked on one iPhone in Safari (screen locked, 3 minutes, 2026-10-25); not tested further. The
+  listening view was tried by the author with VoiceOver on one iPhone. **Not tested with blind users.** The layout was checked in
+  headless Chrome at phone and desktop widths, not on many real phones. A listening-test protocol with an answer key is in
+  [`docs/listening-test.md`](docs/listening-test.md); it has not been run yet.
+- **The Verifier checks numbers, names and wording, not task framing.** A real example (2026-10-26): an early "Catch me up" said
+  "at the break" at minute 9. No number or name was wrong, so the Verifier could not catch it; it was fixed in the request to the
+  agent, not by the Verifier.
+- **Public demo limits:** one recap per listener at a time with a 20 s cooldown; at most 4 open sessions per client IP and 20 per
+  replica (counted per replica, up to 2 replicas).
 
 ## Run it
 
