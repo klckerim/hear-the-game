@@ -32,6 +32,7 @@ import argparse
 import asyncio
 import copy
 import json
+import math
 import os
 import re
 import threading
@@ -173,11 +174,12 @@ def query(path: str, key: str, default: str = "") -> str:
 
 
 def delay_of(path: str) -> float:
-    """`&delay=20` -> 20.0 (clamped to 0..MAX_DELAY_S); missing or bad -> 0 (Analyst: play at once)."""
+    """`&delay=20` -> 20.0 (clamped to 0..MAX_DELAY_S); missing, bad or not finite -> 0 (Analyst: play at once)."""
     try:
-        return min(max(float(query(path, "delay", "0")), 0.0), MAX_DELAY_S)
+        d = float(query(path, "delay", "0"))
     except ValueError:
         return 0.0
+    return min(max(d, 0.0), MAX_DELAY_S) if math.isfinite(d) else 0.0
 
 
 def lang_of(path: str) -> str:

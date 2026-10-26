@@ -330,3 +330,10 @@ def test_client_ip_falls_back_to_the_socket_peer():
 
     assert client_ip(Ws(Headers())) == "127.0.0.1"
     assert client_ip(Ws(Headers([("X-Forwarded-For", "1.1.1.1"), ("X-Forwarded-For", "2.2.2.2, 3.3.3.3")]))) == "3.3.3.3"
+
+
+def test_a_non_finite_delay_is_no_delay():
+    from services.engine.serve import MAX_DELAY_S, delay_of
+
+    assert delay_of("/ws?delay=20") == 20.0 and delay_of("/ws?delay=99") == MAX_DELAY_S and delay_of("/ws?delay=x") == 0.0
+    assert delay_of("/ws?delay=nan") == delay_of("/ws?delay=inf") == delay_of("/ws?delay=-inf") == 0.0

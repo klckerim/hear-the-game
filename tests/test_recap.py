@@ -151,3 +151,11 @@ def test_recap_request_gets_a_recap_message(monkeypatch):
     m = asyncio.run(run())
     assert m["kind"] == "missed" and m["source"] == {"en": "template", "tr": "template"}  # no Azure in tests
     assert m["since_min"] == max(int(m["t"] // 60) - 10, 0) and len(m["text"]["en"]) >= 2
+
+
+def test_a_non_finite_since_min_is_treated_as_missing():
+    from services.engine.recap import since_for
+
+    t = 40 * 60.0
+    assert since_for("missed", t, 25) == 25 and since_for("missed", t, None) == 30
+    assert since_for("missed", t, float("nan")) == since_for("missed", t, float("inf")) == since_for("missed", t, float("-inf")) == 30

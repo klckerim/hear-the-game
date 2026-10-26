@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import math
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
@@ -22,11 +23,11 @@ RECAP_POOL = ThreadPoolExecutor(max_workers=2, thread_name_prefix="recap")
 
 def since_for(kind: str, t: float, since_min: Any = None) -> int:
     """Full time and half-time (Highlights): the whole match so far. Otherwise the asked minute (clamped to
-    [0, now]) or the last MISSED_MIN minutes."""
+    [0, now]) or the last MISSED_MIN minutes (also when it is missing, NaN or infinite)."""
     if kind in ("full_time", "half_time"):
         return 0
     now_min = int(t // 60)
-    if isinstance(since_min, (int, float)) and not isinstance(since_min, bool):
+    if isinstance(since_min, (int, float)) and not isinstance(since_min, bool) and math.isfinite(since_min):
         return int(min(max(since_min, 0), now_min))
     return max(now_min - MISSED_MIN, 0)
 
