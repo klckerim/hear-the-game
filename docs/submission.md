@@ -38,8 +38,8 @@ tools answers "What did I miss?" with 2-3 verified sentences.
 callouts, 97% of 30-second windows contain speech, against 21% for tactical narration alone.
 
 Everything runs on synthetic data: six fictional clubs, six matches, calibrated on real open data. Listeners pick a match, watch it
-live from any minute or as highlights, choose Audio only, Casual or Analyst, and set the interface and commentary languages
-separately. Accessibility was checked by the author with VoiceOver; it has not been validated with blind users.
+live from any minute or as highlights, in English or Turkish. The app opens in a listening view built for screen readers, with
+the pitch and data one tap away. The author tried it with VoiceOver on one iPhone; it has not been validated with blind users.
 
 ## Category: Best Use of Microsoft Foundry
 Foundry is the part of the system that writes words, and it is used where an LLM earns its place and nowhere else: one model call per
@@ -51,19 +51,21 @@ to `minimal` cut narration latency from p50 10.73 s to 1.58 s, which is what mad
 
 ## Testing instructions for judges
 1. Open https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/ in a desktop or phone browser. **Use headphones**: left/right position is part of the information.
+   The app opens in the **listening view**, made for following the match without looking at the screen (VoiceOver works). <!-- UI -->
 2. Optional: take the 60-second sound tour offered on the first visit; it plays each sound with a short spoken explanation.
-3. Press **Start listening** (or Space). The default match is Northport v Valemont from kick-off; the first goal comes at 23'. <!-- UI -->
-   In Casual and Audio only the commentator starts after the 20 s broadcast delay fills.
-4. Try **Next moment** (or N) to jump to 30 s before the next goal, saved shot or card, or select a marker on the timeline. <!-- UI -->
-5. Switch **Live** to **Highlights** in the player bar and press Start: every moment of the match back to back (about 12 minutes for
-   the default match), with a half-time and a full-time recap. <!-- UI -->
-6. Switch the listening mode: **Audio only** (pitch hidden), **Casual** (live commentary feed), **Analyst** (no delay, no
-   commentator; sparse tactical notes plus team stats and an event log on screen). <!-- UI -->
-7. Change the **commentary language** (EN/TR, in Settings) separately from the interface language (globe in the header). <!-- UI -->
-8. Press **Catch me up** for a recap of the last 10 minutes from the Recap agent. <!-- UI -->
+3. Press **Start listening** (or Space), or tap a match in the list to start it. The default match is Northport v Valemont from
+   kick-off; the first goal comes at 23'. The commentator starts after the 20 s broadcast delay fills. <!-- UI -->
+4. Try **Next moment** (or N) to jump to 30 s before the next goal, saved shot or card. <!-- UI -->
+5. Switch **Live** to **Highlights** and press Start: every moment of the match back to back (about 12 minutes for the default
+   match), with a half-time and a full-time recap. <!-- UI -->
+6. Press **Catch me up** for a recap of the last 10 minutes from the Recap agent. <!-- UI -->
+7. Switch the language with **English / Türkçe** at the top: screen and commentary change together. <!-- UI -->
+8. Press **Show the pitch & data** to open the broadcast desk; it is the same session, so the sound keeps playing. There, switch the
+   listening mode: **Audio only** (pitch hidden), **Casual** (live commentary feed), **Analyst** (no delay, no commentator; sparse
+   tactical notes plus team stats and an event log on screen), and select a marker on the timeline. <!-- UI -->
 9. Select a played Insight on the timeline to see **Why?**: the facts the sentence rests on and its evidence on the pitch. <!-- UI -->
 
-Session limits: one listener session per browser tab, at most 20 listeners at once. A hidden tab stops listening 2 minutes after the
+Session limits: one listener session per browser tab, at most 4 at once from one network address and 20 per server replica. A hidden tab stops listening 2 minutes after the
 browser suspends its audio (and after 45 minutes hidden even if the sound plays); Start picks up where it stopped.
 
 ## Technologies
