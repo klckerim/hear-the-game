@@ -240,6 +240,8 @@ def _request(rec: MatchRecord, t: float, since_min: float, favourite: str | None
         kind = f"what the listener missed since minute {int(since_min)}"
     elif get_score(rec, t)["full_time"]:
         kind = "full-time recap of the whole match"
+    elif t < 45 * 60:  # an early "Catch me up" (before minute 10) also asks from minute 0, but there has been no break yet
+        kind = "what the listener missed since kick-off: the first period is still being played"
     else:  # the half-time break: the match is not over, so no won/lost/drew
         kind = ("half-time recap of the first 45 minutes: the match is NOT over and the second period is still to play; give the "
                 "score at the break ('at the break' / 'ilk devre sonunda'), never say who won, lost or drew or that the match finished")

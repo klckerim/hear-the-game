@@ -159,3 +159,12 @@ def test_a_non_finite_since_min_is_treated_as_missing():
     t = 40 * 60.0
     assert since_for("missed", t, 25) == 25 and since_for("missed", t, None) == 30
     assert since_for("missed", t, float("nan")) == since_for("missed", t, float("inf")) == since_for("missed", t, float("-inf")) == 30
+
+
+def test_an_early_catch_me_up_is_missed_since_kick_off_not_half_time(rec, names):
+    draft = answer(["x"], ["x"])
+    model = FakeModel([[("get_score", {})], draft, draft])
+    write_recap(rec, 540.0, 0, None, "fan", model, names, cache_dir=None)
+    task = json.loads(model.inputs[0])["task"]
+    assert "missed" in task and "kick-off" in task
+    assert "half-time" not in task and "break" not in task
