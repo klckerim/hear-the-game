@@ -35,13 +35,15 @@ function dropped() {
 }
 // resuming: a jump connects again at once in the same mode, so the caption keeps what was last said.
 // Start then picks up where listening stopped (a stop, a dropped connection), not at the last moment clicked.
+// The idle status (on load, after Stop, a new match or way to watch): what Start will play. Start sits beside it: no "press Start".
+const readyLine = () => `${t("ready")} ${uiTeam("HOME")} – ${uiTeam("AWAY")} · ${watch === "live" ? t("watchLive") : t("watchHl")}`;
 function stopListening(msg, resuming = false) {
   const ws = live.ws, at = playT(); live.ws = null;
   if (at !== null) startT = Math.floor(at);
   if (!resuming) { clearTimeout(retryTimer); retryTimer = null; }
   if (ws) { ws.onclose = ws.onerror = null; ws.close(); }
   clearInterval(live.timer); endSession(session); session = null; stopSpeech();
-  $("playBtn").textContent = t("idle"); $("status").textContent = msg || t("off"); renderTimeline();
+  $("playBtn").textContent = t("idle"); $("status").textContent = msg || readyLine(); renderTimeline();
   if (!resuming) idleCaption();
 }
 // A timeline click, a moment marker and Next moment start listening at once, in the way to watch the listener chose. Live: from that

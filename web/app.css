@@ -328,9 +328,16 @@ body[data-view="listen"] h1 .accent { color: inherit; }
 .l-sub { margin: 8px 0 0; font-size: 18px; color: var(--chalk); }
 body[data-view="listen"] .player { gap: 14px; }
 body[data-view="listen"] .p-match { display: grid; gap: 14px; padding: 18px; background: var(--desk); border: 1px solid var(--line); border-radius: 12px; }
-body[data-view="listen"] .scorebar { flex-wrap: wrap; justify-content: center; gap: 6px 14px; font-size: 30px; font-weight: 700; }
-body[data-view="listen"] .score { font-size: 28px; font-weight: 500; padding: 2px 12px; color: var(--chalk); border-color: var(--muted); }
-body[data-view="listen"] .clock { flex-basis: 100%; margin: 0; text-align: center; font-size: 22px; color: var(--chalk); }
+/* Score card: home | score | away, the clock under the score. Names wrap inside their cell (between words only); the score, in the
+   narrow display face so the names keep their room on phones, is the largest text on the screen. */
+body[data-view="listen"] .scorebar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 2px 16px;
+  font-size: 24px; font-weight: 700; line-height: 1.15; }
+body[data-view="listen"] .scorebar > .team:first-child { justify-self: end; text-align: right; }
+body[data-view="listen"] .scorebar > .team:nth-child(3) { justify-self: start; }
+body[data-view="listen"] .team > span:not(.dot) { white-space: normal; overflow: visible; text-overflow: clip; }
+body[data-view="listen"] .score { font-family: var(--display); font-size: 48px; font-weight: 700; line-height: 1; padding: 0; border: 0; background: none;
+  color: var(--chalk); white-space: nowrap; font-variant-numeric: tabular-nums; }
+body[data-view="listen"] .clock { grid-column: 1 / -1; justify-self: center; margin: 0; font-size: 20px; color: var(--chalk); }
 body[data-view="listen"] .caption { height: auto; min-height: calc(3 * 1.4em + 2px); padding: 0; background: none; border: 0; border-radius: 0;
   font-size: 22px; line-height: 1.4; text-align: center; justify-content: center; }
 body[data-view="listen"] :is(.caption .tags, .scorebar .yours) { display: none; }  /* calm: "your team" only on a match card */
@@ -344,10 +351,15 @@ body[data-view="listen"] #watch { grid-column: 1 / -1; display: grid; grid-templ
 body[data-view="listen"] #watch button { min-height: 52px; }
 body[data-view="listen"] #watch button[aria-pressed="true"] { background: var(--chalk); color: var(--night); font-weight: 500; }
 body[data-view="listen"] #status { white-space: normal; font-size: 18px; color: var(--chalk); text-align: center; }
-@media (max-width: 600px) {  /* phones: home, score, away, clock one under the other (side by side, a long name wrapped badly) */
-  body[data-view="listen"] .scorebar { flex-direction: column; gap: 4px; }
-  body[data-view="listen"] .clock { flex-basis: auto; }
+@media (max-width: 600px) {
+  body[data-view="listen"] .p-match { padding: 14px; }
+  /* names ~20 px and score 40 px at 390, scaled down so the longest club name and its dot fit their cell at 320 */
+  body[data-view="listen"] .scorebar { gap: 2px 6px; font-size: clamp(16px, 4.9vw, 20px); }
+  body[data-view="listen"] .score { font-size: clamp(32px, 10.3vw, 40px); }
+  .l-more .mlist button { min-height: 56px; padding: 14px; }
+  .l-more .mt, .l-more .vs { font-size: 20px; }
 }
+@media (max-width: 380px) { body[data-view="listen"] .p-match { padding: 12px; } }
 @media (max-width: 359px) { body[data-view="listen"] .p-btns { grid-template-columns: minmax(0, 1fr); } }  /* Next moment, Catch me up stack */
 .l-more { display: grid; gap: 14px; }
 .l-more h2 { margin: 12px 0 0; font-family: var(--display); font-weight: 700; font-size: 26px; letter-spacing: 0.04em; text-transform: uppercase; }
@@ -368,8 +380,3 @@ body[data-view="listen"] #status { white-space: normal; font-size: 18px; color: 
 .l-touch { display: none; }
 @media (hover: none) and (pointer: coarse) { .l-touch { display: block; } .l-keys { display: none; } }  /* phones: the lock-screen hint, no keys */
 #toDesk { min-height: 56px; font-size: 18px; }
-@media (max-width: 380px) {
-  body[data-view="listen"] .scorebar { font-size: 24px; }
-  body[data-view="listen"] .score { font-size: 22px; }
-  .l-more .mt, .l-more .vs { font-size: 20px; }
-}

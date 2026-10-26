@@ -89,7 +89,7 @@ function applyWatch() { document.querySelectorAll("#watch button").forEach(b => 
 function applyMatch() {
   if (!live.ws) { live.teams = null; live.moments = null; live.dur = Infinity; live.windows = null; $("score").textContent = "0 – 0"; }
   setTeamNames(); fillClub(); fillMatches(); renderTimeline(); renderStats();
-  if (!live.ws) fillFav(curMatch() ? curMatch().teams : null);
+  if (!live.ws) { $("status").textContent = readyLine(); fillFav(curMatch() ? curMatch().teams : null); }
 }
 function sendClub() { if (live.ws && live.ws.readyState === 1) live.ws.send(JSON.stringify({ type: "set_favourite", team: club || null })); }
 // The two squads of the current match: from the session's hello, or before Start from the fixture list.
@@ -128,7 +128,7 @@ function applyI18n() {
   $("uiLangSel").value = uiLang;
   document.querySelectorAll("#commLang button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.lang === lang())));
   $("playBtn").textContent = live.ws ? t("stop") : t("idle");
-  if (!live.ws) $("status").textContent = t("off");
+  if (!live.ws) $("status").textContent = readyLine();
   setTeamNames(); fillClub(); fillMatches();
   if (live.ws && live.teams) renderStatus();
   fillFav(live.teams || (curMatch() ? curMatch().teams : null));
@@ -156,7 +156,7 @@ $("club").addEventListener("change", e => { favClub = e.target.value; store.set(
 // click, a moment and Next moment do start at once: they say "listen from here".
 function readyFor() {
   if (live.ws) stopListening();
-  $("status").textContent = `${t("ready")} ${uiTeam("HOME")} – ${uiTeam("AWAY")} · ${watch === "live" ? t("watchLive") : t("watchHl")}`;  // Start sits beside it: no "press Start"
+  $("status").textContent = readyLine();
 }
 $("matchBtn").addEventListener("click", () => openMatches($("matchList").hidden));
 $("matchList").addEventListener("click", e => { const b = e.target.closest("button"); if (b) (view === "listen" ? listenPick : pickMatch)(b.dataset.id); });
