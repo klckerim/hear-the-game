@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-27: submitted. Video https://www.youtube.com/watch?v=Ezog8P1DRto. Next: judging until 2026-11-10: code frozen, no deploys, minReplicas stays 1.
+Last updated: 2026-10-27: submitted. Video https://www.youtube.com/watch?v=Ezog8P1DRto. Judging until 2026-11-10: code frozen, no deploys, minReplicas stays 1.
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -513,9 +513,9 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
 
 ## Submission (2026-10-27)
 - Project page saved on Innovation Studio: title, tagline, keywords, description with links and testing instructions, repo,
-  images with alt text. Texts recorded in `docs/submission.md`.
+  images with alt text; texts in `docs/submission.md`.
 - Video public on YouTube (https://www.youtube.com/watch?v=Ezog8P1DRto): no voice-over, the app's own voices plus text cards.
-- README final: TL;DR, contents, horizontal Mermaid diagram; video link added to the first screen.
+- README final.
 
 ## Judging period (until 2026-11-10)
 - No deploys unless the live app is down.
