@@ -1,6 +1,6 @@
 # Status (update at the end of every work session)
 
-Last updated: 2026-10-26 (README final pass, submission texts, deployed latency with 4 sessions, bug hunt: all done; nothing to deploy). Next: the video (opening shot: the listening view), then the owner's read-through of README and the submission texts. Calendar note: the plan's dates (Day 5 = Oct 24) run ahead of the real calendar; everything up to Day 6 was actually done on 2026-10-21, which is the date in the results files.
+Last updated: 2026-10-27: submitted. Video https://www.youtube.com/watch?v=Ezog8P1DRto. Next: judging until 2026-11-10: code frozen, no deploys, minReplicas stays 1.
 
 ## One-line summary
 Hear the Game: synthetic football events → spatial sound made on the device (Web Audio) + verified TR/EN narration
@@ -510,6 +510,17 @@ Hear the Game: synthetic football events → spatial sound made on the device (W
   - After Stop the status says "Ready: <match> · Live" although Start resumes from the minute where it stopped (e.g. 7').
   - The template recap in the first minute reads "After 0 minutes it is Northport 0, Valemont 0" (the agent is used when deployed;
     the template is its fallback).
+
+## Submission (2026-10-27)
+- Project page saved on Innovation Studio: title, tagline, keywords, description with links and testing instructions, repo,
+  images with alt text. Texts recorded in `docs/submission.md`.
+- Video public on YouTube (https://www.youtube.com/watch?v=Ezog8P1DRto): no voice-over, the app's own voices plus text cards.
+- README final: TL;DR, contents, horizontal Mermaid diagram; video link added to the first screen.
+
+## Judging period (until 2026-11-10)
+- No deploys unless the live app is down.
+- Keep minReplicas 1 until 2026-11-10, then set it to 0.
+- Watch the budget alert.
 
 ## Plan (simplified, 2026-10-21)
 | Day | Date | Deliverable |

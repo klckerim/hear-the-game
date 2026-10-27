@@ -2,8 +2,7 @@
 
 **Follow a football match by sound.**
 
-[Live demo](https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/) · Category: **Best Use of Microsoft Foundry** ([how Foundry is used](#microsoft-foundry))
-<!-- After the video upload, add " · [Demo video (2 min)](https://youtu.be/...)" to the line above. -->
+[Live demo](https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/) · [Demo video (2 min)](https://www.youtube.com/watch?v=Ezog8P1DRto) · Category: **Best Use of Microsoft Foundry** ([how Foundry is used](#microsoft-foundry))
 
 > **TL;DR** — A blind fan should be able to follow a match as it happens, not just hear the result.
 > Hear the Game turns a live stream of match events into spatial sound on your device and short,

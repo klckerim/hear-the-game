@@ -1,7 +1,14 @@
 # Submission drafts (Inside the Game hackathon)
 
+Submitted on 2026-10-27 (Innovation Studio project page). This file is the record of the submitted texts.
+
 Draft texts for the submission form. Every number comes from `README.md` or `eval/results/`. Sentences marked `<!-- UI -->`
 describe the screen layout and may change if the start screen changes.
+
+## Links
+- Live demo: https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/
+- Demo video: https://www.youtube.com/watch?v=Ezog8P1DRto
+- Code: https://github.com/klckerim/hear-the-game
 
 ## Project name
 Hear the Game
@@ -30,7 +37,7 @@ and compute every number. A Microsoft Foundry model (gpt-5-mini) turns those fac
 Turkish; a plain-Python Verifier rejects any number, name or invented detail outside the facts, and a template sentence takes over
 when the model fails twice. In the fan modes a live commentator adds 0-2 lines per stretch of play inside a 20 s broadcast delay
 (p50 2.71 s from the end of the play), and short callouts name the players. A Foundry Agent Service prompt agent with four function
-tools answers "What did I miss?" with 2-3 verified sentences.
+tools answers "Catch me up" with 2-3 verified sentences.
 
 **Measured, not claimed.** Detectors are tuned on seeds 1-10 and reported on seeds 11-30 against hidden scenarios (pressing recall
 85%, precision 36%; the flank detector's 11% precision is stated, not hidden). Narration passed the Verifier on the first draft for
@@ -47,7 +54,7 @@ tactical Insight, one per stretch of live play, and one Foundry Agent Service pr
 to call for a recap. Every model sentence is grounded in computed facts and passes a deterministic Verifier before it is spoken,
 and the results are measured with Foundry evaluations (groundedness 4.72 / 4.66 EN / TR for the fan persona, 4.92 / 4.92 for the analyst) and traced in Application Insights through
 Foundry tracing (`htg.narrate_insight` and `htg.recap` spans with the Verifier's attempts and reasons). Setting the reasoning effort
-to `minimal` cut narration latency from p50 10.73 s to 1.58 s, which is what made live narration possible.
+to `minimal` cut narration latency on the same prompt from p50 10.73 s to 1.87 s, which is what made live narration possible.
 
 ## Testing instructions for judges
 1. Open https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/ in a desktop or phone browser. **Use headphones**: left/right position is part of the information.
