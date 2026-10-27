@@ -122,8 +122,9 @@ packets, so it never waits for a model; only the voices travel as audio.
 3. **You choose how to follow.** Listening view or broadcast desk; Audio only, Casual or
    Analyst; your club and your player; English or Turkish; Live or Highlights.
 
+
 ```mermaid
-flowchart TB
+flowchart LR
   subgraph Server["Azure Container Apps (one container)"]
     R[Replay<br/>synthetic match] --> S[State engine<br/>danger, pressure, flank, tempo]
     S -->|10 Hz state, stats every 10 s| WS((WebSocket<br/>20 s ahead in fan modes))
