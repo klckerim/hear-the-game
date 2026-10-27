@@ -218,8 +218,7 @@ narrator in a calmer neural voice. Other sound dips to 30% under the commentator
 narrator.
 
 - **Callouts** (Casual, Audio only): short pre-recorded clips strung together per event, no
-  model involved ("Okafor... shot... saved!", "Foul... yellow card, Silva", "Throw-in,
-  Northport"), at most one every 2 s.
+  model involved.
 - **Live commentator** (Casual, Audio only): play is cut into segments (a dead ball, or 10 s).
   Each finished segment's facts (who passed to whom, how far up the pitch, how it ended, score,
   card, shot speed) go to Foundry, which writes 0–2 radio lines in English and Turkish in one
@@ -235,12 +234,6 @@ narrator.
   pressing noticeably harder now, and Valemont are under more pressure."). Analyst hears an
   **analyst**: the key numbers and the comparison ("Northport press harder: 39% of Valemont's
   play is under pressure in the last 5 minutes, 22% earlier on."). Same facts, same Verifier.
-
-**20 s broadcast delay.** As on TV, the fan modes play 20 s behind the server, so the
-commentator can write, verify and voice its line and still speak in sync with the sound.
-Analyst has no delay and no commentator. One voice at a time: a goal line cuts in, a line
-already playing finishes first (narration waits up to 6 s for it), and a commentator line that
-cannot start within 3 s is dropped.
 
 **When the narrator speaks** (the Director, [`htg/engine/director.py`](htg/engine/director.py)):
 goals at once; otherwise never during an attack (danger ≥ 0.15), never the same story for the
@@ -537,7 +530,7 @@ source.
   Verifier less often (88% vs 98%); a dropped sentence makes a recap shorter, not wrong.
 - **Not tested with blind users.** The author tried the listening view with VoiceOver on one
   iPhone, where background audio also kept playing in Safari with the screen locked
-  (3 minutes). The layout was checked in headless Chrome at phone and desktop widths. A
+  The layout was checked in headless Chrome at phone and desktop widths. A
   listening-test protocol with an answer key is ready:
   [`docs/listening-test.md`](docs/listening-test.md).
 - **Public demo limits:** one recap per listener at a time with a 20 s cooldown; at most 4
