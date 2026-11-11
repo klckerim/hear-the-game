@@ -31,36 +31,22 @@ text alternatives for every image and diagram, and tables with headers.
 
 ## Table of contents
 
-1. [Try it](#try-it)
-2. [The problem](#the-problem)
-3. [Experience a match](#experience-a-match)
-4. [How it works](#how-it-works)
-5. [Challenge fit](#challenge-fit)
-6. [What you hear](#what-you-hear)
-7. [Two views, one session](#two-views-one-session)
-8. [Why you can trust it](#why-you-can-trust-it)
-9. [Microsoft Foundry](#microsoft-foundry)
-10. [Evidence](#evidence)
-11. [What we learned](#what-we-learned)
-12. [Built and not built](#built-and-not-built)
-13. [Limitations](#limitations)
-14. [Run it](#run-it)
-15. [Overlay feed (machine-readable)](#overlay-feed-machine-readable)
-16. [Repository layout](#repository-layout)
-17. [License and attribution](#license-and-attribution)
-
----
-
-## Try it
-
-1. Open the [live demo](https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/)
-   with **headphones**: left and right carry information.
-2. A first visit opens the **listening view**, made to be used without looking, including with
-   VoiceOver. Press **Start listening** (or Space).
-3. **Next moment** (N) jumps to 30 seconds before the next goal, saved shot or card.
-   **Catch me up** gives a recap of the last 10 minutes.
-4. **Show the pitch & data** (or open the [broadcast desk directly](https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/?view=desk)) adds the pitch, the evidence timeline, the Why card and the three listening modes. Its
-   header has the language switch; [open in Turkish](https://ca-engine.proudflower-32a91b05.swedencentral.azurecontainerapps.io/?lang=tr) (`?lang=tr`).
+1. [The problem](#the-problem)
+2. [Experience a match](#experience-a-match)
+3. [How it works](#how-it-works)
+4. [Challenge fit](#challenge-fit)
+5. [What you hear](#what-you-hear)
+6. [Two views, one session](#two-views-one-session)
+7. [Why you can trust it](#why-you-can-trust-it)
+8. [Microsoft Foundry](#microsoft-foundry)
+9. [Evidence](#evidence)
+10. [What we learned](#what-we-learned)
+11. [Built and not built](#built-and-not-built)
+12. [Limitations](#limitations)
+13. [Run it](#run-it)
+14. [Overlay feed (machine-readable)](#overlay-feed-machine-readable)
+15. [Repository layout](#repository-layout)
+16. [License and attribution](#license-and-attribution)
 
 ---
 
